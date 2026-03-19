@@ -27,6 +27,20 @@ obs-install:
   cd apps/server && bun install
   cd apps/client && bun install
 
+# ─── Submodules ─────────────────────────────────────────
+
+# Initialize all submodules
+sub-init:
+  git submodule update --init --recursive
+
+# Update all submodules to latest remote
+sub-update:
+  git submodule update --remote --merge
+
+# Run a just recipe in a submodule (e.g., just sub pinboard start)
+sub project +recipe:
+  cd {{project}} && just {{recipe}}
+
 # ─── Claude Code Sessions ─────────────────────────────────
 
 # Deterministic codebase setup
