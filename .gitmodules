@@ -1,0 +1,3 @@
+[submodule "pinboard"]
+	path = pinboard
+	url = https://github.com/Dragon-hearted/pinboard.git
