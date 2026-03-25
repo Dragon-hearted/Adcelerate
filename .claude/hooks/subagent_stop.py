@@ -77,6 +77,65 @@ def announce_subagent_completion():
         pass
 
 
+def close_tmux_monitor_pane(agent_id, log_dir):
+    """
+    Close the tmux monitoring pane for a completed subagent.
+    Shows a completion message briefly before closing.
+    """
+    try:
+        if not os.environ.get("TMUX"):
+            return
+
+        pane_tracker = log_dir / "tmux_panes.json"
+        if not pane_tracker.exists():
+            return
+
+        with open(pane_tracker, "r") as f:
+            pane_data = json.load(f)
+
+        if agent_id not in pane_data:
+            return
+
+        pane_id = pane_data[agent_id]["pane_id"]
+        agent_type = pane_data[agent_id].get("agent_type", "unknown")
+
+        # Send a completion message to the pane, then close after 3s
+        completion_cmd = (
+            f"echo ''; "
+            f"echo '\\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m'; "
+            f"echo '\\033[1;32m✓ SUBAGENT COMPLETE: {agent_type} ({agent_id[:8]}...)\\033[0m'; "
+            f"echo '\\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m'; "
+            f"sleep 3"
+        )
+
+        # Send keys to interrupt the tail and show completion
+        subprocess.run(
+            ["tmux", "send-keys", "-t", pane_id, "C-c", ""],
+            capture_output=True, timeout=3
+        )
+        subprocess.run(
+            ["tmux", "send-keys", "-t", pane_id, completion_cmd, "Enter"],
+            capture_output=True, timeout=3
+        )
+
+        # Schedule pane close after the sleep
+        subprocess.run(
+            ["tmux", "send-keys", "-t", pane_id,
+             f"tmux kill-pane -t {pane_id} 2>/dev/null", "Enter"],
+            capture_output=True, timeout=3
+        )
+
+        # Remove from tracker
+        del pane_data[agent_id]
+        with open(pane_tracker, "w") as f:
+            json.dump(pane_data, f, indent=2)
+
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
+        pass
+    except Exception:
+        pass
+
+
 def main():
     try:
         # Parse command line arguments
@@ -131,6 +190,9 @@ def main():
         # Write back to file with formatting
         with open(log_path, "w") as f:
             json.dump(log_data, f, indent=2)
+
+        # Close the tmux monitoring pane for this subagent
+        close_tmux_monitor_pane(agent_id, log_dir)
 
         # Handle --chat switch (same as stop.py)
         if args.chat and "transcript_path" in input_data:

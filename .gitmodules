@@ -1,3 +1,6 @@
 [submodule "pinboard"]
 	path = pinboard
 	url = https://github.com/Dragon-hearted/pinboard.git
+[submodule "autoCaption"]
+	path = autoCaption
+	url = https://github.com/Dragon-hearted/autoCaption.git
