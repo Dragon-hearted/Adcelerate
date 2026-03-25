@@ -33,8 +33,7 @@ class Logger:
             f.write(f"{'='*60}\n")
 
     def log(self, message: str) -> None:
-        """Print to stderr and append to log file."""
-        print(message, file=sys.stderr)
+        """Append to log file."""
         with open(self.log_path, "a") as f:
             f.write(message + "\n")
 
@@ -53,7 +52,7 @@ def read_hook_input() -> dict:
 def output_result(context: str) -> dict:
     """Build and return structured JSON result."""
     return {
-        "hookSpecificOutput": {"hookEventName": "Setup", "additionalContext": context}
+        "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": context}
     }
 
 

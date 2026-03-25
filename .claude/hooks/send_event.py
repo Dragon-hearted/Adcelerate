@@ -45,14 +45,11 @@ def send_event_to_server(event_data, server_url='http://localhost:4000/events'):
             if response.status == 200:
                 return True
             else:
-                print(f"Server returned status: {response.status}", file=sys.stderr)
                 return False
-                
-    except urllib.error.URLError as e:
-        print(f"Failed to send event: {e}", file=sys.stderr)
+
+    except urllib.error.URLError:
         return False
-    except Exception as e:
-        print(f"Unexpected error: {e}", file=sys.stderr)
+    except Exception:
         return False
 
 def main():
@@ -69,8 +66,7 @@ def main():
     try:
         # Read hook data from stdin
         input_data = json.load(sys.stdin)
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse JSON input: {e}", file=sys.stderr)
+    except json.JSONDecodeError:
         sys.exit(1)
     
     # Extract model name from transcript (with caching)
@@ -161,8 +157,8 @@ def main():
                 
                 # Add chat to event data
                 event_data['chat'] = chat_data
-            except Exception as e:
-                print(f"Failed to read transcript: {e}", file=sys.stderr)
+            except Exception:
+                pass
     
     # Generate summary if requested
     if args.summarize:

@@ -63,6 +63,10 @@ cldit:
 cldmm:
   claude --model opus --dangerously-skip-permissions --maintenance "/maintenance"
 
+# Start Discord channel session
+discord:
+  claude --model opus --dangerously-skip-permissions --channels plugin:discord@claude-plugins-official
+
 # ─── Cleanup ──────────────────────────────────────────────
 
 # Reset artifacts (logs, results)

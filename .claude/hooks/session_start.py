@@ -40,8 +40,7 @@ class Logger:
             f.write(f"{'='*60}\n")
 
     def log(self, message: str) -> None:
-        """Print to stderr and append to log file."""
-        print(message, file=sys.stderr)
+        """Append to log file."""
         with open(self.log_path, "a") as f:
             f.write(message + "\n")
 

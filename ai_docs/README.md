@@ -11,3 +11,4 @@ https://docs.claude.com/en/docs/claude-code/hooks - Claude Code Hooks Reference
 https://docs.claude.com/en/docs/claude-code/hooks-guide - Claude Code Hooks Guide
 https://docs.claude.com/en/docs/claude-code/plugins - Claude Code Plugins
 https://code.claude.com/docs/en/agent-teams - Claude Code Agent Teams (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)
+https://code.claude.com/docs/en/channels - Claude Code Channels Guide

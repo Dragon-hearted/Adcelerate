@@ -1,0 +1,85 @@
+{
+  "repository_type": "monorepo",
+  "parts": [
+    {
+      "part_id": "autocaption",
+      "display_name": "autoCaption",
+      "project_type_id": "cli",
+      "root_path": "autoCaption/",
+      "description": "Video captioning CLI tool using Whisper.cpp + Remotion",
+      "tech_stack": ["Bun", "TypeScript", "Remotion 4", "Whisper.cpp", "Zod", "Vitest", "Biome"],
+      "entry_point": "src/cli.ts",
+      "is_submodule": true,
+      "repo_url": "https://github.com/Dragon-hearted/autoCaption.git"
+    },
+    {
+      "part_id": "pinboard",
+      "display_name": "Pinboard",
+      "project_type_id": "web",
+      "root_path": "pinboard/",
+      "description": "AI-powered image generation app with reference image support",
+      "tech_stack": ["Bun", "TypeScript", "React 19", "Hono", "Vite", "Tailwind CSS", "SQLite", "fal.ai", "Google Generative AI"],
+      "entry_point": "server/src/index.ts",
+      "is_submodule": true,
+      "repo_url": "https://github.com/Dragon-hearted/pinboard.git"
+    },
+    {
+      "part_id": "observability",
+      "display_name": "Observability Dashboard",
+      "project_type_id": "web",
+      "root_path": "apps/",
+      "description": "Multi-agent observability dashboard for Claude Code sessions",
+      "tech_stack": ["Bun", "TypeScript", "Vue 3", "Vite", "Tailwind CSS", "SQLite", "WebSocket"],
+      "entry_point": "server/src/index.ts",
+      "is_submodule": false
+    },
+    {
+      "part_id": "platform",
+      "display_name": "Platform (Root)",
+      "project_type_id": "library",
+      "root_path": ".",
+      "description": "Agent skill library, Claude Code hooks, justfile orchestration",
+      "tech_stack": ["Python", "just", "YAML", "Shell"],
+      "entry_point": "justfile",
+      "is_submodule": false
+    }
+  ],
+  "integration_points": [
+    {
+      "from": "platform",
+      "to": "observability",
+      "type": "HTTP POST",
+      "details": "Claude Code hooks send events to observability server"
+    },
+    {
+      "from": "observability.server",
+      "to": "observability.client",
+      "type": "WebSocket",
+      "details": "Real-time event streaming to dashboard"
+    },
+    {
+      "from": "platform",
+      "to": "autocaption",
+      "type": "Shell delegation",
+      "details": "Justfile delegates to submodule justfile"
+    },
+    {
+      "from": "platform",
+      "to": "pinboard",
+      "type": "Shell delegation",
+      "details": "Justfile delegates to submodule justfile"
+    },
+    {
+      "from": "pinboard.client",
+      "to": "pinboard.server",
+      "type": "HTTP REST",
+      "details": "Frontend communicates with Hono API"
+    },
+    {
+      "from": "pinboard.server",
+      "to": "fal.ai",
+      "type": "HTTP REST",
+      "details": "Image generation via NanoBanana Pro model"
+    }
+  ]
+}
