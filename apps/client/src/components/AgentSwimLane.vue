@@ -101,10 +101,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import type { HookEvent, TimeRange, ChartConfig } from '../types';
-import { useAgentChartData } from '../composables/useAgentChartData';
+import { useChartData } from '../composables/useChartData';
 import { createChartRenderer, type ChartDimensions } from '../utils/chartRenderer';
 import { useEventEmojis } from '../composables/useEventEmojis';
 import { useEventColors } from '../composables/useEventColors';
+import { formatModelName, formatGap } from '../utils/formatters';
 
 const props = defineProps<{
   agentName: string; // Format: "app:session" (e.g., "claude-code:a1b2c3d4")
@@ -122,15 +123,6 @@ const chartHeight = 80;
 const hoveredEventCount = ref(false);
 const hoveredToolCount = ref(false);
 const hoveredAvgTime = ref(false);
-
-// Format gap time in ms to readable string (e.g., "125ms" or "1.2s")
-const formatGap = (gapMs: number): string => {
-  if (gapMs === 0) return '—';
-  if (gapMs < 1000) {
-    return `${Math.round(gapMs)}ms`;
-  }
-  return `${(gapMs / 1000).toFixed(1)}s`;
-};
 
 // Extract app name and session ID from agent ID for display
 const appName = computed(() => props.agentName.split(':')[0]);
@@ -150,20 +142,6 @@ const modelName = computed(() => {
   return mostRecent.model_name;
 });
 
-// Format model name for display (e.g., "claude-haiku-4-5-20251001" -> "haiku-4-5")
-const formatModelName = (name: string | null | undefined): string => {
-  if (!name) return '';
-
-  // Extract model family and version
-  // "claude-haiku-4-5-20251001" -> "haiku-4-5"
-  // "claude-sonnet-4-5-20250929" -> "sonnet-4-5"
-  const parts = name.split('-');
-  if (parts.length >= 4) {
-    return `${parts[1]}-${parts[2]}-${parts[3]}`;
-  }
-  return name;
-};
-
 const {
   dataPoints,
   addEvent,
@@ -171,11 +149,14 @@ const {
   setTimeRange,
   cleanup: cleanupChartData,
   eventTimingMetrics: agentEventTimingMetrics
-} = useAgentChartData(props.agentName);
+} = useChartData(props.agentName);
 
 let renderer: ReturnType<typeof createChartRenderer> | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let animationFrame: number | null = null;
+let renderLoopId: number | null = null;
+let renderLoopRunning = false;
+let visibilityHandler: (() => void) | null = null;
 const processedEventIds = new Set<string>();
 
 const { formatEventTypeLabel } = useEventEmojis();
@@ -417,20 +398,51 @@ onMounted(() => {
   const frameInterval = 1000 / targetFPS;
 
   const renderLoop = (currentTime: number) => {
-    const deltaTime = currentTime - lastRenderTime;
+    if (!renderLoopRunning) return;
 
-    if (deltaTime >= frameInterval) {
-      render();
-      lastRenderTime = currentTime - (deltaTime % frameInterval);
+    if (!document.hidden) {
+      const deltaTime = currentTime - lastRenderTime;
+
+      if (deltaTime >= frameInterval) {
+        render();
+        lastRenderTime = currentTime - (deltaTime % frameInterval);
+      }
     }
 
-    requestAnimationFrame(renderLoop);
+    renderLoopId = requestAnimationFrame(renderLoop);
   };
-  requestAnimationFrame(renderLoop);
+
+  renderLoopRunning = true;
+  renderLoopId = requestAnimationFrame(renderLoop);
+
+  // Pause/resume render loop on tab visibility change
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      renderLoopRunning = false;
+      if (renderLoopId) {
+        cancelAnimationFrame(renderLoopId);
+        renderLoopId = null;
+      }
+    } else {
+      if (!renderLoopRunning) {
+        renderLoopRunning = true;
+        renderLoopId = requestAnimationFrame(renderLoop);
+      }
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  visibilityHandler = handleVisibilityChange;
 });
 
 onUnmounted(() => {
   cleanupChartData();
+
+  // Stop the render loop
+  renderLoopRunning = false;
+  if (renderLoopId) {
+    cancelAnimationFrame(renderLoopId);
+    renderLoopId = null;
+  }
 
   if (renderer) {
     renderer.stopAnimation();
@@ -442,6 +454,12 @@ onUnmounted(() => {
 
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
+  }
+
+  // Remove visibility change listener
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler);
+    visibilityHandler = null;
   }
 
   themeObserver.disconnect();

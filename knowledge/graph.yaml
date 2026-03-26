@@ -1,0 +1,63 @@
+# Adcelerate Knowledge Graph
+# Central topology of all registered systems, their relationships, and failure patterns.
+# Flat structure optimized for agent scanning (NFR13).
+# Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
+
+metadata:
+  lastUpdated: "2026-03-25"
+  systemCount: 2
+
+# Per-system entries added during Build Mode registration or migration
+# Schema per system:
+#   depends_on: [{system: id, type: runtime|build|optional}]
+#   shared_models: [string]
+#   related_systems: [string]
+#   failure_patterns: [string] (references to failure_patterns.id below)
+systems:
+  autocaption:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "ffmpeg", type: "runtime" }
+      - { system: "whisper-cpp", type: "runtime" }
+      - { system: "remotion", type: "runtime" }
+    shared_models: []
+    related_systems:
+      - "pinboard"
+    failure_patterns: []
+
+  pinboard:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "sqlite", type: "runtime" }
+      - { system: "google-ai", type: "runtime" }
+      - { system: "vite", type: "build" }
+      - { system: "fal-ai", type: "optional" }
+    shared_models: []
+    related_systems:
+      - "autocaption"
+    failure_patterns: []
+
+# Cross-system relationships
+# Schema: {from: id, to: id, type: pipeline|shared-dependency|shared-model, description: string}
+relationships:
+  - from: "autocaption"
+    to: "pinboard"
+    type: "shared-dependency"
+    description: "Both systems use Bun as their JavaScript/TypeScript runtime"
+  - from: "autocaption"
+    to: "pinboard"
+    type: "shared-dependency"
+    description: "Both systems use React 19 for UI rendering (Remotion compositions / web client)"
+  - from: "autocaption"
+    to: "pinboard"
+    type: "shared-dependency"
+    description: "Both systems use TypeScript with similar toolchain versions"
+
+# Known failure patterns for accelerated diagnosis
+# Schema: {id: fp-NNN, description: string, diagnosed: date, resolution: string, affects: [system-id]}
+failure_patterns:
+  - id: "fp-001"
+    description: "Tmux teammates appear as anonymous sessions in observability — no team_name, teammate_name, or agent_type in SessionStart events"
+    diagnosed: "2026-03-26"
+    resolution: "Added detect_team_membership() to send_event.py that scans ~/.claude/teams/*/config.json and enriches SessionStart events with team_info (team_name, teammate_name, teammate_type, is_team_lead)"
+    affects: ["observability"]

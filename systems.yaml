@@ -1,0 +1,86 @@
+# Adcelerate System Registry
+# Single source of truth for system discovery and routing.
+# Only Build Mode registration and Diagnosis workflows write to this file.
+# Execute Mode, validation, and platform management read from it.
+#
+# Schema Reference (from Architecture Decision 2a):
+#   name: string (required) — Display name
+#   path: string (required) — Relative path from monorepo root
+#   status: enum (required) — building | active | degraded | broken
+#   description: string (required) — Natural language description for NL fallback matching
+#   task_types: string[] (required) — Structured capability tags for primary matching
+#   knowledge_path: string (required) — Path to system's knowledge directory
+#   input_types: string[] (optional) — What the system accepts
+#   output_types: string[] (optional) — What the system produces
+#   domain_tags: string[] (optional) — Domain categorization
+#   entry_point: string (optional) — Main file path
+#   justfile: boolean (optional) — Whether system has its own justfile
+#   stages: object[] (optional) — Execute Mode stage definitions [{name, produces}]
+#   registered_at: date (optional) — Registration timestamp
+#   last_validated: date (optional) — Last successful validation
+
+# System identifier is the kebab-case key (e.g., autocaption, pinboard)
+
+autocaption:
+  name: "autoCaption"
+  path: "autoCaption"
+  status: "active"
+  description: "Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video"
+  task_types:
+    - "video-captioning"
+    - "transcription"
+    - "subtitle-generation"
+  knowledge_path: "autoCaption/knowledge"
+  input_types:
+    - "video-file"
+  output_types:
+    - "captioned-video"
+    - "captions-json"
+  domain_tags:
+    - "video"
+    - "ai"
+    - "media-processing"
+  entry_point: "autoCaption/src/cli.ts"
+  justfile: true
+  stages:
+    - name: "transcription"
+      produces: "Caption[] array with word-level timestamps from Whisper.cpp"
+    - name: "caption-styling"
+      produces: "Validated CaptionStyle configuration via Zod schema"
+    - name: "rendering"
+      produces: "Final captioned MP4 video file (1080x1920, h264)"
+  registered_at: "2026-03-25"
+  last_validated: "2026-03-25"
+
+pinboard:
+  name: "Pinboard"
+  path: "pinboard"
+  status: "active"
+  description: "AI-powered image generation and reference board application with iterative workflow -- upload references, generate via Google Gemini/fal.ai, feed results back as references"
+  task_types:
+    - "image-generation"
+    - "reference-management"
+    - "visual-content"
+  knowledge_path: "pinboard/knowledge"
+  input_types:
+    - "images"
+    - "text-prompt"
+  output_types:
+    - "generated-image"
+    - "image-gallery"
+  domain_tags:
+    - "web-app"
+    - "ai"
+    - "image-generation"
+    - "visual"
+  entry_point: "pinboard/server/src/index.ts"
+  justfile: true
+  stages:
+    - name: "content-ingestion"
+      produces: "Uploaded reference images stored in SQLite + uploads/ directory"
+    - name: "image-generation"
+      produces: "AI-generated image from prompt + reference images via provider registry"
+    - name: "delivery"
+      produces: "Rendered React web interface with generation history and reference gallery"
+  registered_at: "2026-03-25"
+  last_validated: "2026-03-25"
