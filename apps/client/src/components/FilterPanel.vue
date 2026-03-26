@@ -1,14 +1,14 @@
 <template>
-  <div class="bg-gradient-to-r from-[var(--theme-bg-primary)] to-[var(--theme-bg-secondary)] border-b-2 border-[var(--theme-primary)] px-3 py-4 mobile:py-2 shadow-lg">
-    <div class="flex flex-wrap gap-3 items-center mobile:flex-col mobile:items-stretch">
-      <div class="flex-1 min-w-0 mobile:w-full">
-        <label class="block text-base mobile:text-sm font-bold text-[var(--theme-primary)] mb-1.5 drop-shadow-sm">
-          Source App
+  <div class="bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-primary)] px-4 py-2.5 mobile:px-3 mobile:py-2">
+    <div class="flex flex-wrap gap-2.5 items-end mobile:flex-col mobile:items-stretch">
+      <div class="min-w-[140px] mobile:w-full">
+        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
+          Source
         </label>
         <select
           v-model="localFilters.sourceApp"
           @change="updateFilters"
-          class="w-full px-4 py-2 mobile:px-2 mobile:py-1.5 text-base mobile:text-sm border border-[var(--theme-primary)] rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)]/30 focus:border-[var(--theme-primary-dark)] bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] shadow-md hover:shadow-lg transition-all duration-200"
+          class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
         >
           <option value="">All Sources</option>
           <option v-for="app in filterOptions.source_apps" :key="app" :value="app">
@@ -16,15 +16,15 @@
           </option>
         </select>
       </div>
-      
-      <div class="flex-1 min-w-0 mobile:w-full">
-        <label class="block text-base mobile:text-sm font-bold text-[var(--theme-primary)] mb-1.5 drop-shadow-sm">
-          Session ID
+
+      <div class="min-w-[140px] mobile:w-full">
+        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
+          Session
         </label>
         <select
           v-model="localFilters.sessionId"
           @change="updateFilters"
-          class="w-full px-4 py-2 mobile:px-2 mobile:py-1.5 text-base mobile:text-sm border border-[var(--theme-primary)] rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)]/30 focus:border-[var(--theme-primary-dark)] bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] shadow-md hover:shadow-lg transition-all duration-200"
+          class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
         >
           <option value="">All Sessions</option>
           <option v-for="session in filterOptions.session_ids" :key="session" :value="session">
@@ -32,15 +32,15 @@
           </option>
         </select>
       </div>
-      
-      <div class="flex-1 min-w-0 mobile:w-full">
-        <label class="block text-base mobile:text-sm font-bold text-[var(--theme-primary)] mb-1.5 drop-shadow-sm">
+
+      <div class="min-w-[140px] mobile:w-full">
+        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
           Event Type
         </label>
         <select
           v-model="localFilters.eventType"
           @change="updateFilters"
-          class="w-full px-4 py-2 mobile:px-2 mobile:py-1.5 text-base mobile:text-sm border border-[var(--theme-primary)] rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)]/30 focus:border-[var(--theme-primary-dark)] bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] shadow-md hover:shadow-lg transition-all duration-200"
+          class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
         >
           <option value="">All Types</option>
           <option v-for="type in filterOptions.hook_event_types" :key="type" :value="type">
@@ -48,11 +48,27 @@
           </option>
         </select>
       </div>
-      
+
+      <div v-if="uniqueTeamNames.length > 0" class="min-w-[140px] mobile:w-full">
+        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
+          Team
+        </label>
+        <select
+          v-model="localFilters.team"
+          @change="updateFilters"
+          class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
+        >
+          <option value="">All Teams</option>
+          <option v-for="team in uniqueTeamNames" :key="team" :value="team">
+            {{ team }}
+          </option>
+        </select>
+      </div>
+
       <button
         v-if="hasActiveFilters"
         @click="clearFilters"
-        class="px-4 py-2 mobile:px-2 mobile:py-1.5 mobile:w-full text-base mobile:text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+        class="px-3 py-1.5 mobile:w-full text-sm font-medium text-[var(--theme-text-secondary)] bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-quaternary)] rounded-md border border-[var(--theme-border-primary)] transition-colors duration-150"
       >
         Clear Filters
       </button>
@@ -61,8 +77,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import type { FilterOptions } from '../types';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import type { FilterOptions, HookEvent } from '../types';
 import { API_BASE_URL } from '../config';
 
 const props = defineProps<{
@@ -70,7 +86,9 @@ const props = defineProps<{
     sourceApp: string;
     sessionId: string;
     eventType: string;
+    team: string;
   };
+  events: HookEvent[];
 }>();
 
 const emit = defineEmits<{
@@ -83,10 +101,19 @@ const filterOptions = ref<FilterOptions>({
   hook_event_types: []
 });
 
+const uniqueTeamNames = computed(() => {
+  const teams = new Set<string>();
+  for (const event of props.events) {
+    const teamName = event.payload?.team_info?.team_name;
+    if (teamName) teams.add(teamName);
+  }
+  return Array.from(teams).sort();
+});
+
 const localFilters = ref({ ...props.filters });
 
 const hasActiveFilters = computed(() => {
-  return localFilters.value.sourceApp || localFilters.value.sessionId || localFilters.value.eventType;
+  return localFilters.value.sourceApp || localFilters.value.sessionId || localFilters.value.eventType || localFilters.value.team;
 });
 
 const updateFilters = () => {
@@ -97,7 +124,8 @@ const clearFilters = () => {
   localFilters.value = {
     sourceApp: '',
     sessionId: '',
-    eventType: ''
+    eventType: '',
+    team: ''
   };
   updateFilters();
 };
@@ -113,9 +141,18 @@ const fetchFilterOptions = async () => {
   }
 };
 
+let filterRefreshInterval: ReturnType<typeof setInterval> | null = null;
+
 onMounted(() => {
   fetchFilterOptions();
   // Refresh filter options periodically
-  setInterval(fetchFilterOptions, 10000);
+  filterRefreshInterval = setInterval(fetchFilterOptions, 10000);
+});
+
+onUnmounted(() => {
+  if (filterRefreshInterval) {
+    clearInterval(filterRefreshInterval);
+    filterRefreshInterval = null;
+  }
 });
 </script>

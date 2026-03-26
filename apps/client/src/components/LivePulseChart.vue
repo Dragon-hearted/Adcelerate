@@ -1,57 +1,45 @@
 <template>
-  <div class="bg-gradient-to-r from-[var(--theme-bg-primary)] to-[var(--theme-bg-secondary)] px-3 py-4 mobile:py-2 shadow-lg">
-    <div class="flex items-center justify-between mb-3 mobile:mb-2">
+  <div class="bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-primary)] px-4 py-2.5 mobile:px-3 mobile:py-2">
+    <div class="flex items-center justify-between mb-2 mobile:mb-1.5">
       <div class="flex items-center gap-3 mobile:gap-2">
-        <h3 class="text-base mobile:text-xs font-bold text-[var(--theme-primary)] drop-shadow-sm flex items-center">
-          <span class="mr-1.5 mobile:mr-1 text-xl mobile:text-sm">📊</span>
-          <span class="mobile:hidden">Live Activity Pulse</span>
+        <h3 class="text-xs font-medium text-[var(--theme-text-tertiary)] uppercase tracking-wider mobile:hidden">
+          Activity
         </h3>
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <div
-            class="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-[var(--theme-primary)]/10 to-[var(--theme-primary-light)]/10 rounded-lg border border-[var(--theme-primary)]/30 shadow-sm"
-            :title="`${uniqueAgentCount} active agent${uniqueAgentCount !== 1 ? 's' : ''}`"
-          >
-            <span class="text-lg mobile:text-base">👥</span>
-            <span class="text-sm mobile:text-xs font-bold text-[var(--theme-primary)]">{{ uniqueAgentCount }}</span>
-            <span class="text-xs mobile:text-[10px] text-[var(--theme-text-tertiary)] font-medium mobile:hidden">agents</span>
+        <div class="flex items-center gap-2 mobile:gap-1.5">
+          <div class="flex items-center gap-1 text-xs tabular-nums" :title="`${uniqueAgentCount} active agents`">
+            <svg class="w-3.5 h-3.5 text-[var(--theme-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+            <span class="font-semibold text-[var(--theme-text-primary)]">{{ uniqueAgentCount }}</span>
           </div>
-          <div
-            class="flex items-center gap-1.5 px-2 py-1 bg-[var(--theme-bg-tertiary)] rounded-lg border border-[var(--theme-border-primary)] shadow-sm"
-            :title="`Total events in the last ${timeRange === '1m' ? '1 minute' : timeRange === '3m' ? '3 minutes' : timeRange === '5m' ? '5 minutes' : '10 minutes'}`"
-          >
-            <span class="text-lg mobile:text-base">⚡</span>
-            <span class="text-sm mobile:text-xs font-bold text-[var(--theme-text-primary)]">{{ totalEventCount }}</span>
-            <span class="text-xs mobile:text-[10px] text-[var(--theme-text-tertiary)] font-medium mobile:hidden">events</span>
+          <span class="text-[var(--theme-border-secondary)]">|</span>
+          <div class="flex items-center gap-1 text-xs tabular-nums" :title="`${totalEventCount} events`">
+            <span class="font-semibold text-[var(--theme-text-primary)]">{{ totalEventCount }}</span>
+            <span class="text-[var(--theme-text-quaternary)] mobile:hidden">events</span>
           </div>
-          <div
-            class="flex items-center gap-1.5 px-2 py-1 bg-[var(--theme-bg-tertiary)] rounded-lg border border-[var(--theme-border-primary)] shadow-sm"
-            :title="`Total tool calls in the last ${timeRange === '1m' ? '1 minute' : timeRange === '3m' ? '3 minutes' : timeRange === '5m' ? '5 minutes' : '10 minutes'}`"
-          >
-            <span class="text-lg mobile:text-base">🔧</span>
-            <span class="text-sm mobile:text-xs font-bold text-[var(--theme-text-primary)]">{{ toolCallCount }}</span>
-            <span class="text-xs mobile:text-[10px] text-[var(--theme-text-tertiary)] font-medium mobile:hidden">tools</span>
+          <span class="text-[var(--theme-border-secondary)]">|</span>
+          <div class="flex items-center gap-1 text-xs tabular-nums" :title="`${toolCallCount} tool calls`">
+            <span class="font-semibold text-[var(--theme-text-primary)]">{{ toolCallCount }}</span>
+            <span class="text-[var(--theme-text-quaternary)] mobile:hidden">tools</span>
           </div>
-          <div
-            class="flex items-center gap-1.5 px-2 py-1 bg-[var(--theme-bg-tertiary)] rounded-lg border border-[var(--theme-border-primary)] shadow-sm"
-            :title="`Average time between events in the last ${timeRange === '1m' ? '1 minute' : timeRange === '3m' ? '3 minutes' : timeRange === '5m' ? '5 minutes' : '10 minutes'}`"
-          >
-            <span class="text-lg mobile:text-base">🕐</span>
-            <span class="text-sm mobile:text-xs font-bold text-[var(--theme-text-primary)]">{{ formatGap(eventTimingMetrics.avgGap) }}</span>
-            <span class="text-xs mobile:text-[10px] text-[var(--theme-text-tertiary)] font-medium mobile:hidden">avg gap</span>
+          <span class="text-[var(--theme-border-secondary)]">|</span>
+          <div class="flex items-center gap-1 text-xs tabular-nums" :title="`Average gap between events`">
+            <span class="font-semibold text-[var(--theme-text-primary)]">{{ formatGap(eventTimingMetrics.avgGap) }}</span>
+            <span class="text-[var(--theme-text-quaternary)] mobile:hidden">avg</span>
           </div>
         </div>
       </div>
-      <div class="flex gap-1.5 mobile:gap-1" role="tablist" aria-label="Time range selector">
+      <div class="flex gap-0.5 bg-[var(--theme-bg-secondary)] rounded-md p-0.5 border border-[var(--theme-border-primary)]" role="tablist" aria-label="Time range selector">
         <button
           v-for="(range, index) in timeRanges"
           :key="range"
           @click="setTimeRange(range)"
           @keydown="handleTimeRangeKeyDown($event, index)"
           :class="[
-            'px-3 py-1.5 mobile:px-2 mobile:py-1 text-sm mobile:text-xs font-bold rounded-lg transition-all duration-200 min-w-[30px] mobile:min-w-[24px] min-h-[30px] mobile:min-h-[24px] flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105 border',
+            'px-2 py-0.5 text-xs font-medium rounded transition-colors duration-150',
             timeRange === range
-              ? 'bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-primary-light)] text-white border-[var(--theme-primary-dark)] drop-shadow-md'
-              : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-quaternary)] hover:border-[var(--theme-primary)]'
+              ? 'bg-[var(--theme-primary)] text-white shadow-sm'
+              : 'text-[var(--theme-text-tertiary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
           ]"
           role="tab"
           :aria-selected="timeRange === range"
@@ -62,7 +50,7 @@
         </button>
       </div>
     </div>
-    <div ref="chartContainer" class="relative">
+    <div ref="chartContainer" class="relative rounded-md overflow-hidden border border-[var(--theme-border-primary)]">
       <canvas
         ref="canvas"
         class="w-full cursor-crosshair"
@@ -74,7 +62,7 @@
       ></canvas>
       <div
         v-if="tooltip.visible"
-        class="absolute bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-primary-dark)] text-white px-2 py-1.5 mobile:px-3 mobile:py-2 rounded-lg text-xs mobile:text-sm pointer-events-none z-10 shadow-lg border border-[var(--theme-primary-light)] font-bold drop-shadow-md"
+        class="absolute bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] px-2 py-1 rounded text-xs pointer-events-none z-10 shadow-lg border border-[var(--theme-border-secondary)] font-mono tabular-nums"
         :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
       >
         {{ tooltip.text }}
@@ -83,8 +71,7 @@
         v-if="!hasData"
         class="absolute inset-0 flex items-center justify-center"
       >
-        <p class="text-[var(--theme-text-tertiary)] mobile:text-sm text-base font-semibold">
-          <span class="mr-1.5 text-base">⏳</span>
+        <p class="text-xs text-[var(--theme-text-quaternary)]">
           Waiting for events...
         </p>
       </div>
@@ -99,6 +86,7 @@ import { useChartData } from '../composables/useChartData';
 import { createChartRenderer, type ChartDimensions } from '../utils/chartRenderer';
 import { useEventEmojis } from '../composables/useEventEmojis';
 import { useEventColors } from '../composables/useEventColors';
+import { formatGap } from '../utils/formatters';
 
 const props = defineProps<{
   events: HookEvent[];
@@ -106,6 +94,7 @@ const props = defineProps<{
     sourceApp: string;
     sessionId: string;
     eventType: string;
+    team: string;
   };
 }>();
 
@@ -137,15 +126,6 @@ const {
   eventTimingMetrics
 } = useChartData();
 
-// Format gap time in ms to readable string (e.g., "125ms" or "1.2s")
-const formatGap = (gapMs: number): string => {
-  if (gapMs === 0) return '—';
-  if (gapMs < 1000) {
-    return `${Math.round(gapMs)}ms`;
-  }
-  return `${(gapMs / 1000).toFixed(1)}s`;
-};
-
 // Watch uniqueAgentIdsInWindow and emit updates (for active agents in time window)
 watch(uniqueAgentIdsInWindow, (agentIds) => {
   emit('updateUniqueApps', agentIds);
@@ -164,6 +144,9 @@ watch(timeRange, (range) => {
 let renderer: ReturnType<typeof createChartRenderer> | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let animationFrame: number | null = null;
+let renderLoopId: number | null = null;
+let renderLoopRunning = false;
+let visibilityHandler: (() => void) | null = null;
 const processedEventIds = new Set<string>();
 
 const { formatEventTypeLabel } = useEventEmojis();
@@ -464,22 +447,55 @@ onMounted(() => {
   let lastRenderTime = 0;
   const targetFPS = 30;
   const frameInterval = 1000 / targetFPS;
-  
+
   const renderLoop = (currentTime: number) => {
-    const deltaTime = currentTime - lastRenderTime;
-    
-    if (deltaTime >= frameInterval) {
-      render();
-      lastRenderTime = currentTime - (deltaTime % frameInterval);
+    if (!renderLoopRunning) return;
+
+    if (!document.hidden) {
+      const deltaTime = currentTime - lastRenderTime;
+
+      if (deltaTime >= frameInterval) {
+        render();
+        lastRenderTime = currentTime - (deltaTime % frameInterval);
+      }
     }
-    
-    requestAnimationFrame(renderLoop);
+
+    renderLoopId = requestAnimationFrame(renderLoop);
   };
-  requestAnimationFrame(renderLoop);
+
+  renderLoopRunning = true;
+  renderLoopId = requestAnimationFrame(renderLoop);
+
+  // Pause/resume render loop on tab visibility change
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      // Tab hidden — stop the loop
+      renderLoopRunning = false;
+      if (renderLoopId) {
+        cancelAnimationFrame(renderLoopId);
+        renderLoopId = null;
+      }
+    } else {
+      // Tab visible — restart the loop
+      if (!renderLoopRunning) {
+        renderLoopRunning = true;
+        renderLoopId = requestAnimationFrame(renderLoop);
+      }
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  visibilityHandler = handleVisibilityChange;
 });
 
 onUnmounted(() => {
   cleanupChartData();
+
+  // Stop the render loop
+  renderLoopRunning = false;
+  if (renderLoopId) {
+    cancelAnimationFrame(renderLoopId);
+    renderLoopId = null;
+  }
 
   if (renderer) {
     renderer.stopAnimation();
@@ -491,6 +507,12 @@ onUnmounted(() => {
 
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
+  }
+
+  // Remove visibility change listener
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler);
+    visibilityHandler = null;
   }
 
   themeObserver.disconnect();

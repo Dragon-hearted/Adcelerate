@@ -681,10 +681,52 @@ export function useThemes() {
     return COLOR_REGEX.test(color) || RGBA_REGEX.test(color) || CSS.supports('color', color);
   };
 
-  const calculateContrast = (_color1: string, _color2: string): number => {
-    // Simplified contrast calculation
-    // In a real implementation, you'd use a proper color contrast library
-    return 4.5; // Placeholder
+  const calculateContrast = (color1: string, color2: string): number => {
+    // W3C relative luminance + contrast ratio calculation
+    const parseColor = (color: string): [number, number, number] | null => {
+      // Handle hex colors
+      let hex = color.replace('#', '');
+      if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      if (hex.length === 6) {
+        return [
+          parseInt(hex.slice(0, 2), 16) / 255,
+          parseInt(hex.slice(2, 4), 16) / 255,
+          parseInt(hex.slice(4, 6), 16) / 255
+        ];
+      }
+      // Handle rgb/rgba
+      const rgbMatch = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if (rgbMatch) {
+        return [
+          parseInt(rgbMatch[1]) / 255,
+          parseInt(rgbMatch[2]) / 255,
+          parseInt(rgbMatch[3]) / 255
+        ];
+      }
+      return null;
+    };
+
+    // Linearize sRGB channel value
+    const linearize = (c: number): number => {
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+
+    // Relative luminance per W3C spec
+    const luminance = (rgb: [number, number, number]): number => {
+      const [r, g, b] = rgb.map(linearize);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+
+    const c1 = parseColor(color1);
+    const c2 = parseColor(color2);
+    if (!c1 || !c2) return 1; // Cannot parse, return minimum contrast
+
+    const l1 = luminance(c1);
+    const l2 = luminance(c2);
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+
+    return (lighter + 0.05) / (darker + 0.05);
   };
 
   // localStorage functions

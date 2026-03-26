@@ -1,68 +1,82 @@
 <template>
   <div class="flex-1 mobile:h-[50vh] overflow-hidden flex flex-col">
     <!-- Fixed Header -->
-    <div class="px-3 py-4 mobile:py-2 bg-gradient-to-r from-[var(--theme-bg-primary)] to-[var(--theme-bg-secondary)] relative z-10" style="box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3), 0 8px 25px -5px rgba(0, 0, 0, 0.2);">
-      <h2 class="text-2xl mobile:text-lg font-bold text-[var(--theme-primary)] text-center drop-shadow-sm">
-        Agent Event Stream
-      </h2>
+    <div class="px-4 py-3 mobile:px-3 mobile:py-2 bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-primary)] relative z-10">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold text-[var(--theme-text-primary)] uppercase tracking-wider">
+          Event Stream
+        </h2>
+        <span v-if="filteredEvents.length > 0" class="text-xs text-[var(--theme-text-quaternary)] tabular-nums">
+          {{ filteredEvents.length }} event{{ filteredEvents.length !== 1 ? 's' : '' }}
+        </span>
+      </div>
 
       <!-- Agent/App Tags Row -->
-      <div v-if="displayedAgentIds.length > 0" class="mt-3 flex flex-wrap gap-2 mobile:gap-1.5 justify-start">
+      <div v-if="displayedAgentIds.length > 0" class="mb-2 flex flex-wrap gap-1.5 mobile:gap-1">
         <button
           v-for="agentId in displayedAgentIds"
           :key="agentId"
           @click="emit('selectAgent', agentId)"
           :class="[
-            'text-base mobile:text-sm font-bold px-3 mobile:px-2 py-1 rounded-full border-2 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 cursor-pointer',
+            'inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border transition-all duration-150 cursor-pointer',
             isAgentActive(agentId)
-              ? 'text-[var(--theme-text-primary)] bg-[var(--theme-bg-tertiary)]'
-              : 'text-[var(--theme-text-tertiary)] bg-[var(--theme-bg-tertiary)] opacity-50 hover:opacity-75'
+              ? 'border-transparent'
+              : 'border-transparent opacity-40 hover:opacity-70'
           ]"
           :style="{
-            borderColor: getHexColorForApp(getAppNameFromAgentId(agentId)),
-            backgroundColor: getHexColorForApp(getAppNameFromAgentId(agentId)) + (isAgentActive(agentId) ? '33' : '1a')
+            borderColor: getHexColorForApp(getAppNameFromAgentId(agentId)) + '60',
+            backgroundColor: getHexColorForApp(getAppNameFromAgentId(agentId)) + (isAgentActive(agentId) ? '20' : '10'),
+            color: getHexColorForApp(getAppNameFromAgentId(agentId))
           }"
-          :title="`${isAgentActive(agentId) ? 'Active: Click to add' : 'Sleeping: No recent events. Click to add'} ${agentId} to comparison lanes`"
+          :title="`${isAgentActive(agentId) ? 'Active' : 'Sleeping'} — click to add ${agentId} to swim lanes`"
         >
-          <span class="mr-2">{{ isAgentActive(agentId) ? '✨' : '😴' }}</span>
-          <span class="font-mono text-sm">{{ agentId }}</span>
+          <span
+            class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            :class="isAgentActive(agentId) ? 'animate-pulse' : ''"
+            :style="{ backgroundColor: getHexColorForApp(getAppNameFromAgentId(agentId)) }"
+          ></span>
+          <span class="font-mono">{{ agentId }}</span>
+          <span v-if="getTeamForAgent(agentId)" class="opacity-60">{{ getTeamForAgent(agentId) }}</span>
         </button>
       </div>
 
       <!-- Search Bar -->
-      <div class="mt-3 mobile:mt-2 w-full">
-        <div class="flex items-center gap-2 mobile:gap-1">
-          <div class="relative flex-1">
-            <input
-              type="text"
-              :value="searchPattern"
-              @input="updateSearchPattern(($event.target as HTMLInputElement).value)"
-              placeholder="Search events (regex enabled)... e.g., 'tool.*error' or '^GET'"
-              :class="[
-                'w-full px-3 mobile:px-2 py-2 mobile:py-1.5 rounded-lg text-sm mobile:text-xs font-mono border-2 transition-all duration-200',
-                'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-quaternary)]',
-                'border-[var(--theme-border-primary)] focus:border-[var(--theme-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]/20',
-                searchError ? 'border-[var(--theme-accent-error)]' : ''
-              ]"
-              aria-label="Search events with regex pattern"
-            />
-            <button
-              v-if="searchPattern"
-              @click="clearSearch"
-              class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--theme-text-tertiary)] hover:text-[var(--theme-primary)] transition-colors duration-200"
-              title="Clear search"
-              aria-label="Clear search"
-            >
-              ✕
-            </button>
-          </div>
+      <div class="w-full">
+        <div class="relative">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--theme-text-quaternary)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            :value="searchPattern"
+            @input="updateSearchPattern(($event.target as HTMLInputElement).value)"
+            placeholder="Search events (regex)..."
+            :class="[
+              'w-full pl-8 pr-8 py-1.5 rounded-md text-sm mobile:text-xs font-mono border transition-colors duration-150',
+              'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-quaternary)]',
+              'border-[var(--theme-border-primary)] focus:border-[var(--theme-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]',
+              searchError ? 'border-[var(--theme-accent-error)] focus:ring-[var(--theme-accent-error)]' : ''
+            ]"
+            aria-label="Search events with regex pattern"
+          />
+          <button
+            v-if="searchPattern"
+            @click="clearSearch"
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-[var(--theme-text-tertiary)] hover:text-[var(--theme-text-primary)] transition-colors"
+            title="Clear search"
+            aria-label="Clear search"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         <div
           v-if="searchError"
-          class="mt-1.5 mobile:mt-1 px-2 py-1.5 mobile:py-1 bg-[var(--theme-accent-error)]/10 border border-[var(--theme-accent-error)] rounded-lg text-xs mobile:text-[11px] text-[var(--theme-accent-error)] font-semibold"
+          class="mt-1 px-2 py-1 bg-[var(--theme-accent-error)]/10 border border-[var(--theme-accent-error)]/30 rounded text-xs text-[var(--theme-accent-error)]"
           role="alert"
         >
-          <span class="inline-block mr-1">⚠️</span> {{ searchError }}
+          {{ searchError }}
         </div>
       </div>
     </div>
@@ -90,10 +104,14 @@
         />
       </TransitionGroup>
       
-      <div v-if="filteredEvents.length === 0" class="text-center py-8 mobile:py-6 text-[var(--theme-text-tertiary)]">
-        <div class="text-4xl mobile:text-3xl mb-3">🔳</div>
-        <p class="text-lg mobile:text-base font-semibold text-[var(--theme-primary)] mb-1.5">No events to display</p>
-        <p class="text-base mobile:text-sm">Events will appear here as they are received</p>
+      <div v-if="filteredEvents.length === 0" class="flex flex-col items-center justify-center py-16 mobile:py-10 text-center">
+        <div class="w-12 h-12 mb-4 rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center">
+          <svg class="w-6 h-6 text-[var(--theme-text-quaternary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-[var(--theme-text-secondary)] mb-1">Waiting for agent events</p>
+        <p class="text-xs text-[var(--theme-text-quaternary)] max-w-xs">Events will appear here as agents start sending data through the WebSocket connection.</p>
       </div>
     </div>
   </div>
@@ -112,6 +130,7 @@ const props = defineProps<{
     sourceApp: string;
     sessionId: string;
     eventType: string;
+    team: string;
   };
   stickToBottom: boolean;
   uniqueAppNames?: string[]; // Agent IDs (app:session) active in current time window
@@ -142,6 +161,18 @@ const isAgentActive = (agentId: string): boolean => {
   return (props.uniqueAppNames || []).includes(agentId);
 };
 
+// Get team name for an agent from its events
+const getTeamForAgent = (agentId: string): string | null => {
+  const [appName, sessionId] = agentId.split(':');
+  for (const event of props.events) {
+    if (event.source_app === appName && event.session_id?.startsWith(sessionId)) {
+      const teamName = event.payload?.team_info?.team_name;
+      if (teamName) return teamName;
+    }
+  }
+  return null;
+};
+
 const filteredEvents = computed(() => {
   let filtered = props.events.filter(event => {
     if (props.filters.sourceApp && event.source_app !== props.filters.sourceApp) {
@@ -151,6 +182,9 @@ const filteredEvents = computed(() => {
       return false;
     }
     if (props.filters.eventType && event.hook_event_type !== props.filters.eventType) {
+      return false;
+    }
+    if (props.filters.team && event.payload?.team_info?.team_name !== props.filters.team) {
       return false;
     }
     return true;
