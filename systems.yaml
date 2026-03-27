@@ -23,14 +23,14 @@
 
 autocaption:
   name: "autoCaption"
-  path: "autoCaption"
+  path: "systems/autoCaption"
   status: "active"
   description: "Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video"
   task_types:
     - "video-captioning"
     - "transcription"
     - "subtitle-generation"
-  knowledge_path: "autoCaption/knowledge"
+  knowledge_path: "systems/autoCaption/knowledge"
   input_types:
     - "video-file"
   output_types:
@@ -40,7 +40,7 @@ autocaption:
     - "video"
     - "ai"
     - "media-processing"
-  entry_point: "autoCaption/src/cli.ts"
+  entry_point: "systems/autoCaption/src/cli.ts"
   justfile: true
   stages:
     - name: "transcription"
@@ -52,16 +52,63 @@ autocaption:
   registered_at: "2026-03-25"
   last_validated: "2026-03-25"
 
+scene-board:
+  name: "SceneBoard"
+  path: "systems/scene-board"
+  status: "active"
+  description: "CLI-driven storyboard creation system that transforms video briefs of any format into professional storyboards with scripts, timestamps, voice scripts, and NanoBanana Pro prompts for visual generation — leveraging marketing, sales, social media, and ads skills"
+  task_types:
+    - "storyboard-creation"
+    - "script-generation"
+    - "visual-prompt-generation"
+    - "video-pre-production"
+  knowledge_path: "systems/scene-board/knowledge"
+  input_types:
+    - "video-brief"
+    - "script"
+    - "reference-video-link"
+    - "voice-script"
+    - "raw-idea"
+  output_types:
+    - "storyboard-document"
+    - "nanobanana-pro-prompts"
+    - "scene-breakdown"
+  domain_tags:
+    - "video"
+    - "creative"
+    - "marketing"
+    - "ai"
+    - "storyboard"
+  entry_point: "systems/scene-board/src/index.ts"
+  justfile: true
+  stages:
+    - name: "brief-intake"
+      produces: "Parsed brief with identified provided vs. missing components"
+    - name: "context-gathering"
+      produces: "Complete context: brand, audience, platform, goals, component confirmations"
+    - name: "dynamic-generation-approval"
+      produces: "Approved script, voice script, and other generated components"
+    - name: "scene-breakdown"
+      produces: "Scene-by-scene breakdown with timestamps (1 scene = 1 shot = 1 image)"
+    - name: "visual-direction"
+      produces: "Style Anchor document + per-scene visual direction"
+    - name: "nanobanana-prompt-generation"
+      produces: "Optimized NanoBanana Pro prompts per scene with reference image guidance"
+    - name: "final-assembly"
+      produces: "Complete professional storyboard document ready for client delivery"
+  registered_at: "2026-03-26"
+  last_validated: "2026-03-26"
+
 pinboard:
   name: "Pinboard"
-  path: "pinboard"
+  path: "systems/pinboard"
   status: "active"
   description: "AI-powered image generation and reference board application with iterative workflow -- upload references, generate via Google Gemini/fal.ai, feed results back as references"
   task_types:
     - "image-generation"
     - "reference-management"
     - "visual-content"
-  knowledge_path: "pinboard/knowledge"
+  knowledge_path: "systems/pinboard/knowledge"
   input_types:
     - "images"
     - "text-prompt"
@@ -73,7 +120,7 @@ pinboard:
     - "ai"
     - "image-generation"
     - "visual"
-  entry_point: "pinboard/server/src/index.ts"
+  entry_point: "systems/pinboard/server/src/index.ts"
   justfile: true
   stages:
     - name: "content-ingestion"

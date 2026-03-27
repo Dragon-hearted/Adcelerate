@@ -1,6 +1,9 @@
-[submodule "pinboard"]
-	path = pinboard
-	url = https://github.com/Dragon-hearted/pinboard.git
-[submodule "autoCaption"]
-	path = autoCaption
+[submodule "systems/autoCaption"]
+	path = systems/autoCaption
 	url = https://github.com/Dragon-hearted/autoCaption.git
+[submodule "systems/pinboard"]
+	path = systems/pinboard
+	url = https://github.com/Dragon-hearted/pinboard.git
+[submodule "systems/scene-board"]
+	path = systems/scene-board
+	url = https://github.com/Dragon-hearted/scene-board.git

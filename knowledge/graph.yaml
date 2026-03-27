@@ -4,8 +4,8 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-03-25"
-  systemCount: 2
+  lastUpdated: "2026-03-26"
+  systemCount: 3
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -35,6 +35,19 @@ systems:
     shared_models: []
     related_systems:
       - "autocaption"
+      - "scene-board"
+    failure_patterns: []
+
+  scene-board:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "fal-ai", type: "optional" }
+      - { system: "google-ai", type: "optional" }
+      - { system: "remotion", type: "optional" }
+    shared_models: []
+    related_systems:
+      - "pinboard"
+      - "autocaption"
     failure_patterns: []
 
 # Cross-system relationships
@@ -52,6 +65,18 @@ relationships:
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems use TypeScript with similar toolchain versions"
+  - from: "scene-board"
+    to: "pinboard"
+    type: "shared-dependency"
+    description: "Both systems use NanoBanana Pro (fal.ai) for image generation"
+  - from: "scene-board"
+    to: "autocaption"
+    type: "shared-dependency"
+    description: "Both systems use Remotion for rendering (SceneBoard for text scenes, autoCaption for captions)"
+  - from: "scene-board"
+    to: "pinboard"
+    type: "shared-dependency"
+    description: "Both systems use Bun as their JavaScript/TypeScript runtime"
 
 # Known failure patterns for accelerated diagnosis
 # Schema: {id: fp-NNN, description: string, diagnosed: date, resolution: string, affects: [system-id]}
