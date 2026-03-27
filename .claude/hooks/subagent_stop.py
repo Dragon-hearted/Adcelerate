@@ -9,6 +9,7 @@
 import argparse
 import json
 import os
+import shlex
 import sys
 import subprocess
 from pathlib import Path
@@ -99,11 +100,16 @@ def close_tmux_monitor_pane(agent_id, log_dir):
         pane_id = pane_data[agent_id]["pane_id"]
         agent_type = pane_data[agent_id].get("agent_type", "unknown")
 
+        # Sanitize all user-controlled values before shell interpolation
+        safe_agent_type = shlex.quote(agent_type)
+        safe_agent_id = shlex.quote(agent_id[:8])
+        safe_pane_id = shlex.quote(pane_id)
+
         # Send a completion message to the pane, then close after 3s
         completion_cmd = (
             f"echo ''; "
             f"echo '\\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m'; "
-            f"echo '\\033[1;32m✓ SUBAGENT COMPLETE: {agent_type} ({agent_id[:8]}...)\\033[0m'; "
+            f"echo '\\033[1;32m✓ SUBAGENT COMPLETE: '{safe_agent_type}' ('{safe_agent_id}'...)\\033[0m'; "
             f"echo '\\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m'; "
             f"sleep 3"
         )
@@ -121,7 +127,7 @@ def close_tmux_monitor_pane(agent_id, log_dir):
         # Schedule pane close after the sleep
         subprocess.run(
             ["tmux", "send-keys", "-t", pane_id,
-             f"tmux kill-pane -t {pane_id} 2>/dev/null", "Enter"],
+             f"tmux kill-pane -t {safe_pane_id} 2>/dev/null", "Enter"],
             capture_output=True, timeout=3
         )
 

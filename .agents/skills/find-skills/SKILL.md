@@ -92,7 +92,7 @@ If the user wants to proceed, you can install the skill for them:
 npx skills add <owner/repo@skill> -g -y
 ```
 
-The `-g` flag installs globally (user-level) and `-y` skips confirmation prompts.
+The `-g` flag installs globally (user-level). The `-y` flag auto-confirms installation to reduce manual input.
 
 ## Common Skill Categories
 

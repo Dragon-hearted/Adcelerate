@@ -10,7 +10,7 @@ import type { Theme, ThemeSearchQuery, ThemeValidationError, ApiResponse } from 
 
 // Utility functions
 function generateId(): string {
-  return Math.random().toString(36).substr(2, 16);
+  return crypto.randomUUID();
 }
 
 function validateTheme(theme: Partial<Theme>): ThemeValidationError[] {
@@ -185,13 +185,27 @@ export async function createTheme(themeData: any): Promise<ApiResponse<Theme>> {
   }
 }
 
-export async function updateThemeById(id: string, updates: any): Promise<ApiResponse<Theme>> {
+export async function updateThemeById(id: string, updates: any, authorId?: string): Promise<ApiResponse<Theme>> {
   try {
     const existingTheme = getTheme(id);
     if (!existingTheme) {
       return {
         success: false,
         error: 'Theme not found'
+      };
+    }
+
+    // Verify ownership
+    if (!authorId) {
+      return {
+        success: false,
+        error: 'Unauthorized - authorId is required for updates'
+      };
+    }
+    if (existingTheme.authorId !== authorId) {
+      return {
+        success: false,
+        error: 'Unauthorized - you can only update your own themes'
       };
     }
     
@@ -303,8 +317,14 @@ export async function deleteThemeById(id: string, authorId?: string): Promise<Ap
       };
     }
     
-    // Only allow deletion by theme author (in a real app, you'd have proper auth)
-    if (authorId && theme.authorId !== authorId) {
+    // Require authorId for deletion and verify ownership
+    if (!authorId) {
+      return {
+        success: false,
+        error: 'Unauthorized - authorId is required for deletion'
+      };
+    }
+    if (theme.authorId !== authorId) {
       return {
         success: false,
         error: 'Unauthorized - you can only delete your own themes'

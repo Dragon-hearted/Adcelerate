@@ -171,17 +171,26 @@ def main() -> None:
     dotenv_path = Path(project_dir) / ".env"
     loaded_vars = []
 
+    # Only load specific known-needed env variables (not all of .env)
+    ALLOWED_ENV_VARS = {
+        "ANTHROPIC_API_KEY",
+        "ENGINEER_NAME",
+        "ELEVENLABS_API_KEY",
+        "OPENAI_API_KEY",
+    }
+
     if env_file_path:
         if dotenv_path.exists():
-            logger.log(f"\n>>> Loading variables from {dotenv_path}...")
+            logger.log(f"\n>>> Loading selected variables from {dotenv_path}...")
             env_vars = dotenv_values(dotenv_path)
             with open(env_file_path, "a") as f:
                 for key, value in env_vars.items():
-                    if value is not None:
+                    if value is not None and key in ALLOWED_ENV_VARS:
                         escaped_value = value.replace("'", "'\"'\"'")
                         f.write(f"export {key}='{escaped_value}'\n")
                         loaded_vars.append(key)
-                        logger.log(f"  Loaded: {key}")
+            if loaded_vars:
+                logger.log(f"  Loaded {len(loaded_vars)} environment variable(s)")
         else:
             logger.log(f"\n>>> No .env file found at {dotenv_path}")
     else:
@@ -198,7 +207,7 @@ def main() -> None:
     context_parts = [f"SessionStart hook ran (source: {source})."]
 
     if loaded_vars:
-        context_parts.append(f"Loaded environment variables: {', '.join(loaded_vars)}")
+        context_parts.append(f"Loaded {len(loaded_vars)} environment variable(s).")
     else:
         context_parts.append("No environment variables loaded.")
 

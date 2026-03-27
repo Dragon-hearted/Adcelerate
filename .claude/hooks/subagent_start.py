@@ -5,6 +5,7 @@
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -43,21 +44,27 @@ def create_tmux_monitor_pane(agent_id, agent_type, session_id, log_dir):
         transcript = get_transcript_path(session_id, agent_id)
         transcript_dir = transcript.parent
 
+        # Sanitize all user-controlled values before shell interpolation
+        safe_agent_type = shlex.quote(agent_type)
+        safe_agent_id = shlex.quote(agent_id[:8])
+        safe_session_id = shlex.quote(session_id[:12])
+        safe_transcript = shlex.quote(str(transcript))
+        safe_log_dir = shlex.quote(str(log_dir))
+
         # Build the monitoring script that runs in the new pane
-        short_id = agent_id[:8]
         monitor_script = f"""
 echo "\\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m"
 echo "\\033[1;33m🔍 SUBAGENT MONITOR\\033[0m"
 echo "\\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m"
-echo "  Type:    \\033[1;32m{agent_type}\\033[0m"
-echo "  ID:      \\033[0;37m{short_id}...\\033[0m"
-echo "  Session: \\033[0;37m{session_id[:12]}...\\033[0m"
+echo "  Type:    \\033[1;32m"{safe_agent_type}"\\033[0m"
+echo "  ID:      \\033[0;37m"{safe_agent_id}"...\\033[0m"
+echo "  Session: \\033[0;37m"{safe_session_id}"...\\033[0m"
 echo "\\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m"
 echo ""
 echo "\\033[0;90mWaiting for transcript...\\033[0m"
 
 # Wait for transcript file to appear (max 30s)
-TRANSCRIPT="{transcript}"
+TRANSCRIPT={safe_transcript}
 COUNTER=0
 while [ ! -f "$TRANSCRIPT" ] && [ $COUNTER -lt 30 ]; do
     sleep 1
@@ -96,13 +103,13 @@ else
     echo "\\033[0;90mMonitoring log dir instead...\\033[0m"
     # Fallback: watch the log directory
     if command -v fswatch >/dev/null 2>&1; then
-        fswatch -r "{log_dir}" 2>/dev/null | while read -r f; do
+        fswatch -r {safe_log_dir} 2>/dev/null | while read -r f; do
             echo "\\033[0;90m[$(date +%H:%M:%S)]\\033[0m File changed: $(basename "$f")"
         done
     else
         # Simple polling fallback
         while true; do
-            ls -lt "{log_dir}" 2>/dev/null | head -5
+            ls -lt {safe_log_dir} 2>/dev/null | head -5
             sleep 5
         done
     fi
