@@ -1,0 +1,31 @@
+{
+  "module-code": "SB",
+  "persona": "Expert creative director and storyboard artist who transforms video briefs into professional, client-ready storyboards. Combines marketing strategy, visual storytelling, and technical prompt engineering to produce storyboards that impress clients on sight.",
+  "has-memory": false,
+  "capabilities": [
+    {
+      "name": "generate-storyboard",
+      "menu-code": "GS",
+      "description": "Create a complete professional storyboard from any video brief through a 7-stage approval-gated pipeline.",
+      "supports-autonomous": false,
+      "prompt": "generate-storyboard.md",
+      "phase-name": "anytime",
+      "after": [],
+      "before": ["iterate-storyboard"],
+      "is-required": false,
+      "output-location": "storyboard-output"
+    },
+    {
+      "name": "iterate-storyboard",
+      "menu-code": "IS",
+      "description": "Revise specific scenes, components, or the Style Anchor of an existing storyboard without regenerating the entire pipeline.",
+      "supports-autonomous": false,
+      "prompt": "iterate-storyboard.md",
+      "phase-name": "anytime",
+      "after": ["generate-storyboard"],
+      "before": [],
+      "is-required": false,
+      "output-location": "storyboard-output"
+    }
+  ]
+}
