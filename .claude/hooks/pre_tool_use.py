@@ -62,24 +62,23 @@ def is_path_in_allowed_directory(command, allowed_dirs):
     # All paths are within allowed directories
     return True
 
-def is_dangerous_rm_command(command, allowed_dirs=None):
+def _strip_quotes(s):
+    """Strip surrounding single or double quotes from a string."""
+    if len(s) >= 2 and ((s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'")):
+        return s[1:-1]
+    return s
+
+
+def _contains_dangerous_rm(segment, allowed_dirs=None):
     """
-    Comprehensive detection of dangerous rm commands.
-    Matches various forms of rm -rf and similar destructive patterns.
-    Returns False if the command targets only allowed directories.
-
-    Args:
-        command: The bash command to check
-        allowed_dirs: List of directory paths where rm -rf is permitted
-
-    Returns:
-        True if the command is dangerous and should be blocked, False otherwise
+    Check a single command segment (no pipes/semicolons) for dangerous rm usage.
+    Returns True if dangerous rm is found.
     """
     if allowed_dirs is None:
         allowed_dirs = []
 
-    # Normalize command by removing extra spaces and converting to lowercase
-    normalized = ' '.join(command.lower().split())
+    # Normalize by removing extra spaces and converting to lowercase
+    normalized = ' '.join(segment.lower().split())
 
     # Pattern 1: Standard rm -rf variations
     patterns = [
@@ -91,16 +90,13 @@ def is_dangerous_rm_command(command, allowed_dirs=None):
         r'\brm\s+-f\s+.*-r',  # rm -f ... -r
     ]
 
-    # Check for dangerous patterns
     is_potentially_dangerous = False
     for pattern in patterns:
         if re.search(pattern, normalized):
             is_potentially_dangerous = True
             break
 
-    # If not found in Pattern 1, check Pattern 2
     if not is_potentially_dangerous:
-        # Pattern 2: Check for rm with recursive flag targeting dangerous paths
         dangerous_paths = [
             r'/',           # Root directory
             r'/\*',         # Root with wildcard
@@ -113,22 +109,70 @@ def is_dangerous_rm_command(command, allowed_dirs=None):
             r'\.\s*$',      # Current directory at end of command
         ]
 
-        if re.search(r'\brm\s+.*-[a-z]*r', normalized):  # If rm has recursive flag
+        if re.search(r'\brm\s+.*-[a-z]*r', normalized):
             for path in dangerous_paths:
                 if re.search(path, normalized):
                     is_potentially_dangerous = True
                     break
 
-    # If not potentially dangerous at all, it's safe
     if not is_potentially_dangerous:
         return False
 
-    # It's potentially dangerous - check if targeting only allowed directories
-    if allowed_dirs and is_path_in_allowed_directory(command, allowed_dirs):
-        return False  # Allowed directory, so not dangerous
+    if allowed_dirs and is_path_in_allowed_directory(segment, allowed_dirs):
+        return False
 
-    # Dangerous and not in allowed directories
     return True
+
+
+def is_dangerous_rm_command(command, allowed_dirs=None):
+    """
+    Comprehensive detection of dangerous rm commands.
+    Matches various forms of rm -rf and similar destructive patterns,
+    including quoted paths, subshell invocations, backtick substitutions,
+    and semicolon/pipe-chained commands.
+
+    Args:
+        command: The bash command to check
+        allowed_dirs: List of directory paths where rm -rf is permitted
+
+    Returns:
+        True if the command is dangerous and should be blocked, False otherwise
+    """
+    if allowed_dirs is None:
+        allowed_dirs = []
+
+    # First, check for dangerous rm inside subshell $(...) or backtick `...` constructs
+    # These can hide rm commands inside seemingly innocent commands
+    subshell_patterns = [
+        r'\$\([^)]*\brm\s+.*-[a-z]*r[a-z]*f',  # $(rm -rf ...)
+        r'\$\([^)]*\brm\s+.*-[a-z]*f[a-z]*r',  # $(rm -fr ...)
+        r'`[^`]*\brm\s+.*-[a-z]*r[a-z]*f',     # `rm -rf ...`
+        r'`[^`]*\brm\s+.*-[a-z]*f[a-z]*r',     # `rm -fr ...`
+    ]
+    normalized_full = ' '.join(command.lower().split())
+    for pattern in subshell_patterns:
+        if re.search(pattern, normalized_full):
+            return True
+
+    # Strip quotes from the command to catch quoted path evasion like rm -rf "/"
+    unquoted_command = command
+    # Replace quoted strings with their unquoted content for rm detection
+    unquoted_command = re.sub(r'"([^"]*)"', r'\1', unquoted_command)
+    unquoted_command = re.sub(r"'([^']*)'", r'\1', unquoted_command)
+
+    # Split on semicolons, &&, ||, and pipes to check each segment
+    segments = re.split(r'\s*(?:;|&&|\|\||[|])\s*', command)
+    unquoted_segments = re.split(r'\s*(?:;|&&|\|\||[|])\s*', unquoted_command)
+
+    # Check each segment (both original and unquoted versions)
+    for seg in segments + unquoted_segments:
+        seg = seg.strip()
+        if not seg:
+            continue
+        if _contains_dangerous_rm(seg, allowed_dirs):
+            return True
+
+    return False
 
 def is_env_file_access(tool_name, tool_input):
     """
@@ -322,9 +366,8 @@ def main():
         tool_use_id = input_data.get('tool_use_id', '')
 
         # Check for .env file access (blocks access to sensitive environment files)
-        # COMMENTED OUT: Allows worktree command to create .env files automatically
-        # if is_env_file_access(tool_name, tool_input):
-        #     deny_tool("Access to .env files containing sensitive data is prohibited. Use .env.sample for template files instead")
+        if is_env_file_access(tool_name, tool_input):
+            deny_tool("Access to .env files containing sensitive data is prohibited. Use .env.sample for template files instead")
 
         # Check for dangerous rm -rf commands
         if tool_name == 'Bash':

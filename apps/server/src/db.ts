@@ -294,7 +294,7 @@ export function getThemes(query: ThemeSearchQuery = {}): Theme[] {
   
   // Add sorting
   const sortBy = query.sortBy || 'created';
-  const sortOrder = query.sortOrder || 'desc';
+  const safeSortOrder = ['ASC', 'DESC'].includes(query.sortOrder?.toUpperCase() ?? '') ? query.sortOrder!.toUpperCase() : 'DESC';
   const sortColumn = {
     name: 'name',
     created: 'createdAt',
@@ -302,8 +302,8 @@ export function getThemes(query: ThemeSearchQuery = {}): Theme[] {
     downloads: 'downloadCount',
     rating: 'rating'
   }[sortBy] || 'createdAt';
-  
-  sql += ` ORDER BY ${sortColumn} ${sortOrder.toUpperCase()}`;
+
+  sql += ` ORDER BY ${sortColumn} ${safeSortOrder}`;
   
   // Add pagination
   if (query.limit) {

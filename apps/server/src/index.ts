@@ -17,11 +17,26 @@ initDatabase();
 // Store WebSocket clients
 const wsClients = new Set<any>();
 
+// Validate WebSocket URL to prevent SSRF - only allow localhost connections
+function isAllowedWebSocketUrl(wsUrl: string): boolean {
+  try {
+    const parsed = new URL(wsUrl);
+    const allowedHosts = ['localhost', '127.0.0.1', '::1'];
+    return allowedHosts.includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 // Helper function to send response to agent via WebSocket
 async function sendResponseToAgent(
   wsUrl: string,
   response: HumanInTheLoopResponse
 ): Promise<void> {
+  if (!isAllowedWebSocketUrl(wsUrl)) {
+    throw new Error(`WebSocket URL not allowed: only localhost connections are permitted`);
+  }
+
   console.log(`[HITL] Connecting to agent WebSocket: ${wsUrl}`);
 
   return new Promise((resolve, reject) => {
@@ -103,16 +118,20 @@ async function sendResponseToAgent(
 
 // Create Bun server with HTTP and WebSocket support
 const server = Bun.serve({
+  hostname: '127.0.0.1',
   port: parseInt(process.env.SERVER_PORT || '4000'),
   
   async fetch(req: Request) {
     const url = new URL(req.url);
     
-    // Handle CORS
+    // Handle CORS - restrict to known local origins
+    const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
+    const requestOrigin = req.headers.get('Origin') || '';
+    const corsOrigin = allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
     const headers = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     };
     
     // Handle preflight
@@ -169,7 +188,8 @@ const server = Bun.serve({
     
     // GET /events/recent - Get recent events
     if (url.pathname === '/events/recent' && req.method === 'GET') {
-      const limit = parseInt(url.searchParams.get('limit') || '300');
+      const rawLimit = parseInt(url.searchParams.get('limit') || '100');
+      const limit = Math.max(1, Math.min(rawLimit, 1000));
       const events = getRecentEvents(limit);
       return new Response(JSON.stringify(events), {
         headers: { ...headers, 'Content-Type': 'application/json' }
@@ -308,18 +328,28 @@ const server = Bun.serve({
       
       try {
         const updates = await req.json();
-        const result = await updateThemeById(id, updates);
-        
-        const status = result.success ? 200 : 400;
+        const authorId = url.searchParams.get('authorId');
+        if (!authorId) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Unauthorized - authorId query parameter is required'
+          }), {
+            status: 401,
+            headers: { ...headers, 'Content-Type': 'application/json' }
+          });
+        }
+        const result = await updateThemeById(id, updates, authorId);
+
+        const status = result.success ? 200 : (result.error?.includes('Unauthorized') ? 403 : 400);
         return new Response(JSON.stringify(result), {
           status,
           headers: { ...headers, 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Error updating theme:', error);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: 'Invalid request body' 
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Invalid request body'
         }), {
           status: 400,
           headers: { ...headers, 'Content-Type': 'application/json' }
