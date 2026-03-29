@@ -2,7 +2,47 @@
 
 **Trigger:** User selects `[GS] Generate Storyboard` from SKILL.md
 **Goal:** Take any creative brief and transform it into a complete, production-ready storyboard with NanoBanana Pro prompts for each scene.
-**Pipeline:** 7 sequential stages, each gated by explicit user approval.
+**Pipeline:** 8 sequential stages (Stage 0-7), each gated by explicit user approval.
+
+---
+
+## Stage 0 — Client Selection (0/7)
+
+### Purpose
+Identify the client and load their brand knowledge before any creative work begins.
+
+### Execution
+
+1. **If a client was already selected in SKILL.md activation**, skip to confirmation.
+2. **If not**, ask: "Which client is this storyboard for?"
+   - Show known clients by checking `systems/scene-board/clients/` for existing directories.
+3. **If client exists**: Load `systems/scene-board/clients/{client}/brand.md` and present a brief summary:
+
+```
+## Client Context Loaded: [Client Name]
+
+**Style Philosophy:** [from brand.md]
+**Brand Voice:** [from brand.md]
+**Target Audience:** [from brand.md]
+**Visual Direction:** [summary from brand.md]
+
+This context will be used throughout the storyboard. Brand-related questions in Stage 2 will be skipped.
+
+[A] Confirm — Proceed with this brand context
+[M] Modify — Override specific brand elements for this project
+[S] Skip — Don't use client context for this storyboard
+```
+
+4. **If client is new**: Offer to create their profile now (routes to manage-client.md), or proceed without client context.
+5. **If client context is loaded**, mark the following Stage 2 questions as pre-answered:
+   - Brand/product name, key features, value proposition
+   - Brand voice
+   - Brand guidelines (colors, fonts, logo usage)
+   - Target audience
+   - Style preferences
+   - Any visual direction from the knowledge files
+
+6. **Also load detailed knowledge** if available: read files from `systems/scene-board/clients/{client}/knowledge/` for deeper context (visual direction, brand positioning) that can inform the Style Anchor in Stage 5.
 
 ---
 
@@ -18,6 +58,8 @@
 ---
 
 ## Stage 1 — Brief Intake (1/7)
+
+> **Note:** If client context was loaded in Stage 0, brand-related components may already be classified as "Provided" automatically.
 
 ### Purpose
 Accept the user's brief in whatever form it arrives and determine what already exists versus what needs to be generated.
@@ -599,81 +641,134 @@ Any prompts need refinement, or are these ready for generation?
 ## Stage 7 — Final Storyboard Assembly (7/7)
 
 ### Purpose
-Compile everything into a single, complete storyboard document ready for production.
+Compile everything into a single, professional table-format storyboard document ready for production.
+
+### Key Principles
+- The **scene table is the PRIMARY view** — it must contain all essential information at a glance
+- **NanoBanana Pro prompts are separated BELOW the table** (not inline with scenes) for cleaner reading
+- The **Visuals column** contains "[Visual placeholder]" — space for generated/inserted images
+- **Production Notes** use the concise table format
+- **B-Roll shots** are optional and only included when identified during the pipeline
 
 ### Execution
 
-1. **Compile the complete storyboard** using this structure:
+1. **Compile the complete storyboard** using the professional table format. Load the template from `assets/storyboard-template.md` and populate it with all approved content from prior stages:
 
 ```markdown
-# Storyboard: [Project Name]
+# [Project Name]
 
-## Project Info
-| Field | Value |
-|-------|-------|
-| **Client/Brand** | [name] |
-| **Project** | [project name or campaign] |
-| **Platform** | [target platform] |
-| **Aspect Ratio** | [ratio] |
-| **Duration** | [total duration] |
-| **Total Scenes** | [count] |
-| **Date** | [generation date] |
-| **Version** | 1.0 |
+[Subtitle — e.g., "UGC Video Ad - Storyboard & Nano Banana Pro Prompts"]
 
 ---
 
-## Script Overview
-[Full approved script]
+## PROJECT SPECIFICATIONS
 
-## Voice Script Overview
-[Full approved voice script — or "N/A" if not applicable]
+| | |
+|---|---|
+| **Duration** | [total duration, e.g., ~60 sec] |
+| **Format** | [aspect ratio, e.g., 9:16 Vertical] |
+| **Style** | [video style, e.g., Aesthetic UGC] |
+| **Product** | [product name] |
+| **Model/Talent** | [model description from context] |
+| **Setting** | [setting/location from visual direction] |
+| **Audio** | [audio description — music, VO, SFX summary] |
 
 ---
 
-## Style Anchor
-[Full Style Anchor document from Stage 5A]
+## STORYBOARD
+
+*On-Screen Text (Hook): [hook text from approved on-screen text]*
+
+| Seq | Scene | Visual Action & Composition | Audience Sees | Audio / Text | Visuals |
+|-----|-------|----------------------------|---------------|--------------|---------|
+| 01 | [Scene Name] ([start]-[end]) | [Visual direction from Stage 5B: subject, environment, composition, mood, key detail. Include movement and action.] Camera: [camera angle, framing, movement from Stage 5B] | [What the audience perceives/feels — the emotional or cognitive takeaway of this scene] | [Voice script line if applicable] [On-screen text if applicable] [SFX/music cues] [ALT HOOKS if Scene 01] | [Visual placeholder] |
+| ... | ... | ... | ... | ... | ... |
+
+[Repeat for all scenes from the locked-in scene breakdown]
 
 ---
 
-## Scene-by-Scene Breakdown
+## NanoBanana Pro Prompts
 
-### Scene 1
-**Timestamp:** [start] — [end] ([duration])
-**Script:** "[script line]"
-**Voice Script:** "[voice line]" (or N/A)
-**On-Screen Text:** "[text]" (or N/A)
+[For each scene, include the full NanoBanana Pro prompt from Stage 6:]
 
-**Visual Direction:**
-[Full visual direction from Stage 5B]
+### Scene 01 — [Scene Name]
 
-**Generation Prompt:**
-- **Render Method:** [nanobanana-pro / remotion]
-- **Creative Mode:** [mode] (NanoBanana only)
-- **System Instruction:** [instruction] (NanoBanana only)
-- **Prompt:** [full prompt] (NanoBanana only)
-- **Reference Guidance:** [references] (NanoBanana only)
+**Render Method**: [nanobanana-pro / remotion]
+**Creative Mode**: [Faithful / Expressive / Vision / Image Asset]
+
+**System Instruction** ([char count] chars):
+\`\`\`
+[System instruction from Stage 6]
+\`\`\`
+
+**Prompt** ([char count] chars):
+\`\`\`
+[Full prompt from Stage 6]
+\`\`\`
+
+> Remember: All NanoBanana Pro prompts must end with "No text in image." to prevent garbled text artifacts.
+
+**Reference Images**:
+1. [Reference 1 from Stage 6]
+2. [Reference 2 from Stage 6]
+3. [Reference 3 from Stage 6]
 
 ---
 
 [Repeat for all scenes]
 
+## PRODUCTION NOTES
+
+| Category | Details |
+|----------|---------|
+| **Color Palette** | [From Style Anchor — primary, secondary, accent colors and mood] |
+| **Lighting** | [From Style Anchor — overall mood, key light style, time of day feel] |
+| **Camera** | [From Style Anchor — primary framing, movement style, perspective] |
+| **Text Style** | [Font/typography direction, color, animation approach for on-screen text] |
+| **Music** | [Music style, tempo, mood, any specific track references] |
+
 ---
 
-## Production Notes
-[Any additional notes, constraints, or considerations captured during the process]
+## B-ROLL SHOTS (can be used if needed)
+
+[Only include this section if B-roll shots were identified during the pipeline]
+
+| Seq | B-Roll Name | Use During | Audio / Text | Visuals |
+|-----|------------|------------|--------------|---------|
+| B1 | **[B-roll name]** | [Which scene this supplements] "[contextual quote or description]" Duration: [duration] | [Audio/text during B-roll] | [Visual placeholder] |
+| ... | ... | ... | ... | ... |
+
+---
+
+[Product Name] | [Tagline] | [Website]
 ```
 
-2. **Save the storyboard document.** Save to the project directory with a clear filename (e.g., `storyboard-[project-name]-v1.md`). Ask the user where they'd like it saved if no obvious location exists.
+2. **Save the storyboard document.**
+   - **If a client was selected in Stage 0**: Save to `systems/scene-board/clients/{client}/storyboards/{project-name}-v1.md`
+   - **If no client context**: Ask the user where they'd like it saved.
 
-3. **Present the final storyboard** in full.
+3. **Generate PDF version.** After saving the markdown storyboard, generate a professional PDF:
+   - Use markdown-pdf tooling (or equivalent) to convert the storyboard to a PDF.
+   - Save the PDF alongside the markdown file as `{project-name}-v1.pdf`.
+   - The PDF should follow the professional table layout matching the markdown structure:
+     - **Title page**: Product name prominently displayed, subtitle, then PROJECT SPECIFICATIONS table (Duration, Format, Style, Product, Model/Talent, Setting, Audio)
+     - **Storyboard section**: On-screen text hook displayed above the main scene table. The scene table uses columns: Seq, Scene, Visual Action & Composition, Audience Sees, Audio/Text, Visuals (placeholder space for images)
+     - **NanoBanana Pro Prompts**: Separated below the scene table in their own section, one sub-section per scene with Render Method, Creative Mode, System Instruction, Prompt, and Reference Images
+     - **Production Notes**: Table format with rows for Color Palette, Lighting, Camera, Text Style, Music
+     - **B-Roll Shots**: Optional section — only include when B-roll was identified during the pipeline. Uses its own table with columns: Seq, B-Roll Name, Use During, Audio/Text, Visuals
+     - **Footer**: Product name | Tagline | Website
 
-4. **Final Approval Gate.**
+4. **Present the final storyboard** in full.
+
+5. **Final Approval Gate.**
 
 ```
 --- Stage: Final Storyboard Assembly (7/7) ---
 
 Storyboard compiled: [N] scenes | [duration] total
 Saved to: [file path]
+PDF version: [pdf file path]
 
 ---
 [A] Approve — Storyboard complete! Ready for production.

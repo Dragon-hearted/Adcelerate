@@ -18,26 +18,46 @@ Load `_bmad/wds/workflows/4-ux-design/data/guides/NANO-BANANA-PROMPT-GUIDE.md` b
 ## On Activation
 
 1. Greet the user and briefly explain what SceneBoard does.
-2. Ask which mode they need:
+2. **Client Selection** -- Ask which client this storyboard is for:
+   - If the user names an existing client, load their brand profile from `systems/scene-board/clients/{client-name}/brand.md` and confirm the brand context. This eliminates most brand-related questions in later stages.
+   - If the user names a new client, route to **[NC] New Client** to create their brand profile first.
+   - If the user wants to skip client selection (one-off / no client), proceed without loading brand context.
+3. Ask which mode they need:
    - **[GS] Generate Storyboard** -- Create a new storyboard from a brief
    - **[IS] Iterate Storyboard** -- Revise or re-run parts of an existing storyboard
-3. Route to the appropriate prompt file:
+   - **[NC] New Client** -- Create or update a client brand profile
+4. Route to the appropriate prompt file:
    - GS -> [generate-storyboard.md](generate-storyboard.md)
    - IS -> [iterate-storyboard.md](iterate-storyboard.md)
+   - NC -> [manage-client.md](manage-client.md)
+
+## Client Directory Structure
+
+Client brand knowledge and storyboard outputs are stored at:
+
+```
+systems/scene-board/clients/{client-name}/
+  brand.md              # Compiled brand profile (quick-reference)
+  knowledge/            # Detailed brand knowledge files
+  storyboards/          # Generated storyboard outputs
+```
+
+When a client is selected, read `brand.md` to pre-load brand voice, visual direction, target audience, and style philosophy into the pipeline context.
 
 ---
 
-## 7-Stage Pipeline
+## 8-Stage Pipeline
 
 | Stage | Name | What Happens |
 |-------|------|--------------|
+| 0 | Client Selection | Identify client; load brand knowledge from `systems/scene-board/clients/` |
 | 1 | Brief Intake | Parse the brief; classify each component as provided or missing |
-| 2 | Context Gathering | Confirm brand, audience, platform, goals; fill gaps |
+| 2 | Context Gathering | Confirm brand, audience, platform, goals; fill gaps (skips brand questions if client loaded) |
 | 3 | Dynamic Generation & Approval | Generate options for every missing component; approval gates |
 | 4 | Scene Breakdown | 1 shot = 1 scene = 1 image; assign timestamps and durations |
 | 5 | Visual Direction | Build Style Anchor document + per-scene visual direction |
 | 6 | NanoBanana Prompt Generation | Write optimized prompts per scene within platform constraints |
-| 7 | Final Assembly | Compile the complete professional storyboard document |
+| 7 | Final Assembly | Compile the complete storyboard document + generate professional PDF |
 
 ---
 

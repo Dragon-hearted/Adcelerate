@@ -26,13 +26,29 @@ except ImportError:
 
 def get_completion_messages():
     """Return list of friendly completion messages."""
-    return [
+    engineer_name = os.getenv("ENGINEER_NAME", "").strip()
+    base = [
         "Work complete!",
         "All done!",
         "Task finished!",
         "Job complete!",
         "Ready for next task!",
+        "Mission accomplished!",
+        "Nailed it!",
+        "Done and dusted!",
+        "Ready for your next move!",
+        "All set!",
     ]
+    if engineer_name:
+        personalized = [
+            f"{engineer_name}, all set!",
+            f"Ready for you, {engineer_name}!",
+            f"Complete, {engineer_name}!",
+            f"{engineer_name}, we're done!",
+            f"{engineer_name}, nailed it!",
+        ]
+        base.extend(personalized)
+    return base
 
 
 def get_tts_script_path():
@@ -66,49 +82,11 @@ def get_tts_script_path():
 
 def get_llm_completion_message():
     """
-    Generate completion message using available LLM services.
-    Priority order: OpenAI > Anthropic > fallback to random message
+    Generate completion message from local message pool.
 
     Returns:
-        str: Generated or fallback completion message
+        str: Random completion message
     """
-    # Get current script directory and construct utils/llm path
-    script_dir = Path(__file__).parent
-    llm_dir = script_dir / "utils" / "llm"
-
-    # Try Anthropic second
-    if os.getenv("ANTHROPIC_API_KEY"):
-        anth_script = llm_dir / "anth.py"
-        if anth_script.exists():
-            try:
-                result = subprocess.run(
-                    ["uv", "run", str(anth_script), "--completion"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                if result.returncode == 0 and result.stdout.strip():
-                    return result.stdout.strip()
-            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
-                pass
-
-    # Try OpenAI first (highest priority)
-    if os.getenv("OPENAI_API_KEY"):
-        oai_script = llm_dir / "oai.py"
-        if oai_script.exists():
-            try:
-                result = subprocess.run(
-                    ["uv", "run", str(oai_script), "--completion"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                if result.returncode == 0 and result.stdout.strip():
-                    return result.stdout.strip()
-            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
-                pass
-
-    # Fallback to random predefined message
     messages = get_completion_messages()
     return random.choice(messages)
 
