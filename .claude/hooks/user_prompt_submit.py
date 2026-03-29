@@ -48,7 +48,7 @@ def log_user_prompt(session_id, input_data):
 
 def manage_session_data(session_id, prompt, name_agent=False):
     """Manage session data in the new JSON structure."""
-    import subprocess
+    import random
 
     # Ensure sessions directory exists
     sessions_dir = Path(".claude/data/sessions")
@@ -71,40 +71,14 @@ def manage_session_data(session_id, prompt, name_agent=False):
 
     # Generate agent name if requested and not already present
     if name_agent and "agent_name" not in session_data:
-        # Try Anthropic first (preferred)
-        try:
-            result = subprocess.run(
-                ["uv", "run", ".claude/hooks/utils/llm/anth.py", "--agent-name"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-
-            if result.returncode == 0 and result.stdout.strip():
-                agent_name = result.stdout.strip()
-                # Validate the name
-                if len(agent_name.split()) == 1 and agent_name.isalnum():
-                    session_data["agent_name"] = agent_name
-                else:
-                    raise Exception("Invalid name from Anthropic")
-        except Exception:
-            # Fall back to Ollama if Anthropic fails
-            try:
-                result = subprocess.run(
-                    ["uv", "run", ".claude/hooks/utils/llm/ollama.py", "--agent-name"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,  # Shorter timeout for local Ollama
-                )
-
-                if result.returncode == 0 and result.stdout.strip():
-                    agent_name = result.stdout.strip()
-                    # Check if it's a valid name (not an error message)
-                    if len(agent_name.split()) == 1 and agent_name.isalnum():
-                        session_data["agent_name"] = agent_name
-            except Exception:
-                # If both fail, don't block the prompt
-                pass
+        agent_names = [
+            "CodeNinja", "ByteBot", "PixelPro", "NexusAI", "SwiftDev",
+            "CipherX", "Quantum", "Forge", "Nebula", "Axiom",
+            "Helix", "Prism", "Vertex", "Zenith", "Stratos",
+            "Cortex", "Pulsar", "Orbit", "Dynamo", "Flux",
+            "Raven", "Spark", "Titan", "Onyx", "Echo",
+        ]
+        session_data["agent_name"] = random.choice(agent_names)
 
     # Save the updated session data
     try:
@@ -113,6 +87,68 @@ def manage_session_data(session_id, prompt, name_agent=False):
     except Exception:
         # Silently fail if we can't write the file
         pass
+
+
+DISCORD_INTERCEPTABLE_COMMANDS = {
+    "/clear": {
+        "action": "reset_session",
+        "context": (
+            "The user sent /clear from Discord. Session tracking data has been reset. "
+            "Inform the user that session tracking data was cleared successfully. "
+            "Note: Full conversation context window clear requires running /clear directly in the Claude Code terminal — "
+            "this cannot be triggered remotely from Discord."
+        ),
+    },
+    "/compact": {
+        "action": "info_only",
+        "context": (
+            "The user sent /compact from Discord. This is a terminal-only command that triggers context compaction. "
+            "Inform the user that /compact must be run directly in the Claude Code terminal. "
+            "The context will auto-compact when it approaches limits."
+        ),
+    },
+    "/help": {
+        "action": "info_only",
+        "context": (
+            "The user sent /help from Discord. Respond with a helpful summary of what they can do from Discord: "
+            "they can ask questions, run skills (e.g. /scene-board, /library), and have conversations. "
+            "Terminal-only commands like /clear, /compact, /status require the Claude Code terminal directly."
+        ),
+    },
+}
+
+
+def handle_discord_commands(prompt, session_id):
+    """Intercept terminal-only CLI commands from Discord with helpful responses."""
+    try:
+        command = prompt.strip().lower()
+        if command not in DISCORD_INTERCEPTABLE_COMMANDS:
+            return {"intercepted": False}
+
+        cmd_config = DISCORD_INTERCEPTABLE_COMMANDS[command]
+
+        # Handle session reset for /clear
+        if cmd_config["action"] == "reset_session":
+            try:
+                session_file = Path(".claude/data/sessions") / f"{session_id}.json"
+                if session_file.exists():
+                    with open(session_file, "r") as f:
+                        session_data = json.load(f)
+                    # Reset prompts but preserve session_id and agent_name
+                    reset_data = {
+                        "session_id": session_data.get("session_id", session_id),
+                        "prompts": [],
+                    }
+                    if "agent_name" in session_data:
+                        reset_data["agent_name"] = session_data["agent_name"]
+                    with open(session_file, "w") as f:
+                        json.dump(reset_data, f, indent=2)
+            except Exception:
+                pass  # Continue even if session reset fails
+
+        return {"intercepted": True, "context": cmd_config["context"]}
+    except Exception:
+        return {"intercepted": False}
 
 
 def validate_prompt(prompt):
@@ -157,6 +193,11 @@ def main():
             action="store_true",
             help="Generate an agent name for the session",
         )
+        parser.add_argument(
+            "--discord-commands",
+            action="store_true",
+            help="Intercept terminal-only commands from Discord with helpful responses",
+        )
         args = parser.parse_args()
 
         # Read JSON input from stdin
@@ -172,6 +213,18 @@ def main():
         # Manage session data with JSON structure
         if args.store_last_prompt or args.name_agent:
             manage_session_data(session_id, prompt, name_agent=args.name_agent)
+
+        # Handle Discord CLI commands if enabled
+        if args.discord_commands:
+            cmd_result = handle_discord_commands(prompt, session_id)
+            if cmd_result.get("intercepted"):
+                output = {
+                    "hookSpecificOutput": {
+                        "additionalContext": cmd_result["context"]
+                    }
+                }
+                print(json.dumps(output))
+                sys.exit(0)
 
         # Validate prompt if requested and not in log-only mode
         if args.validate and not args.log_only:

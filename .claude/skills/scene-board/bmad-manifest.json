@@ -6,7 +6,7 @@
     {
       "name": "generate-storyboard",
       "menu-code": "GS",
-      "description": "Create a complete professional storyboard from any video brief through a 7-stage approval-gated pipeline.",
+      "description": "Create a complete professional storyboard from any video brief through a client-aware, 8-stage approval-gated pipeline with PDF output.",
       "supports-autonomous": false,
       "prompt": "generate-storyboard.md",
       "phase-name": "anytime",
@@ -26,6 +26,18 @@
       "before": [],
       "is-required": false,
       "output-location": "storyboard-output"
+    },
+    {
+      "name": "manage-client",
+      "menu-code": "MC",
+      "description": "Create or update a client brand profile with brand positioning, visual direction, and voice guidelines for use across storyboards.",
+      "supports-autonomous": false,
+      "prompt": "manage-client.md",
+      "phase-name": "anytime",
+      "after": [],
+      "before": ["generate-storyboard"],
+      "is-required": false,
+      "output-location": "systems/scene-board/clients"
     }
   ]
 }

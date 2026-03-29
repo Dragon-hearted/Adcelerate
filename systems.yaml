@@ -62,17 +62,24 @@ scene-board:
     - "script-generation"
     - "visual-prompt-generation"
     - "video-pre-production"
+    - "client-management"
+    - "pdf-generation"
   knowledge_path: "systems/scene-board/knowledge"
+  client_directory: "systems/scene-board/clients"
   input_types:
     - "video-brief"
     - "script"
     - "reference-video-link"
     - "voice-script"
     - "raw-idea"
+    - "brand-document"
+    - "brand-guidelines"
   output_types:
     - "storyboard-document"
     - "nanobanana-pro-prompts"
     - "scene-breakdown"
+    - "pdf-storyboard"
+    - "client-brand-profile"
   domain_tags:
     - "video"
     - "creative"
@@ -131,3 +138,37 @@ pinboard:
       produces: "Rendered React web interface with generation history and reference gallery"
   registered_at: "2026-03-25"
   last_validated: "2026-03-25"
+
+instagram-scrapper:
+  name: "Instagram Scrapper"
+  path: "systems/instagram-scrapper"
+  status: "active"
+  description: "Instagram content scraper that extracts posts, reels, and profile data from Instagram URLs using web proxy scraping and Apify integration"
+  task_types:
+    - "instagram-scraping"
+    - "social-media-data-extraction"
+    - "content-collection"
+  knowledge_path: "systems/instagram-scrapper/knowledge"
+  input_types:
+    - "instagram-url"
+    - "instagram-username"
+  output_types:
+    - "instagram-post-data"
+    - "instagram-profile-data"
+    - "media-urls"
+  domain_tags:
+    - "social-media"
+    - "scraping"
+    - "data-extraction"
+    - "instagram"
+  entry_point: "systems/instagram-scrapper/src/cli.ts"
+  justfile: true
+  stages:
+    - name: "url-parsing"
+      produces: "Parsed Instagram URL with type (profile/post/reel) and identifier"
+    - name: "data-extraction"
+      produces: "Raw scraped data from Instagram via proxy or Apify"
+    - name: "data-normalization"
+      produces: "Structured InstagramPost[] and InstagramProfile data"
+  registered_at: "2026-03-30"
+  last_validated: "2026-03-30"

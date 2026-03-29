@@ -7,60 +7,46 @@ duration: "{{total-duration}}"
 scenes: "{{scene-count}}"
 date: "{{date}}"
 status: "draft"
+output_dir: "systems/scene-board/clients/{{client-slug}}/storyboards"
 ---
 
-# {{project-name}} — Storyboard
+# {{project-name}}
 
-## Project Overview
-- **Client**: {{client-name}}
-- **Platform**: {{platform}}
-- **Aspect Ratio**: {{aspect-ratio}}
-- **Total Duration**: {{total-duration}}
-- **Total Scenes**: {{scene-count}}
-- **Video Type**: {{video-type}}
-- **Goal**: {{video-goal}}
+{{subtitle — e.g., "UGC Video Ad - Storyboard & Nano Banana Pro Prompts"}}
 
 ---
 
-## Style Anchor
+## PROJECT SPECIFICATIONS
 
-{{style-anchor-content}}
-
----
-
-## Full Script
-
-{{full-script}}
-
----
-
-## Voice Script
-
-{{voice-script-or-N/A}}
+| | |
+|---|---|
+| **Duration** | {{total-duration}} |
+| **Format** | {{aspect-ratio}} |
+| **Style** | {{video-style}} |
+| **Product** | {{product-name}} |
+| **Model/Talent** | {{model-description}} |
+| **Setting** | {{setting-description}} |
+| **Audio** | {{audio-description}} |
 
 ---
 
-## Scene Breakdown
+## STORYBOARD
+
+*On-Screen Text (Hook): {{hook-text}}*
+
+| Seq | Scene | Visual Action & Composition | Audience Sees | Audio / Text | Visuals |
+|-----|-------|----------------------------|---------------|--------------|---------|
+{{FOR EACH SCENE:}}
+| {{seq-number}} | {{scene-name}} ({{start-time}}-{{end-time}}) | {{visual-action-description}} Camera: {{camera-details}} | {{audience-perception}} | {{audio-text-content}} | [Visual placeholder] |
+{{END FOR EACH}}
+
+---
+
+## NanoBanana Pro Prompts
 
 {{FOR EACH SCENE:}}
 
-### Scene {{N}} — {{scene-title}}
-
-**Timestamp**: {{start-time}} → {{end-time}} ({{duration}})
-
-#### Script
-> {{script-line}}
-
-#### Voice Script
-> {{voice-script-line-or-N/A}}
-
-#### On-Screen Text
-> {{on-screen-text-or-N/A}}
-
-#### Visual Direction
-{{visual-direction-prose}}
-
-#### NanoBanana Pro Prompt
+### Scene {{seq-number}} — {{scene-name}}
 
 **Render Method**: {{nanobanana-pro | remotion}}
 **Creative Mode**: {{Faithful | Expressive | Vision | Image Asset}}
@@ -86,6 +72,26 @@ status: "draft"
 
 {{END FOR EACH}}
 
-## Production Notes
+## PRODUCTION NOTES
 
-{{any-additional-notes}}
+| Category | Details |
+|----------|---------|
+| **Color Palette** | {{color-palette}} |
+| **Lighting** | {{lighting-description}} |
+| **Camera** | {{camera-style}} |
+| **Text Style** | {{text-style}} |
+| **Music** | {{music-description}} |
+
+---
+
+## B-ROLL SHOTS (can be used if needed)
+
+| Seq | B-Roll Name | Use During | Audio / Text | Visuals |
+|-----|------------|------------|--------------|---------|
+{{FOR EACH B-ROLL:}}
+| {{b-roll-seq}} | **{{b-roll-name}}** | {{use-during-scene}} {{contextual-quote}} Duration: {{b-roll-duration}} | {{b-roll-audio}} | [Visual placeholder] |
+{{END FOR EACH}}
+
+---
+
+{{product-name}} | {{tagline}} | {{website}}

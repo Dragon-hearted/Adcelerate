@@ -173,7 +173,6 @@ def main() -> None:
 
     # Only load specific known-needed env variables (not all of .env)
     ALLOWED_ENV_VARS = {
-        "ANTHROPIC_API_KEY",
         "ENGINEER_NAME",
         "ELEVENLABS_API_KEY",
         "OPENAI_API_KEY",

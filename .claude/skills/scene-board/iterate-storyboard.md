@@ -6,13 +6,27 @@ This workflow handles surgical revisions to an existing storyboard. Rather than 
 
 ---
 
+## Stage 0: Client Context
+
+**Goal**: Load client brand context before working on revisions.
+
+### Steps
+
+1. Determine which client this storyboard belongs to:
+   - If the storyboard was saved under `systems/scene-board/clients/{client}/storyboards/`, the client is known.
+   - If not, ask the user if this is associated with a client.
+2. If a client is identified, load `systems/scene-board/clients/{client}/brand.md` for brand context.
+3. This context informs revision decisions — ensuring changes stay on-brand.
+
+---
+
 ## Stage 1: Load Existing Storyboard
 
 **Goal**: Establish the current state before making any changes.
 
 ### Steps
 
-1. Ask the user to provide or reference the existing storyboard document.
+1. Ask the user to provide or reference the existing storyboard document. If a client was identified in Stage 0, check `systems/scene-board/clients/{client}/storyboards/` for existing storyboards.
 2. Parse the document and identify all components:
    - Creative brief / concept summary
    - Style Anchor
@@ -193,13 +207,14 @@ AFTER:
 
 ## Stage 5: Reassemble and Validate
 
-**Goal**: Merge all approved changes back into a complete, consistent storyboard document.
+**Goal**: Merge all approved changes back into a complete, consistent storyboard document with an incremented version number.
 
 ### Reassembly Steps
 
 1. **Merge approved changes** into the full storyboard document.
    - Replace only the components that were revised and approved.
    - Keep all locked/untouched components exactly as they were.
+   - **Increment the version number** in the document header (e.g., v1 → v2, v2 → v3).
 
 2. **Run consistency checks**:
    - Scene numbers are sequential with no gaps (1, 2, 3, ...).
@@ -215,9 +230,14 @@ AFTER:
    - [ ] Each prompt specifies a creative mode (Faithful/Expressive/Vision/Image Asset)
    - [ ] Every NanoBanana prompt ends with "No text in image."
 
-3. **Present the updated storyboard** in the same format as the original document.
+3. **Save the updated storyboard** with the new version number:
+   - If client context exists: Save to `systems/scene-board/clients/{client}/storyboards/{project-name}-v{N}.md`
+   - Also generate an updated PDF version alongside the markdown: `{project-name}-v{N}.pdf`
+   - Keep previous versions in place (do not overwrite).
 
-4. **Final approval gate**:
+4. **Present the updated storyboard** in the same format as the original document.
+
+5. **Final approval gate**:
 
 ```
 --- Updated Storyboard Complete ---
