@@ -143,7 +143,7 @@ instagram-scrapper:
   name: "Instagram Scrapper"
   path: "systems/instagram-scrapper"
   status: "active"
-  description: "Instagram content scraper that extracts posts, reels, and profile data from Instagram URLs using web proxy scraping and Apify integration"
+  description: "Instagram content scraper that extracts posts, reels, and profile data using login-based Instagram Private API access with browser-automated authentication and media downloading"
   task_types:
     - "instagram-scraping"
     - "social-media-data-extraction"
@@ -156,6 +156,7 @@ instagram-scrapper:
     - "instagram-post-data"
     - "instagram-profile-data"
     - "media-urls"
+    - "downloaded-media"
   domain_tags:
     - "social-media"
     - "scraping"
@@ -164,11 +165,15 @@ instagram-scrapper:
   entry_point: "systems/instagram-scrapper/src/cli.ts"
   justfile: true
   stages:
+    - name: "authentication"
+      produces: "Valid session cookies (csrftoken, sessionid, ds_user_id, mid) via browser login"
     - name: "url-parsing"
       produces: "Parsed Instagram URL with type (profile/post/reel) and identifier"
     - name: "data-extraction"
-      produces: "Raw scraped data from Instagram via proxy or Apify"
+      produces: "Raw scraped data from Instagram Private API with authenticated session"
     - name: "data-normalization"
-      produces: "Structured InstagramPost[] and InstagramProfile data"
+      produces: "Structured InstagramPost[] and InstagramProfile data with media versions"
+    - name: "media-download"
+      produces: "Downloaded media files (images/videos) to local filesystem"
   registered_at: "2026-03-30"
-  last_validated: "2026-03-30"
+  last_validated: "2026-04-10"

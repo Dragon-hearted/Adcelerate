@@ -4,8 +4,8 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-03-26"
-  systemCount: 3
+  lastUpdated: "2026-04-10"
+  systemCount: 4
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -36,6 +36,17 @@ systems:
     related_systems:
       - "autocaption"
       - "scene-board"
+    failure_patterns: []
+
+  instagram-scrapper:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "playwright", type: "runtime" }
+      - { system: "instagram-private-api", type: "runtime" }
+    shared_models: []
+    related_systems:
+      - "scene-board"
+      - "pinboard"
     failure_patterns: []
 
   scene-board:
