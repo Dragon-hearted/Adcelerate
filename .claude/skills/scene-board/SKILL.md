@@ -12,9 +12,6 @@ SceneBoard transforms video briefs of any format into production-ready storyboar
 **Check for product marketing context first:**
 If `.agents/product-marketing-context.md` exists (or `.claude/product-marketing-context.md` in older setup), read it before asking questions. Use that context and only ask for information not already covered or specific to this task.
 
-**Read the NanoBanana Pro prompt guide:**
-Load `_bmad/wds/workflows/4-ux-design/data/guides/NANO-BANANA-PROMPT-GUIDE.md` before generating any image prompts. This is the authoritative reference for prompt structure, modes, and constraints.
-
 ## On Activation
 
 1. Greet the user and briefly explain what SceneBoard does.

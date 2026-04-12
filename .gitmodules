@@ -10,3 +10,6 @@
 [submodule "systems/instagram-scrapper"]
 	path = systems/instagram-scrapper
 	url = https://github.com/Dragon-hearted/instagram-scrapper.git
+[submodule "systems/image-engine"]
+	path = systems/image-engine
+	url = https://github.com/Dragon-hearted/image-engine.git
