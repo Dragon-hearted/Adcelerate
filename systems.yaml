@@ -177,3 +177,38 @@ instagram-scrapper:
       produces: "Downloaded media files (images/videos) to local filesystem"
   registered_at: "2026-03-30"
   last_validated: "2026-04-10"
+
+image-engine:
+  name: "ImageEngine"
+  path: "systems/image-engine"
+  status: "active"
+  description: "Centralized NanoBanana image generation service using WisGate (JuheAPI) with rate limiting, token-based cost tracking, budget guards, retry/backoff, batch parallel execution, and generation gallery"
+  task_types:
+    - "image-generation"
+    - "batch-image-generation"
+    - "cost-tracking"
+  knowledge_path: "systems/image-engine/knowledge"
+  input_types:
+    - "text-prompt"
+    - "reference-images"
+    - "generation-config"
+  output_types:
+    - "generated-image"
+    - "token-usage"
+    - "budget-status"
+  domain_tags:
+    - "ai"
+    - "image-generation"
+    - "api-gateway"
+    - "cost-management"
+  entry_point: "systems/image-engine/src/index.ts"
+  justfile: true
+  stages:
+    - name: "generation"
+      produces: "Generated image via WisGate API with token usage tracking"
+    - name: "batch-execution"
+      produces: "Parallel/sequential batch of generated images with dependency resolution"
+    - name: "budget-management"
+      produces: "Token spend tracking, budget ceiling enforcement, WisGate balance checks"
+  registered_at: "2026-04-12"
+  last_validated: "2026-04-12"

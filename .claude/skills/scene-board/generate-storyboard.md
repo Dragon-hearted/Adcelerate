@@ -552,9 +552,7 @@ Each prompt consists of:
 
 ### Execution
 
-**Before composing prompts**: Load the NanoBanana Pro prompt guide at `_bmad/wds/workflows/4-ux-design/data/guides/NANO-BANANA-PROMPT-GUIDE.md` for authoritative reference on prompt structure, modes, and constraints.
-
-1. **For each scene**, compose the NanoBanana Pro prompt:
+1. **For each scene**, compose the image prompt:
 
 ```
 ### Scene [N] — NanoBanana Pro Prompt

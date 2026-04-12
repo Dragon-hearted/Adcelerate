@@ -5,7 +5,7 @@
 
 metadata:
   lastUpdated: "2026-04-10"
-  systemCount: 4
+  systemCount: 5
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -59,6 +59,18 @@ systems:
     related_systems:
       - "pinboard"
       - "autocaption"
+      - "image-engine"
+    failure_patterns: []
+
+  image-engine:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "wisgate-api", type: "runtime" }
+      - { system: "sqlite", type: "runtime" }
+    shared_models: []
+    related_systems:
+      - "scene-board"
+      - "pinboard"
     failure_patterns: []
 
 # Cross-system relationships
@@ -88,6 +100,14 @@ relationships:
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems use Bun as their JavaScript/TypeScript runtime"
+  - from: "image-engine"
+    to: "scene-board"
+    type: "pipeline"
+    description: "ImageEngine provides centralized image generation for SceneBoard storyboard scenes via HTTP API"
+  - from: "image-engine"
+    to: "pinboard"
+    type: "shared-dependency"
+    description: "Both systems provide image generation capabilities (ImageEngine via WisGate, Pinboard via fal.ai/Google AI)"
 
 # Known failure patterns for accelerated diagnosis
 # Schema: {id: fp-NNN, description: string, diagnosed: date, resolution: string, affects: [system-id]}

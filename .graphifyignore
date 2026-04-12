@@ -1,0 +1,51 @@
+# .graphifyignore - Adcelerate
+# Syntax: .gitignore compatible (fnmatch patterns relative to repo root)
+
+# === Build artifacts & dependencies ===
+node_modules/
+dist/
+.next/
+out/
+build/
+bun.lockb
+*.lock
+
+# === Graphify output (prevent self-ingestion) ===
+graphify-out/
+
+# === Logs & session data (51MB of UUID dirs, zero signal) ===
+logs/
+*.log
+
+# === Agent infrastructure (harness plumbing, not product code) ===
+.claude/hooks/
+.claude/data/
+.claude/status_lines/
+
+# === Pre-processed reference material ===
+ai_docs/
+
+# === Build/planning artifacts ===
+_bmad-output/
+design-artifacts/
+app_docs/
+
+# === Binary & generated files ===
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.min.js
+*.min.css
+*.map
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
+*.woff
+*.woff2
+*.ttf
+*.eot
