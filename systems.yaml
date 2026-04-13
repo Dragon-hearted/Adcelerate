@@ -212,3 +212,38 @@ image-engine:
       produces: "Token spend tracking, budget ceiling enforcement, WisGate balance checks"
   registered_at: "2026-04-12"
   last_validated: "2026-04-12"
+
+readme-engine:
+  name: "ReadmeEngine"
+  path: "systems/readme-engine"
+  status: "active"
+  description: "Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure"
+  task_types:
+    - "readme-generation"
+    - "documentation-update"
+    - "drift-detection"
+  knowledge_path: "systems/readme-engine/knowledge"
+  input_types:
+    - "monorepo-filesystem"
+    - "systems-yaml"
+    - "library-yaml"
+    - "graph-yaml"
+    - "package-json"
+    - "git-history"
+  output_types:
+    - "readme-md"
+    - "drift-report-json"
+  domain_tags:
+    - "documentation"
+    - "automation"
+    - "developer-experience"
+  entry_point: "systems/readme-engine/src/cli.ts"
+  justfile: true
+  stages:
+    - name: "collection"
+      produces: "Aggregated knowledge data from all sources for the target scope"
+    - name: "rendering"
+      produces: "Generated markdown sections with badges, diagrams, tables"
+    - name: "assembly"
+      produces: "Complete README.md file(s) written to disk"
+  registered_at: "2026-04-13"

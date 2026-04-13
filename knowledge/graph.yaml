@@ -4,8 +4,8 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-04-10"
-  systemCount: 5
+  lastUpdated: "2026-04-13"
+  systemCount: 6
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -71,6 +71,18 @@ systems:
     related_systems:
       - "scene-board"
       - "pinboard"
+    failure_patterns: []
+
+  readme-engine:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+    shared_models: []
+    related_systems:
+      - "autocaption"
+      - "pinboard"
+      - "scene-board"
+      - "instagram-scrapper"
+      - "image-engine"
     failure_patterns: []
 
 # Cross-system relationships

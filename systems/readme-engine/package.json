@@ -1,0 +1,22 @@
+{
+	"name": "adcelerate-readme-engine",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure",
+	"scripts": {
+		"dev": "bun run --watch src/index.ts",
+		"build": "bun build src/index.ts --outdir dist --target bun",
+		"test": "bun test",
+		"lint": "bunx @biomejs/biome check .",
+		"check": "bunx @biomejs/biome check --write ."
+	},
+	"dependencies": {
+		"js-yaml": "^4.1.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.0",
+		"@types/bun": "latest",
+		"@types/js-yaml": "^4.0.9",
+		"typescript": "^5.7.0"
+	}
+}

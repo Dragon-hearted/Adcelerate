@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🚀 multi-agent-observability-server
+# 🚀 multi-agent-observability-client
 
-### multi-agent-observability-server application
+### multi-agent-observability-client application
 
 </div>
 
@@ -22,26 +22,32 @@
 
 ## 📖 Overview
 
-multi-agent-observability-server application
+multi-agent-observability-client application
 
 ---
 
 ## 🛠 Tech Stack
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| **Vue 3** | UI framework |
+| **Tailwind CSS 3** | Utility-first styling |
+| **Vite 7** | Build tool & dev server |
 
 ### Backend
 
 | Technology | Purpose |
 |------------|---------|
 | **TypeScript 5.8** | Type safety |
-| **Bun** | JavaScript runtime & package manager |
-| **Sqlite3 5** | SQLite database |
 
 ---
 
 ## 🚀 Getting Started
 
 ```bash
-cd apps/server
+cd apps/client
 bun install
 bun run dev
 ```
@@ -61,19 +67,24 @@ bun run dev
 ## 📂 Project Structure
 
 ```
-multi-agent-observability-server/
-├── server
+multi-agent-observability-client/
+├── client
 ├── README.md
-├── events.db
-├── events.db-shm
-├── events.db-wal
+├── index.html
 ├── package.json
+├── postcss.config.js
+├── public
+├── vite.svg
 ├── src
-├── db.ts
-├── index.ts
-├── theme.ts
+├── App.vue
+├── config.ts
+├── main.ts
 ├── types.ts
-└── tsconfig.json
+├── tailwind.config.js
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
 ```
 
 ---
