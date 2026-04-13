@@ -38,6 +38,21 @@ Contributions are welcome! Here's how to get started:
 4. Commit your changes and open a pull request`;
 }
 
+/** SVG-based hero that references an external SVG file */
+export function svgHero(name: string, tagline: string, badges: string): string {
+	const lines: string[] = ['<div align="center">', ''];
+	lines.push(`![${name}](images/hero.svg)`);
+	lines.push('');
+	lines.push(`### ${tagline}`);
+	lines.push('');
+	if (badges) {
+		lines.push(badges);
+		lines.push('');
+	}
+	lines.push('</div>');
+	return lines.join('\n');
+}
+
 /** MIT license section */
 export function license(): string {
 	return `## 📄 License

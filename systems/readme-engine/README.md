@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ ReadmeEngine
+![ReadmeEngine](images/hero.svg)
 
 ### Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure
 
@@ -44,6 +44,8 @@
 ---
 
 ## 🏗 Architecture
+
+![Pipeline](images/pipeline.svg)
 
 ReadmeEngine processes data through a multi-stage pipeline:
 
@@ -106,7 +108,11 @@ bun run systems/readme-engine/src/cli.ts
 
 ```
 readme-engine/
+├── README.md
 ├── biome.json
+├── images
+│   ├── hero.svg
+│   └── pipeline.svg
 ├── justfile
 ├── knowledge
 │   ├── acceptance-criteria.md
@@ -136,16 +142,29 @@ readme-engine/
 │   │   ├── post_tool_use.json
 │   │   ├── pre_tool_use.json
 │   │   └── stop.json
+│   ├── 93dff7f9-640d-43b1-a116-8163bd9890bf
+│   │   ├── chat.json
+│   │   ├── post_tool_use.json
+│   │   ├── pre_tool_use.json
+│   │   └── stop.json
 │   ├── afed2c6d-200c-4f1e-ae6a-86cfbabd2354
+│   │   ├── chat.json
 │   │   ├── post_tool_use.json
 │   │   ├── post_tool_use_failure.json
-│   │   └── pre_tool_use.json
-│   └── e5661a24-4092-4482-bf69-0127f1d35f6d
-│       ├── chat.json
-│       ├── post_tool_use.json
-│       ├── post_tool_use_failure.json
-│       ├── pre_tool_use.json
-│       └── stop.json
+│   │   ├── pre_tool_use.json
+│   │   └── stop.json
+│   ├── e5661a24-4092-4482-bf69-0127f1d35f6d
+│   │   ├── chat.json
+│   │   ├── post_tool_use.json
+│   │   ├── post_tool_use_failure.json
+│   │   ├── pre_tool_use.json
+│   │   └── stop.json
+│   ├── e8c5becc-9a54-4194-a263-c97f9197765d
+│   │   ├── chat.json
+│   │   ├── post_tool_use.json
+│   │   ├── pre_tool_use.json
+│   │   └── stop.json
+│   └── session_end.json
 ├── package.json
 ├── src
 │   ├── cli.ts
@@ -175,6 +194,7 @@ readme-engine/
 │   │   ├── project-structure.ts
 │   │   ├── tech-stack.ts
 │   │   └── toc.ts
+│   ├── svg-writer.ts
 │   ├── templates
 │   │   ├── app-readme.ts
 │   │   ├── index.ts
