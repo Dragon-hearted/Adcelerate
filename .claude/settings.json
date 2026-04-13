@@ -48,6 +48,11 @@
           },
           {
             "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/readme_drift_check.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app adcelerate --event-type SessionEnd"
           }
         ]

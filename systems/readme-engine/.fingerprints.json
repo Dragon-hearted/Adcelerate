@@ -1,0 +1,103 @@
+{
+  "root/overview": {
+    "sectionName": "overview",
+    "hash": "1b22da2de4295df3489e05eeedec4c7e84f0c9649bcb3c3096652017650fd40a",
+    "sourceFiles": [
+      "systems.yaml",
+      "library.yaml"
+    ],
+    "timestamp": "2026-04-13T07:32:32.593Z"
+  },
+  "root/architecture": {
+    "sectionName": "architecture",
+    "hash": "deae665496c697c0e389e2124f7ad222369407497e6d30d92b107432569b61d9",
+    "sourceFiles": [
+      "knowledge/graph.yaml",
+      "systems.yaml"
+    ],
+    "timestamp": "2026-04-13T07:32:32.593Z"
+  },
+  "root/systems": {
+    "sectionName": "systems",
+    "hash": "c9a6ab1b27ad9fca1830c56724956e663eb2f6b72ce5a5703066d5411f824b4b",
+    "sourceFiles": [
+      "systems.yaml",
+      "systems/readme-engine/knowledge/history.md",
+      "systems/readme-engine/knowledge/acceptance-criteria.md",
+      "systems/readme-engine/knowledge/dependencies.md",
+      "systems/readme-engine/knowledge/domain.md",
+      "systems/readme-engine/knowledge/index.md",
+      "systems/readme-engine/package.json",
+      "systems/image-engine/knowledge/scope.md",
+      "systems/image-engine/knowledge/acceptance-criteria.md",
+      "systems/image-engine/knowledge/dependencies.md",
+      "systems/image-engine/knowledge/domain.md",
+      "systems/image-engine/package.json",
+      "systems/autoCaption/package.json",
+      "systems/pinboard/package.json",
+      "systems/scene-board/knowledge/scope.md",
+      "systems/scene-board/knowledge/history.md",
+      "systems/scene-board/knowledge/acceptance-criteria.md",
+      "systems/scene-board/knowledge/dependencies.md",
+      "systems/scene-board/knowledge/domain.md",
+      "systems/scene-board/knowledge/index.md",
+      "systems/scene-board/knowledge/nanobanana-pro-prompt-guide.md",
+      "systems/scene-board/package.json",
+      "systems/instagram-scrapper/knowledge/history.md",
+      "systems/instagram-scrapper/knowledge/acceptance-criteria.md",
+      "systems/instagram-scrapper/knowledge/dependencies.md",
+      "systems/instagram-scrapper/knowledge/domain.md",
+      "systems/instagram-scrapper/knowledge/index.md",
+      "systems/instagram-scrapper/package.json"
+    ],
+    "timestamp": "2026-04-13T07:32:32.602Z"
+  },
+  "root/library": {
+    "sectionName": "library",
+    "hash": "02ecd3ad7ab49dee1e446b2f33857e66ecbd36a3f69954a78d8d336626363b2d",
+    "sourceFiles": [
+      "library.yaml"
+    ],
+    "timestamp": "2026-04-13T07:32:32.603Z"
+  },
+  "root/graph": {
+    "sectionName": "graph",
+    "hash": "8d3b007cf9fc8b2733336e8ddf55b380fcc629ce0afee8fc71aebc198ae3deb1",
+    "sourceFiles": [
+      "knowledge/graph.yaml"
+    ],
+    "timestamp": "2026-04-13T07:32:32.603Z"
+  },
+  "root/apps": {
+    "sectionName": "apps",
+    "hash": "f9051de08976582b1eabbd729569b28a594ae2f331eb516c466c3bcbf6e598d3",
+    "sourceFiles": [
+      "apps/server/package.json",
+      "apps/client/package.json"
+    ],
+    "timestamp": "2026-04-13T07:32:32.604Z"
+  },
+  "system:pinboard/knowledge": {
+    "sectionName": "knowledge",
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourceFiles": [],
+    "timestamp": "2026-04-13T07:32:26.531Z"
+  },
+  "system:pinboard/config": {
+    "sectionName": "config",
+    "hash": "f3be011c34f81e1ce81fb6eb533f8b362a100af90ab00f3aedbf1546beafe205",
+    "sourceFiles": [
+      "systems/pinboard/package.json",
+      "systems.yaml"
+    ],
+    "timestamp": "2026-04-13T07:32:26.532Z"
+  },
+  "system:pinboard/graph": {
+    "sectionName": "graph",
+    "hash": "8d3b007cf9fc8b2733336e8ddf55b380fcc629ce0afee8fc71aebc198ae3deb1",
+    "sourceFiles": [
+      "knowledge/graph.yaml"
+    ],
+    "timestamp": "2026-04-13T07:32:26.532Z"
+  }
+}

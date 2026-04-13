@@ -327,6 +327,36 @@ def check_dependencies(project: Path) -> list[CheckResult]:
     return results
 
 
+def check_readme_drift(project: Path) -> list[CheckResult]:
+    """Check if README drift flag exists, indicating stale READMEs."""
+    results: list[CheckResult] = []
+    drift_flag = project / "systems" / "readme-engine" / ".drift-flag"
+
+    if not drift_flag.exists():
+        results.append(CheckResult("README drift", "pass", "No drift flag — READMEs appear current"))
+        return results
+
+    try:
+        with open(drift_flag, "r") as f:
+            drift_data = json.load(f)
+        scopes = drift_data.get("affected_scopes", [])
+        n = len(scopes)
+        scope_list = ", ".join(scopes[:5])
+        results.append(CheckResult(
+            "README drift",
+            "warn",
+            f"{n} README(s) may be stale. Run /readme-update to refresh. Scopes: {scope_list}",
+        ))
+    except (json.JSONDecodeError, Exception):
+        results.append(CheckResult(
+            "README drift",
+            "warn",
+            "Drift flag exists but unreadable. Run /readme-update to refresh.",
+        ))
+
+    return results
+
+
 def check_stale_artifacts(project: Path) -> list[CheckResult]:
     """Check for worktree dirs in trees/ and orphaned .env.* files."""
     results: list[CheckResult] = []
@@ -386,6 +416,7 @@ def main() -> None:
         ("Hook Scripts", check_hook_scripts),
         ("Dependencies", check_dependencies),
         ("Stale Artifacts", check_stale_artifacts),
+        ("README Drift", check_readme_drift),
     ]
 
     grouped_results: list[tuple[str, list[CheckResult]]] = []
