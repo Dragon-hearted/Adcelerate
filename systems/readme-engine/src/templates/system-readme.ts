@@ -1,10 +1,8 @@
 import {
-	type ArchDiagram,
 	type TocEntry,
 	detectTechStack,
 	parseRoutes,
 	pathsToTree,
-	pipelineFlow,
 	renderApiReference,
 	renderArchitecture,
 	renderBadges,
@@ -113,24 +111,12 @@ export async function systemReadme(data: SystemTemplateData): Promise<ReadmeSect
 
 	// --- Architecture ---
 	if (system.stages.length > 0) {
-		const pipeline = pipelineFlow(system.name, system.stages);
-
-		const archDiagram: ArchDiagram = {
-			title: `${system.name} Pipeline`,
-			layers: system.stages.map((stage) => ({
-				label: stage,
-				boxes: [{ label: stage }],
-			})),
-		};
-
 		const archContent = [
 			"## 🏗 Architecture",
 			"",
 			"![Pipeline](images/pipeline.svg)",
 			"",
-			`${system.name} processes data through a multi-stage pipeline:`,
-			"",
-			pipeline,
+			`${system.name} processes data through a multi-stage pipeline.`,
 		];
 
 		sections.push({

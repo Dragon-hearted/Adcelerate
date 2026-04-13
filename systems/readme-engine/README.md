@@ -47,16 +47,7 @@
 
 ![Pipeline](images/pipeline.svg)
 
-ReadmeEngine processes data through a multi-stage pipeline:
-
-```mermaid
-flowchart LR
-    ReadmeEngine_stage_0[collection]
-    ReadmeEngine_stage_1[rendering]
-    ReadmeEngine_stage_0 --> ReadmeEngine_stage_1
-    ReadmeEngine_stage_2[assembly]
-    ReadmeEngine_stage_1 --> ReadmeEngine_stage_2
-```
+ReadmeEngine processes data through a multi-stage pipeline.
 
 ---
 
