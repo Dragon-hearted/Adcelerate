@@ -79,28 +79,6 @@ graph TD
     readme_engine --> bun
 ```
 
-### Platform Overview
-
-```mermaid
-graph TB
-    subgraph video[video]
-        autoCaption[autoCaption]
-        SceneBoard[SceneBoard]
-    end
-    subgraph web_app[web-app]
-        Pinboard[Pinboard]
-    end
-    subgraph social_media[social-media]
-        Instagram_Scrapper[Instagram Scrapper]
-    end
-    subgraph ai[ai]
-        ImageEngine[ImageEngine]
-    end
-    subgraph documentation[documentation]
-        ReadmeEngine[ReadmeEngine]
-    end
-```
-
 ---
 
 ## 🛠 Tech Stack

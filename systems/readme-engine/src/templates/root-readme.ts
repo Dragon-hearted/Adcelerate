@@ -5,7 +5,6 @@ import {
 	dependencyGraph,
 	detectTechStack,
 	pathsToTree,
-	platformOverview,
 	renderBadges,
 	renderChangelog,
 	renderProjectStructure,
@@ -98,13 +97,8 @@ export function rootReadme(data: RootTemplateData): ReadmeSection[] {
 	// --- Architecture (dependency graph) ---
 	if (Object.keys(data.graph.systems).length > 0) {
 		const depGraph = dependencyGraph(data.graph);
-		const platOverview = platformOverview(data.systems);
 
 		const archContent = ["## 🏗 Architecture", "", "![Platform Overview](images/platform-overview.svg)", "", "### Dependency Topology", "", depGraph];
-
-		if (platOverview) {
-			archContent.push("", "### Platform Overview", "", platOverview);
-		}
 
 		sections.push({
 			name: "architecture",
