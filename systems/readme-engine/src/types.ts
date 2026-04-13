@@ -91,6 +91,12 @@ export interface ReadmeSection {
 	order: number;
 }
 
+/** An SVG asset to be written to disk */
+export interface SvgAsset {
+  name: string;
+  content: string;
+}
+
 /** A fully rendered README */
 export interface RenderedReadme {
 	scope: ReadmeScope;

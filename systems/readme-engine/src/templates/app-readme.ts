@@ -7,7 +7,7 @@ import {
 	renderToc,
 } from "../renderers";
 import type { AppData, CodeData, ReadmeSection } from "../types";
-import { centeredHero, contributing, footer, license } from "./shared-sections";
+import { centeredHero, svgHero, contributing, footer, license } from "./shared-sections";
 
 interface AppTemplateData {
 	app: AppData;
@@ -26,7 +26,7 @@ export function appReadme(data: AppTemplateData): ReadmeSection[] {
 	sections.push({
 		name: "hero",
 		order: order++,
-		content: centeredHero(`🚀 ${app.name}`, appDescription, ""),
+		content: svgHero(app.name, appDescription, ""),
 	});
 
 	// --- TOC ---

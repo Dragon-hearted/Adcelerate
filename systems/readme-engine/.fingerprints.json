@@ -6,7 +6,7 @@
       "systems.yaml",
       "library.yaml"
     ],
-    "timestamp": "2026-04-13T07:32:32.593Z"
+    "timestamp": "2026-04-13T10:17:02.394Z"
   },
   "root/architecture": {
     "sectionName": "architecture",
@@ -15,7 +15,7 @@
       "knowledge/graph.yaml",
       "systems.yaml"
     ],
-    "timestamp": "2026-04-13T07:32:32.593Z"
+    "timestamp": "2026-04-13T10:17:02.394Z"
   },
   "root/systems": {
     "sectionName": "systems",
@@ -50,7 +50,7 @@
       "systems/instagram-scrapper/knowledge/index.md",
       "systems/instagram-scrapper/package.json"
     ],
-    "timestamp": "2026-04-13T07:32:32.602Z"
+    "timestamp": "2026-04-13T10:17:02.406Z"
   },
   "root/library": {
     "sectionName": "library",
@@ -58,7 +58,7 @@
     "sourceFiles": [
       "library.yaml"
     ],
-    "timestamp": "2026-04-13T07:32:32.603Z"
+    "timestamp": "2026-04-13T10:17:02.406Z"
   },
   "root/graph": {
     "sectionName": "graph",
@@ -66,7 +66,7 @@
     "sourceFiles": [
       "knowledge/graph.yaml"
     ],
-    "timestamp": "2026-04-13T07:32:32.603Z"
+    "timestamp": "2026-04-13T10:17:02.406Z"
   },
   "root/apps": {
     "sectionName": "apps",
@@ -75,7 +75,7 @@
       "apps/server/package.json",
       "apps/client/package.json"
     ],
-    "timestamp": "2026-04-13T07:32:32.604Z"
+    "timestamp": "2026-04-13T10:17:02.407Z"
   },
   "system:pinboard/knowledge": {
     "sectionName": "knowledge",

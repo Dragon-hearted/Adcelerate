@@ -8,10 +8,13 @@ import {
 	collectSystems,
 } from "./collectors";
 import { fingerprintKey, generateFingerprints, loadFingerprints, saveFingerprints } from "./drift";
+import { renderHeroSvg, renderPipelineSvg, renderPlatformSvg } from "./renderers/svg";
+import { domainTagToColor } from "./renderers/svg/design-tokens";
+import { writeSvgAssets } from "./svg-writer";
 import { appReadme } from "./templates/app-readme";
 import { rootReadme } from "./templates/root-readme";
 import { systemReadme } from "./templates/system-readme";
-import type { ReadmeScope, ReadmeSection, RenderedReadme } from "./types";
+import type { ReadmeScope, ReadmeSection, RenderedReadme, SvgAsset } from "./types";
 
 /** Resolve monorepo root — readme-engine lives at systems/readme-engine */
 function resolveRoot(): string {
@@ -45,6 +48,13 @@ async function generateRoot(monorepoRoot: string): Promise<RenderedReadme> {
 	]);
 
 	console.log(`[generate] Collected: ${systems.length} systems, ${library.skillCount} skills`);
+
+	// Generate SVG assets before README so image references resolve
+	const svgs: SvgAsset[] = [
+		{ name: "hero", content: renderHeroSvg("Adcelerate", "AI-Powered Marketing & Media Platform", "#6366F1") },
+		{ name: "platform-overview", content: renderPlatformSvg(systems) },
+	];
+	await writeSvgAssets(monorepoRoot, { type: "root" }, svgs);
 
 	const sections = rootReadme({ systems, graph, library, git, code });
 	const fullContent = assembleSections(sections);
@@ -88,6 +98,17 @@ async function generateSystem(monorepoRoot: string, name: string): Promise<Rende
 		collectCode(monorepoRoot),
 	]);
 
+	// Generate SVG assets before README so image references resolve
+	const firstSentence = extractFirstSentence(system.description);
+	const color = domainTagToColor(system.domainTags);
+	const svgs: SvgAsset[] = [
+		{ name: "hero", content: renderHeroSvg(system.name, firstSentence, color, system.domainTags) },
+	];
+	if (system.stages.length > 0) {
+		svgs.push({ name: "pipeline", content: renderPipelineSvg(system.name, system.stages, color) });
+	}
+	await writeSvgAssets(monorepoRoot, { type: "system", name: system.path.split("/").pop() }, svgs);
+
 	const sections = await systemReadme({
 		system,
 		graph,
@@ -127,6 +148,14 @@ async function generateApp(monorepoRoot: string, name: string): Promise<Rendered
 	}
 
 	const code = await collectCode(monorepoRoot);
+
+	// Generate SVG assets before README so image references resolve
+	const appDescription = (app.packageJson?.description as string) || `${app.name} application`;
+	const appSvgs: SvgAsset[] = [
+		{ name: "hero", content: renderHeroSvg(app.name, appDescription, "#6366F1") },
+	];
+	await writeSvgAssets(monorepoRoot, { type: "app", name: app.path.split("/").pop() }, appSvgs);
+
 	const sections = appReadme({ app, code });
 	const fullContent = assembleSections(sections);
 
@@ -226,6 +255,12 @@ export async function generate(scope: ReadmeScope): Promise<RenderedReadme> {
 		`[generate] Done. ${result.sections.length} sections, ${result.fullContent.length} chars`,
 	);
 	return result;
+}
+
+/** Extract first sentence handling domain names like "fal.ai" */
+function extractFirstSentence(text: string): string {
+	const match = text.match(/^(.+?(?<!\w\.\w)(?<![A-Z]))\.\s/);
+	return match ? match[1] : text;
 }
 
 /** Save fingerprints after generating so drift detection has a baseline */

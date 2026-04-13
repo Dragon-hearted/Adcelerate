@@ -15,7 +15,7 @@ import {
 	renderToc,
 } from "../renderers";
 import type { CodeData, GitData, GraphData, ReadmeSection, SystemData } from "../types";
-import { centeredHero, contributing, footer, license } from "./shared-sections";
+import { centeredHero, svgHero, contributing, footer, license } from "./shared-sections";
 
 interface SystemTemplateData {
 	system: SystemData;
@@ -44,7 +44,7 @@ export async function systemReadme(data: SystemTemplateData): Promise<ReadmeSect
 	sections.push({
 		name: "hero",
 		order: order++,
-		content: centeredHero(`${pickEmoji(system.domainTags)} ${system.name}`, firstSentence, badges),
+		content: svgHero(system.name, firstSentence, badges),
 	});
 
 	// --- Demo GIFs ---
@@ -125,6 +125,8 @@ export async function systemReadme(data: SystemTemplateData): Promise<ReadmeSect
 
 		const archContent = [
 			"## 🏗 Architecture",
+			"",
+			"![Pipeline](images/pipeline.svg)",
 			"",
 			`${system.name} processes data through a multi-stage pipeline:`,
 			"",

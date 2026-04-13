@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 Adcelerate
+![Adcelerate](images/hero.svg)
 
 ### AI-Powered Marketing & Media Platform
 
@@ -44,6 +44,8 @@ Adcelerate is a monorepo powering an AI-driven marketing and media platform. It 
 ---
 
 ## 🏗 Architecture
+
+![Platform Overview](images/platform-overview.svg)
 
 ### Dependency Topology
 
@@ -209,6 +211,8 @@ adcelerate/
 
 ## 📝 Recent Changes
 
+- `81ff2cc` Update submodule refs after README generation
+- `7105c53` Add ReadmeEngine system with auto-generated READMEs for entire platform
 - `55dab97` Add ImageEngine as submodule, remove BMAD skills, update platform config
 - `5912cbf` Integrate caveman token reduction as always-on default communication style
 - `ac2ccbf` Add Instagram Scrapper system and update SceneBoard storyboard format
@@ -217,7 +221,6 @@ adcelerate/
 - `e2d20ff` Adcelerate v1: refactor UI components, add agents/skills, and knowledge base
 - `c68440d` Save working state before v1 upgrade
 - `a9aee79` Add pinboard as git submodule, restructure justfile
-- `7cb1470` Initial commit: Adcelerate with library catalog system
 
 ---
 

@@ -20,7 +20,7 @@ import type {
 	ReadmeSection,
 	SystemData,
 } from "../types";
-import { centeredHero, contributing, footer, license } from "./shared-sections";
+import { centeredHero, svgHero, contributing, footer, license } from "./shared-sections";
 
 interface RootTemplateData {
 	systems: SystemData[];
@@ -45,7 +45,7 @@ export function rootReadme(data: RootTemplateData): ReadmeSection[] {
 	sections.push({
 		name: "hero",
 		order: order++,
-		content: centeredHero("🚀 Adcelerate", "AI-Powered Marketing & Media Platform", heroBadges),
+		content: svgHero("Adcelerate", "AI-Powered Marketing & Media Platform", heroBadges),
 	});
 
 	// --- Overview ---
@@ -100,7 +100,7 @@ export function rootReadme(data: RootTemplateData): ReadmeSection[] {
 		const depGraph = dependencyGraph(data.graph);
 		const platOverview = platformOverview(data.systems);
 
-		const archContent = ["## 🏗 Architecture", "", "### Dependency Topology", "", depGraph];
+		const archContent = ["## 🏗 Architecture", "", "![Platform Overview](images/platform-overview.svg)", "", "### Dependency Topology", "", depGraph];
 
 		if (platOverview) {
 			archContent.push("", "### Platform Overview", "", platOverview);
