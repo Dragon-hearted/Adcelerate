@@ -13,3 +13,9 @@
 [submodule "systems/image-engine"]
 	path = systems/image-engine
 	url = https://github.com/Dragon-hearted/image-engine.git
+[submodule "systems/readme-engine"]
+	path = systems/readme-engine
+	url = https://github.com/Dragon-hearted/readme-engine.git
+[submodule "systems/prompt-writer"]
+	path = systems/prompt-writer
+	url = https://github.com/Dragon-hearted/prompt-writer.git
