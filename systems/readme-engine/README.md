@@ -111,51 +111,6 @@ readme-engine/
 │   ├── domain.md
 │   ├── history.md
 │   └── index.md
-├── logs
-│   ├── 109ade25-da92-495d-a1fd-203b210ee16d
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── post_tool_use_failure.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   ├── 3069c628-b142-4b8f-90db-92782a6f70ad
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   ├── 4d33eaf3-bfbc-4baf-a190-7adc917557ff
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   ├── 7ba10a7c-43a8-49cf-a1f3-d5f230c50640
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   ├── 93dff7f9-640d-43b1-a116-8163bd9890bf
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   ├── afed2c6d-200c-4f1e-ae6a-86cfbabd2354
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── post_tool_use_failure.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   ├── e5661a24-4092-4482-bf69-0127f1d35f6d
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── post_tool_use_failure.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   ├── e8c5becc-9a54-4194-a263-c97f9197765d
-│   │   ├── chat.json
-│   │   ├── post_tool_use.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   └── session_end.json
 ├── package.json
 ├── src
 │   ├── cli.ts

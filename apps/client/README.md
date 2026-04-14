@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 multi-agent-observability-client
+![multi-agent-observability-client](images/hero.svg)
 
 ### multi-agent-observability-client application
 
@@ -70,6 +70,8 @@ bun run dev
 multi-agent-observability-client/
 ├── client
 ├── README.md
+├── images
+├── hero.svg
 ├── index.html
 ├── package.json
 ├── postcss.config.js

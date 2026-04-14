@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 multi-agent-observability-server
+![multi-agent-observability-server](images/hero.svg)
 
 ### multi-agent-observability-server application
 
@@ -67,6 +67,8 @@ multi-agent-observability-server/
 ├── events.db
 ├── events.db-shm
 ├── events.db-wal
+├── images
+├── hero.svg
 ├── package.json
 ├── src
 ├── db.ts
