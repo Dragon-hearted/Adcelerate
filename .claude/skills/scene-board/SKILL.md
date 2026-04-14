@@ -166,3 +166,4 @@ Always confirm the target platform before scene breakdown. Platform determines a
 - **sales-enablement** -- Pitch decks, demo scripts
 - **content-strategy** -- Editorial planning, content calendars
 - **remotion-best-practices** -- Code-based video rendering for text-heavy scenes
+- **prompt-writer** -- Centralized prompt engineering for NanoBanana Pro, Kling, and all generation models

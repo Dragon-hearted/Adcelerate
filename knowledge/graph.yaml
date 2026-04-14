@@ -4,8 +4,8 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-04-13"
-  systemCount: 6
+  lastUpdated: "2026-04-14"
+  systemCount: 7
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -60,6 +60,7 @@ systems:
       - "pinboard"
       - "autocaption"
       - "image-engine"
+      - "prompt-writer"
     failure_patterns: []
 
   image-engine:
@@ -83,6 +84,17 @@ systems:
       - "scene-board"
       - "instagram-scrapper"
       - "image-engine"
+      - "prompt-writer"
+    failure_patterns: []
+
+  prompt-writer:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+    shared_models: []
+    related_systems:
+      - "scene-board"
+      - "image-engine"
+      - "pinboard"
     failure_patterns: []
 
 # Cross-system relationships
@@ -120,6 +132,14 @@ relationships:
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems provide image generation capabilities (ImageEngine via WisGate, Pinboard via fal.ai/Google AI)"
+  - from: "prompt-writer"
+    to: "scene-board"
+    type: "pipeline"
+    description: "PromptWriter provides centralized prompt engineering knowledge that SceneBoard references for NanoBanana Pro and Kling prompt generation"
+  - from: "prompt-writer"
+    to: "image-engine"
+    type: "shared-dependency"
+    description: "Both systems reference AI generation models — PromptWriter as the knowledge authority, ImageEngine as the execution gateway"
 
 # Known failure patterns for accelerated diagnosis
 # Schema: {id: fp-NNN, description: string, diagnosed: date, resolution: string, affects: [system-id]}
