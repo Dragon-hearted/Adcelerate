@@ -189,6 +189,9 @@ adcelerate/
 
 ## 📝 Recent Changes
 
+- `6a1f401` Clean up repo: remove legacy _bmad/, untrack graphify-out/, update .gitignore
+- `186b40e` Remove duplicate mermaid diagrams from READMEs, fix ReadmeEngine templates
+- `2db238b` Add animated SVG diagram generation to ReadmeEngine
 - `81ff2cc` Update submodule refs after README generation
 - `7105c53` Add ReadmeEngine system with auto-generated READMEs for entire platform
 - `55dab97` Add ImageEngine as submodule, remove BMAD skills, update platform config
@@ -196,9 +199,6 @@ adcelerate/
 - `ac2ccbf` Add Instagram Scrapper system and update SceneBoard storyboard format
 - `c64511b` Fix security vulnerabilities from audit (C1, H1-H6, M1-M4, M7, L4-L12)
 - `950e84b` Restructure systems into systems/ directory with submodules
-- `e2d20ff` Adcelerate v1: refactor UI components, add agents/skills, and knowledge base
-- `c68440d` Save working state before v1 upgrade
-- `a9aee79` Add pinboard as git submodule, restructure justfile
 
 ---
 

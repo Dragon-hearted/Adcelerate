@@ -371,47 +371,76 @@ async function mergeSubPackages(
 /** Build a project tree specific to a system directory */
 async function buildSystemTree(systemPath: string): Promise<string | null> {
 	try {
-		// Use -type f to only get files — pathsToTree creates directories implicitly
-		const proc = Bun.spawn(
-			[
-				"find",
-				systemPath,
-				"-maxdepth",
-				"3",
-				"-type",
-				"f",
-				"-not",
-				"-path",
-				"*/node_modules/*",
-				"-not",
-				"-path",
-				"*/.git/*",
-				"-not",
-				"-path",
-				"*/dist/*",
-				"-not",
-				"-name",
-				"bun.lock",
-				"-not",
-				"-name",
-				".DS_Store",
-				"-not",
-				"-name",
-				"*.tsbuildinfo",
-			],
+		// Prefer git ls-files: respects .gitignore, works for both submodules and standalone repos
+		const gitProc = Bun.spawn(
+			["git", "-C", systemPath, "ls-files", "--", "."],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
-		const output = await new Response(proc.stdout).text();
-		await proc.exited;
+		const gitOutput = await new Response(gitProc.stdout).text();
+		const gitExitCode = await gitProc.exited;
 
-		if (!output.trim()) return null;
+		let paths: string[];
 
-		const paths = output
-			.trim()
-			.split("\n")
-			.map((p) => p.replace(`${systemPath}/`, ""))
-			.filter((p) => p && p !== systemPath && !p.startsWith("."))
-			.sort();
+		if (gitExitCode === 0 && gitOutput.trim()) {
+			// git ls-files succeeded — filter for maxdepth 3 equivalent and unwanted files
+			paths = gitOutput
+				.trim()
+				.split("\n")
+				.filter(
+					(p) =>
+						p &&
+						!p.startsWith(".") &&
+						p.split("/").length <= 3 &&
+						!p.endsWith("/bun.lock") &&
+						p !== "bun.lock" &&
+						!p.endsWith(".tsbuildinfo"),
+				)
+				.sort();
+		} else {
+			// Fallback: git not available or not a repo — use find with manual exclusions
+			const findProc = Bun.spawn(
+				[
+					"find",
+					systemPath,
+					"-maxdepth",
+					"3",
+					"-type",
+					"f",
+					"-not",
+					"-path",
+					"*/node_modules/*",
+					"-not",
+					"-path",
+					"*/.git/*",
+					"-not",
+					"-path",
+					"*/dist/*",
+					"-not",
+					"-name",
+					"bun.lock",
+					"-not",
+					"-name",
+					".DS_Store",
+					"-not",
+					"-name",
+					"*.tsbuildinfo",
+				],
+				{ stdout: "pipe", stderr: "pipe" },
+			);
+			const findOutput = await new Response(findProc.stdout).text();
+			await findProc.exited;
+
+			if (!findOutput.trim()) return null;
+
+			paths = findOutput
+				.trim()
+				.split("\n")
+				.map((p) => p.replace(`${systemPath}/`, ""))
+				.filter((p) => p && p !== systemPath && !p.startsWith("."))
+				.sort();
+		}
+
+		if (paths.length === 0) return null;
 
 		const treeEntries = pathsToTree(paths);
 		const systemName = systemPath.split("/").pop() || "system";

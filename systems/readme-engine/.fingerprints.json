@@ -6,7 +6,7 @@
       "systems.yaml",
       "library.yaml"
     ],
-    "timestamp": "2026-04-13T10:17:02.394Z"
+    "timestamp": "2026-04-14T05:46:19.787Z"
   },
   "root/architecture": {
     "sectionName": "architecture",
@@ -15,7 +15,7 @@
       "knowledge/graph.yaml",
       "systems.yaml"
     ],
-    "timestamp": "2026-04-13T10:17:02.394Z"
+    "timestamp": "2026-04-14T05:46:19.788Z"
   },
   "root/systems": {
     "sectionName": "systems",
@@ -50,7 +50,7 @@
       "systems/instagram-scrapper/knowledge/index.md",
       "systems/instagram-scrapper/package.json"
     ],
-    "timestamp": "2026-04-13T10:17:02.406Z"
+    "timestamp": "2026-04-14T05:46:19.797Z"
   },
   "root/library": {
     "sectionName": "library",
@@ -58,7 +58,7 @@
     "sourceFiles": [
       "library.yaml"
     ],
-    "timestamp": "2026-04-13T10:17:02.406Z"
+    "timestamp": "2026-04-14T05:46:19.797Z"
   },
   "root/graph": {
     "sectionName": "graph",
@@ -66,7 +66,7 @@
     "sourceFiles": [
       "knowledge/graph.yaml"
     ],
-    "timestamp": "2026-04-13T10:17:02.406Z"
+    "timestamp": "2026-04-14T05:46:19.797Z"
   },
   "root/apps": {
     "sectionName": "apps",
@@ -75,7 +75,7 @@
       "apps/server/package.json",
       "apps/client/package.json"
     ],
-    "timestamp": "2026-04-13T10:17:02.407Z"
+    "timestamp": "2026-04-14T05:46:19.798Z"
   },
   "system:pinboard/knowledge": {
     "sectionName": "knowledge",
@@ -99,5 +99,33 @@
       "knowledge/graph.yaml"
     ],
     "timestamp": "2026-04-13T07:32:26.532Z"
+  },
+  "system:image-engine/knowledge": {
+    "sectionName": "knowledge",
+    "hash": "d7afd39fa1253ce30aa8e75bd55dd1ef3c22bcdb825e17c37c0bdf5bd7aecf03",
+    "sourceFiles": [
+      "systems/image-engine/knowledge/scope.md",
+      "systems/image-engine/knowledge/acceptance-criteria.md",
+      "systems/image-engine/knowledge/dependencies.md",
+      "systems/image-engine/knowledge/domain.md"
+    ],
+    "timestamp": "2026-04-14T05:46:10.644Z"
+  },
+  "system:image-engine/config": {
+    "sectionName": "config",
+    "hash": "51f892c985d7bd3c443794a93c57dd4ab84d739ad211c836e983bfc30adda23e",
+    "sourceFiles": [
+      "systems/image-engine/package.json",
+      "systems.yaml"
+    ],
+    "timestamp": "2026-04-14T05:46:10.644Z"
+  },
+  "system:image-engine/graph": {
+    "sectionName": "graph",
+    "hash": "8d3b007cf9fc8b2733336e8ddf55b380fcc629ce0afee8fc71aebc198ae3deb1",
+    "sourceFiles": [
+      "knowledge/graph.yaml"
+    ],
+    "timestamp": "2026-04-14T05:46:10.644Z"
   }
 }
