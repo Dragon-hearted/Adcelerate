@@ -157,8 +157,23 @@ Fill every gap identified in Stage 1 through targeted conversation with the user
    - Any reference videos, images, or competitors to consider?
    - Any specific constraints or must-haves? (legal disclaimers, mandatory elements)
 
+   **Product Images (Required Question):**
+   - Do you have product images or photos for the items featured in this video? (e.g., product shots, flat-lays, lifestyle photos of the actual garments/items)
+
+   **Why this matters:** Product images are used as NanoBanana Pro reference images during generation. Without them, the AI generates its interpretation of the product, which often misses specific design details (prints, trim colors, logo placement, fabric texture). With actual product photos as references, generation accuracy improves dramatically — the AI matches the real product instead of inventing one.
+
+   **If the user provides product images:**
+   - Save/note them as reference assets for this storyboard project
+   - These will be automatically included as reference images in Stage 6 for every scene where the product appears
+   - Product-hero scenes (close-ups, reveals) should use Faithful creative mode with the product image as primary reference
+
+   **If the user cannot provide product images:**
+   - Acknowledge and proceed — this is not a blocker
+   - Note in the context summary: "Product images: Not available — generation will rely on text descriptions only"
+   - In Stage 6, prompts must be extra-specific about product details (print patterns, colors, fabric, design elements) to compensate for missing visual references
+
    **Additional:**
-   - Are there existing brand assets to incorporate? (product photos, logos, footage)
+   - Are there other existing brand assets to incorporate? (logos, footage, mood boards)
    - Is this part of a larger campaign or standalone?
 
 3. **Batch questions intelligently.** Group related questions together. Do not overwhelm with all questions at once — ask the most critical ones first, then follow up.
@@ -182,6 +197,7 @@ Fill every gap identified in Stage 1 through targeted conversation with the user
 **CTA:** [call to action]
 **Constraints:** [any must-haves or restrictions]
 **References:** [any reference material noted]
+**Product Images:** [Yes — {count} images provided / No — text-only generation]
 ```
 
 6. **Approval Gate.**
@@ -468,6 +484,17 @@ The Style Anchor is the visual DNA of the storyboard. Every scene inherits from 
 ### Overall Aesthetic
 [2-3 sentence description of the overall visual feel — the "vibe check" summary]
 
+### Character Consistency Protocol
+- **Primary Model Description:** [Detailed physical description that will be repeated verbatim in every scene prompt featuring this character: skin tone, hair style/texture/color, build, facial features, age range]
+- **Clothing Continuity:** [What the character wears across scenes — specify what stays constant (e.g., base outfit) vs. what changes (e.g., layered piece per scene)]
+- **Expression Range:** [Allowed emotional range — e.g., "calm to subtly amused, never exaggerated"]
+- **Distinguishing Features:** [Any consistent accessories, tattoos, jewelry, etc.]
+
+### Environment Consistency Rules
+- **Primary Location:** [Setting description that must remain consistent across scenes shot in this location]
+- **Lighting Progression:** [How lighting changes across scenes, if at all — e.g., "golden hour throughout" or "morning to midday progression"]
+- **Background Anchors:** [Specific background elements that must recur to maintain spatial continuity — e.g., "basketball hoop visible in wide shots", "gallery track lighting overhead"]
+
 ### NanoBanana Preamble
 - **NanoBanana Preamble** (200-400 chars): A condensed text encoding of the above constraints, to be included verbatim at the start of every NanoBanana Pro prompt for this project.
 ```
@@ -506,6 +533,8 @@ Does this visual direction match your vision?
 - **Composition:** [Key elements, focal points, rule-of-thirds placement, negative space]
 - **Mood:** [Emotional tone of THIS specific scene]
 - **Key Detail:** [The one thing that MUST be right for this scene to work]
+- **Consistency Anchors:** [Which elements from the Character Consistency Protocol and Environment Consistency Rules apply here. Flag any intentional deviations from the Style Anchor]
+- **Reference Chain:** [If this scene should use a previous scene's generated image as a reference for consistency, note it: e.g., "Reference Scene 1 output for character face/body continuity." Scene 1 typically has no reference chain — it establishes the visual baseline]
 ```
 
 5. **Present all scene visual directions** together as a single document for review.
@@ -583,6 +612,22 @@ No text in image.
 (Or: No references needed for this scene)
 ```
 
+1b. **Consistency Check** — Before finalizing each scene's prompt, verify:
+   - [ ] Character physical description matches the Character Consistency Protocol from the Style Anchor EXACTLY (same skin tone, hair, build descriptors)
+   - [ ] Clothing continuity maintained — base outfit elements present unless the script explicitly changes them
+   - [ ] Environment details match Environment Consistency Rules (same location identifiers, consistent background anchors)
+   - [ ] Style Anchor preamble included verbatim at the start of the prompt
+   - [ ] Reference images assigned per the Reference Chain from Stage 5B:
+     - **Scene 1** (establishing shot): Product images only (no previous scene output to reference)
+     - **Scenes 2-N** (same character): Include Scene 1's generated image ID as a `referenceImageId` via the batch generator's `dependsOn` mechanism, PLUS any product images
+     - **Same-location scenes**: Include the establishing shot's image ID as reference for environment continuity
+   - [ ] Any intentional deviations from the Style Anchor are explicitly noted in the prompt
+
+   **Reference Feedback Loop Implementation:**
+   When submitting to ImageEngine batch endpoint, scenes referencing earlier outputs must use the `dependsOn` field so they generate sequentially. The dependency scene's output ID becomes available as a `referenceImageId` for the dependent scene. This gives NanoBanana Pro a visual anchor for face/body/environment consistency that text alone cannot achieve.
+
+   See `systems/scene-board/knowledge/nanobanana-pro-prompt-guide.md` Section 8 for reference image best practices.
+
 2. **Text-heavy scenes.** For scenes that are primarily text (title cards, end cards, CTA screens, lower thirds, disclaimer screens), do NOT generate a NanoBanana prompt. Instead:
 
 ```
@@ -614,6 +659,8 @@ No text in image.
    - [ ] Every prompt ends with "No text in image."
    - [ ] Text-heavy scenes are marked `render: remotion`, not `render: nanobanana-pro`
    - [ ] Aspect ratio in each prompt matches the target platform
+   - [ ] Character physical descriptions are identical across all scene prompts (verified against Character Consistency Protocol)
+   - [ ] Reference chains configured: scenes sharing a character or location reference the appropriate earlier scene's output via `referenceImageIds`/`dependsOn`
 
    If any constraint is violated, fix it before presenting.
 

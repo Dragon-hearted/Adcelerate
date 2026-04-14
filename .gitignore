@@ -233,6 +233,9 @@ results/
 CVS/
 claude-output.json
 
+# Generated output
+graphify-out/
+
 # App docs
 app_docs/
 
