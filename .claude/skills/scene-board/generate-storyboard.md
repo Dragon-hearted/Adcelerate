@@ -626,7 +626,7 @@ No text in image.
    **Reference Feedback Loop Implementation:**
    When submitting to ImageEngine batch endpoint, scenes referencing earlier outputs must use the `dependsOn` field so they generate sequentially. The dependency scene's output ID becomes available as a `referenceImageId` for the dependent scene. This gives NanoBanana Pro a visual anchor for face/body/environment consistency that text alone cannot achieve.
 
-   See `systems/scene-board/knowledge/nanobanana-pro-prompt-guide.md` Section 8 for reference image best practices.
+   See `systems/prompt-writer/knowledge/models/image/nanobanana-pro.md` (Reference Image Best Practices section) for reference image strategies. PromptWriter is the authoritative source for all prompt engineering knowledge.
 
 2. **Text-heavy scenes.** For scenes that are primarily text (title cards, end cards, CTA screens, lower thirds, disclaimer screens), do NOT generate a NanoBanana prompt. Instead:
 

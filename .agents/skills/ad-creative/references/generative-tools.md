@@ -1,5 +1,7 @@
 # Generative AI Tools for Ad Creative
 
+> **Note:** For detailed per-model prompt engineering guides (prompt structure, best practices, worked examples, failure modes), see the centralized PromptWriter system at `systems/prompt-writer/knowledge/models/`. This file provides high-level tool comparison and selection guidance for ad creative workflows.
+
 Reference for using AI image generators, video generators, and code-based video tools to produce ad visuals at scale.
 
 ---

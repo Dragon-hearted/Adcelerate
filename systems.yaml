@@ -247,3 +247,41 @@ readme-engine:
     - name: "assembly"
       produces: "Complete README.md file(s) written to disk"
   registered_at: "2026-04-13"
+
+prompt-writer:
+  name: "PromptWriter"
+  path: "systems/prompt-writer"
+  status: "active"
+  description: "Centralized prompt engineering knowledge system with per-model guides, visual direction references, and a model registry for AI image, video, and voice generation — the single authority for prompt writing across all Adcelerate systems"
+  task_types:
+    - "prompt-generation"
+    - "model-selection"
+    - "prompt-optimization"
+    - "model-registry"
+  knowledge_path: "systems/prompt-writer/knowledge"
+  input_types:
+    - "generation-request"
+    - "scene-context"
+    - "style-anchor"
+    - "model-name"
+  output_types:
+    - "optimized-prompt"
+    - "model-recommendation"
+    - "prompt-validation"
+  domain_tags:
+    - "ai"
+    - "prompt-engineering"
+    - "image-generation"
+    - "video-generation"
+    - "voice-generation"
+    - "knowledge"
+  entry_point: "systems/prompt-writer/src/cli.ts"
+  justfile: true
+  stages:
+    - name: "model-selection"
+      produces: "Recommended model based on generation requirements and constraints"
+    - name: "prompt-composition"
+      produces: "Optimized prompt following model-specific best practices and constraints"
+    - name: "prompt-validation"
+      produces: "Validation report checking constraints, required elements, character limits"
+  registered_at: "2026-04-14"
