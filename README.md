@@ -36,7 +36,7 @@ Adcelerate is a monorepo powering an AI-driven marketing and media platform. It 
 |--------|-------------|--------|
 | [**autoCaption**](systems/autoCaption) | Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**SceneBoard**](systems/scene-board) | CLI-driven storyboard creation system that transforms video briefs of any format into professional storyboards with scripts, timestamps, voice scripts, and NanoBanana Pro prompts for visual generation — leveraging marketing, sales, social media, and ads skills | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**Pinboard**](systems/pinboard) | AI-powered image generation and reference board application with iterative workflow -- upload references, generate via Google Gemini/fal.ai, feed results back as references | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**Pinboard**](systems/pinboard) | Terminal-first reference board and AI image generator (Ink TUI) — Pinterest import, ImageEngine generation, PromptWriter per-model formatting, Claude Code vision tagging | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram content scraper that extracts posts, reels, and profile data using login-based Instagram Private API access with browser-automated authentication and media downloading | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ImageEngine**](systems/image-engine) | Centralized NanoBanana image generation service using WisGate (JuheAPI) with rate limiting, token-based cost tracking, budget guards, retry/backoff, batch parallel execution, and generation gallery | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ReadmeEngine**](systems/readme-engine) | Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
@@ -59,9 +59,9 @@ graph TD
     pinboard[pinboard]
     pinboard --> bun
     pinboard --> sqlite
-    pinboard --> google_ai
-    pinboard --> vite
-    pinboard --> fal_ai
+    pinboard --> ink
+    pinboard --> image_engine
+    pinboard --> prompt_writer
     instagram_scrapper[instagram-scrapper]
     instagram_scrapper --> bun
     instagram_scrapper --> playwright
@@ -172,7 +172,7 @@ adcelerate/
 ├── systems/                # Independent processing systems
 │   ├── autoCaption/            # Automated video captioning system using Whisper.cpp for transcription and Rem...
 │   ├── SceneBoard/             # CLI-driven storyboard creation system that transforms video briefs of any for...
-│   ├── Pinboard/               # AI-powered image generation and reference board application with iterative wo...
+│   ├── Pinboard/               # Terminal-first reference board and AI image generator (Ink TUI) — Pinterest i...
 │   ├── Instagram Scrapper/     # Instagram content scraper that extracts posts, reels, and profile data using ...
 │   ├── ImageEngine/            # Centralized NanoBanana image generation service using WisGate (JuheAPI) with ...
 │   └── ReadmeEngine/           # Automated README generation and maintenance engine that produces best-in-clas...
