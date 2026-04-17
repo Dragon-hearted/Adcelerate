@@ -110,7 +110,7 @@ pinboard:
   name: "Pinboard"
   path: "systems/pinboard"
   status: "active"
-  description: "AI-powered image generation and reference board application with iterative workflow -- upload references, generate via Google Gemini/fal.ai, feed results back as references"
+  description: "Terminal-first reference board and AI image generator (Ink TUI) — Pinterest URL import, ImageEngine generation, PromptWriter per-model prompt formatting, Claude Code vision tagging"
   task_types:
     - "image-generation"
     - "reference-management"
@@ -123,11 +123,11 @@ pinboard:
     - "generated-image"
     - "image-gallery"
   domain_tags:
-    - "web-app"
+    - "tui"
     - "ai"
     - "image-generation"
     - "visual"
-  entry_point: "systems/pinboard/server/src/index.ts"
+  entry_point: "systems/pinboard/bin/pinboard"
   justfile: true
   stages:
     - name: "content-ingestion"
@@ -135,7 +135,7 @@ pinboard:
     - name: "image-generation"
       produces: "AI-generated image from prompt + reference images via provider registry"
     - name: "delivery"
-      produces: "Rendered React web interface with generation history and reference gallery"
+      produces: "Ink TUI with gallery, prompt editor, and in-terminal image preview"
   registered_at: "2026-03-25"
   last_validated: "2026-03-25"
 
