@@ -434,6 +434,146 @@ Should I adjust any scene splits or timing, or does this feel right?
 
 ---
 
+## Stage 4.5 — Character Sheet (optional) (4.5/7)
+
+### Purpose
+When the script has ≥2 protagonists, generate a 6-view reference sheet per character (2 full-body shots + 4 face angles) so every scene downstream can pin each character's identity pixel-for-pixel. Skip entirely when fewer than 2 protagonists are detected or the user declines.
+
+This stage runs **between Stage 4 (Scene Breakdown) and Stage 5 (Visual Direction)** so that:
+- The cast is fully known (scene breakdown is locked).
+- Portrait reference IDs exist before Stage 6 composes scene prompts.
+- Style Anchor (Stage 5A) can be written knowing which characters are sheet-locked.
+
+### Protagonist Detection Heuristic
+
+Scan the approved script and scene breakdown. Count a subject as a **protagonist** when it is:
+- a human or animal character, AND
+- performs dialogue OR visible action in at least one scene, AND
+- is named OR described by a consistent distinctive referent across ≥2 scenes (e.g. "the runner", "the barista", "Alex").
+
+Do **NOT** count:
+- Voice-over narrators with no on-screen appearance
+- Crowd/background figures with no individual beat
+- Product-only subjects (unless anthropomorphized)
+
+If ≥2 protagonists are detected, proceed. If <2, announce "Only 1 protagonist detected — skipping character sheet" and advance to Stage 5.
+
+For unnamed characters, generate a kebab-case slug from their descriptor (`the-runner`, `the-barista`) and ask the user to confirm or rename the slug before generating. The slug is the key used in `ScenePrompt.characters` and in the per-client cache.
+
+### Execution
+
+1. **Detect protagonists.** List detected characters with the scene numbers they appear in.
+
+2. **Check for reusable sheets.** Scan `systems/scene-board/clients/{client}/characters/*/character.md`. For each detected character, do fuzzy (case-insensitive) name matching. If a match is found, offer:
+
+```
+I have an existing character sheet for [Name] from [project-name]
+(dated [date]). Reuse it, or generate a new one?
+
+[R] Reuse — carry over the existing portrait + locked description
+[N] New — generate fresh for this project
+```
+
+On `[R]`, parse the frontmatter and populate the `CharacterRegistry` entry for that character without any new generation.
+
+3. **Offer character sheet generation.** For characters that weren't reused:
+
+```
+I see [N] characters appearing across the script: [A], [B][, ...].
+Want me to generate a character sheet — 6 portrait references per
+character (front + back full-body, plus front/back/left/right face
+close-ups) that the image engine reuses across every scene so the
+cast stays visually consistent?
+
+[Y] Yes — generate a character sheet
+[N] No — skip it, I'll rely on text descriptions only
+```
+
+On `[N]`, record the decision in the pipeline log and advance to Stage 5. `CharacterRegistry` stays empty.
+
+4. **Intake (on `[Y]`).** For each character needing generation, collect:
+   - **Appearance** (age, build, hair, skin, expression range, signature clothing). The more locked-down the description, the more consistent the sheet.
+   - **Existing reference photos** (optional) — gallery image IDs or file paths. If provided, they are passed as `sourceRefImageIds` to the anchor view generation.
+
+   Use this block per character:
+
+```
+Character: [Character A]
+  Appearance: ?
+  Existing refs (optional): ?
+
+Character: [Character B]
+  Appearance: ?
+  Existing refs (optional): ?
+```
+
+   For any character where the user doesn't provide appearance details, generate a best-guess description from the script and present it for confirmation before moving to generation.
+
+5. **Generate the 6-view sheet.** For each character, call `generateCharacterSheet()` (from `systems/scene-board/src/character-sheet-generator.ts`). Per-character, 6 views are emitted as one batch:
+
+| View | Model | Aspect | Chains from |
+|---|---|---|---|
+| `body-front` (anchor) | NanoBanana **Pro** (`gemini-3-pro-image-preview`) | 3:4 | — (uses `sourceRefImageIds` if supplied) |
+| `body-back` | NanoBanana **Flash** (`gemini-2.5-flash-image`) | 3:4 | `body-front` |
+| `face-front` | Flash | 1:1 | `body-front` |
+| `face-left` | Flash | 1:1 | `face-front` |
+| `face-right` | Flash | 1:1 | `face-front` |
+| `face-back` | Flash | 1:1 | `body-back` |
+
+   Budget warning is raised before the batch if ≥80% of the token ceiling is used. If the Pro anchor hits a 429 (WisGate rate limit on Gemini 3 Pro — see `knowledge/reference_wisgate_provider_behavior.md`), the helper should retry the anchor with `gemini-2.5-flash-image` and record the fallback in the registry's `model` field.
+
+6. **Render the draft.** Assemble a partial storyboard containing only:
+   - `## Project Overview`
+   - `## Style Anchor` (if Stage 5A has already run for a retry — otherwise a placeholder)
+   - `## Character Sheet` (with the 4-cell face grid + 2-cell body grid per character)
+
+   Use `assembleCharacterSheetDraft()` from `storyboard-assembler.ts`. Present the draft to the user with the approval gate.
+
+7. **Approval Gate.**
+
+```
+--- Stage: Character Sheet (4.5/7) ---
+
+[Draft storyboard with 6 views per character]
+
+[A] Approve — Lock in the character sheet and continue to Visual Direction
+[M] Modify — Regenerate a view or full sheet, edit a locked description, or swap a view
+[R] Reject — Discard all portraits and redo the character sheet from scratch
+
+Do these portraits capture each character accurately?
+```
+
+   **`[M] Modify` sub-operations:**
+   - `Regenerate full sheet for [name]` → re-run all 6 views.
+   - `Regenerate [view] for [name]` → re-run one view, referencing the existing anchor (identity stays locked).
+   - `Edit locked description for [name]` → update text only; portraits stay.
+   - `Swap [view] for [name] to gallery image [id]` → set `portraits[view]` directly, skipping generation.
+
+   After any modify op, re-render the draft and re-present the gate.
+
+8. **Persist on approval.** After `[A]`:
+   - Write each character's 6 PNGs to `systems/scene-board/clients/{client}/characters/{slug}/` (`body-front.png`, `body-back.png`, `face-front.png`, `face-back.png`, `face-left.png`, `face-right.png`).
+   - Write `character.md` with frontmatter containing `slug`, `name`, `anchorView`, `lockedDescription`, `tags`, `createdAt`, `usedInProjects`, and a `portraits` map with each view's `imageId`, `imageUrl`, and `model`.
+   - If the character directory already existed (reused), append the current project name to `usedInProjects` in the existing frontmatter.
+
+9. **Set `appearsInScenes`.** Populate each `Character.appearsInScenes` from the scene breakdown (which scenes' visual notes mention the character). This drives the "Appears in Scenes" line in the final storyboard section.
+
+10. **Advance to Stage 5.** The populated `CharacterRegistry` is handed forward.
+
+### Skip Conditions (no-op path)
+
+Stage 4.5 is skipped silently when:
+- Fewer than 2 protagonists are detected, OR
+- The user answers `[N]` at the offer prompt.
+
+In both cases:
+- `CharacterRegistry` stays empty.
+- `ScenePrompt.characters` stays undefined throughout Stages 5 and 6.
+- `resolveReferenceImageIds()` returns `scene.referenceImageIds` unchanged → the Scene-1 anchor chaining works exactly as today.
+- The final storyboard template's `## Character Sheet` section renders as empty and is omitted.
+
+---
+
 ## Stage 5 — Visual Direction & Style Anchor (5/7)
 
 ### Purpose
@@ -446,6 +586,8 @@ Establish the visual identity for the entire storyboard, then define per-scene v
 ### 5A — Style Anchor
 
 The Style Anchor is the visual DNA of the storyboard. Every scene inherits from it. It MUST be locked in before any per-scene work begins.
+
+**If Stage 4.5 ran and the Character Sheet is populated:** each character's `lockedDescription` is already authoritative. The Style Anchor MUST NOT redefine physical appearance for those characters — it may only constrain their stylistic treatment (lighting, palette, mood, camera framing). The "Character Consistency Protocol" subsection below still gets written, but for sheet characters it should reference the registry rather than restate physical details ("see Character Sheet entry for [Name]" with a short 1-line summary for readability).
 
 #### Execution
 
@@ -527,15 +669,27 @@ Does this visual direction match your vision?
 ```
 ### Scene [N] — Visual Direction
 - **Subject:** [Who or what is in the frame — specific and detailed]
+- **Characters Present:** [List of character slugs from the Character Sheet that appear in this scene, or "none" if no sheet characters are present. Drives tier-0 reference injection in Stage 6.]
 - **Environment:** [Setting, location, background elements]
 - **Camera:** [Angle, framing, movement — inherits from Style Anchor unless overridden]
+- **Camera Angle (for view selection):** [One of: front | back | left | right | close-up | wide. This classifies the Camera field above into the six discrete angles the Character Sheet provides. Drives pickViewForScene() in batch-generator.ts.]
 - **Lighting:** [Scene-specific lighting — inherits from Style Anchor unless overridden]
 - **Composition:** [Key elements, focal points, rule-of-thirds placement, negative space]
 - **Mood:** [Emotional tone of THIS specific scene]
 - **Key Detail:** [The one thing that MUST be right for this scene to work]
 - **Consistency Anchors:** [Which elements from the Character Consistency Protocol and Environment Consistency Rules apply here. Flag any intentional deviations from the Style Anchor]
-- **Reference Chain:** [If this scene should use a previous scene's generated image as a reference for consistency, note it: e.g., "Reference Scene 1 output for character face/body continuity." Scene 1 typically has no reference chain — it establishes the visual baseline]
+- **Reference Chain:** [If this scene should use a previous scene's generated image as a reference for consistency, note it: e.g., "Reference Scene 1 output for character face/body continuity." Scene 1 typically has no reference chain — it establishes the visual baseline. When the Character Sheet is active, character view references are handled automatically via the Characters Present field; only declare Reference Chain entries for environment/prop continuity.]
 ```
+
+**Camera Angle classification rule:** map the narrative Camera description into the `cameraAngle` field:
+- Scene shows the subject from the front, head-on → `front`
+- Scene shows the subject from behind → `back`
+- Profile shot with subject facing camera-left → `left`
+- Profile shot with subject facing camera-right → `right`
+- Tight head-and-shoulders or extreme close-up of face → `close-up`
+- Wide environmental shot where characters are visible but not the primary subject → `wide`
+
+The `cameraAngle` field is what the TypeScript `pickViewForScene()` helper consumes to choose which of the 6 character-sheet views to inject as a reference. If in doubt, default to `front`.
 
 5. **Present all scene visual directions** together as a single document for review.
 
@@ -617,14 +771,23 @@ No text in image.
    - [ ] Clothing continuity maintained — base outfit elements present unless the script explicitly changes them
    - [ ] Environment details match Environment Consistency Rules (same location identifiers, consistent background anchors)
    - [ ] Style Anchor preamble included verbatim at the start of the prompt
-   - [ ] Reference images assigned per the Reference Chain from Stage 5B:
-     - **Scene 1** (establishing shot): Product images only (no previous scene output to reference)
-     - **Scenes 2-N** (same character): Include Scene 1's generated image ID as a `referenceImageId` via the batch generator's `dependsOn` mechanism, PLUS any product images
-     - **Same-location scenes**: Include the establishing shot's image ID as reference for environment continuity
+   - [ ] Reference images assigned per the four-tier model:
+     - **Tier 0 — Character views** (when Stage 4.5 ran): for each character in the scene's `Characters Present` list, the angle-matched view from the Character Sheet is auto-injected by `resolveReferenceImageIds()` in `batch-generator.ts` using the scene's `cameraAngle`. Do NOT manually list these in the scene's Reference Chain — the TypeScript helper handles it.
+     - **Tier 3 — Scene-1 environment anchor** (always on when Stage 4.5 did NOT run; dropped when tier-0 fills the 3-ref cap):
+       - **Scene 1** (establishing shot): Product images only (no previous scene output to reference)
+       - **Scenes 2-N**: Include Scene 1's generated image ID as a `referenceImageId` via `dependsOn` for environment continuity, IF tier-0 character views don't already fill all 3 slots
    - [ ] Any intentional deviations from the Style Anchor are explicitly noted in the prompt
 
-   **Reference Feedback Loop Implementation:**
-   When submitting to ImageEngine batch endpoint, scenes referencing earlier outputs must use the `dependsOn` field so they generate sequentially. The dependency scene's output ID becomes available as a `referenceImageId` for the dependent scene. This gives NanoBanana Pro a visual anchor for face/body/environment consistency that text alone cannot achieve.
+   **Reference Resolution Implementation (Tier 0 + Tier 3 merging):**
+   The TypeScript helper `resolveReferenceImageIds(scene, registry)` in `batch-generator.ts` produces the final per-scene `referenceImageIds` list:
+   1. Map each slug in `scene.characters` → call `pickViewForScene(character, scene.cameraAngle)` → get the image ID of the angle-matched view.
+   2. Take up to 3 character views in script order.
+   3. Fill any remaining slots from `scene.referenceImageIds` (explicit refs you declared in Reference Chain).
+   4. Cap at 3 — satisfies `acceptance-criteria.md:45`.
+
+   So at Stage 6, your job is to populate `ScenePrompt.characters` (slugs present in the scene) and `ScenePrompt.cameraAngle` (from Stage 5B). The helper does the rest.
+
+   When submitting to ImageEngine batch endpoint, scenes referencing earlier outputs must use the `dependsOn` field so they generate sequentially. The dependency scene's output ID becomes available as a `referenceImageId` for the dependent scene.
 
    See `systems/prompt-writer/knowledge/models/image/nanobanana-pro.md` (Reference Image Best Practices section) for reference image strategies. PromptWriter is the authoritative source for all prompt engineering knowledge.
 
@@ -694,6 +857,14 @@ Compile everything into a single, professional table-format storyboard document 
 - The **Visuals column** contains "[Visual placeholder]" — space for generated/inserted images
 - **Production Notes** use the concise table format
 - **B-Roll shots** are optional and only included when identified during the pipeline
+- **Character Sheet** (when Stage 4.5 ran) appears between Style Anchor and Full Script, rendered by `assembleCharacterSheet()` from the `CharacterRegistry`. When Stage 4.5 was skipped, the section is omitted entirely.
+
+### Validation (Character Sheet)
+
+If Stage 4.5 ran:
+- Assert the assembled markdown contains a `## Character Sheet` section with one subsection per character and 6 view cells per character (failed views render `_failed — retry at Stage 4.5 [M]_`).
+- Assert each scene block's final `referenceImageIds` (resolved via `resolveReferenceImageIds`) contains the image ID returned by `pickViewForScene(character, scene.cameraAngle)` for every character present in that scene.
+- Assert the per-client cache exists at `systems/scene-board/clients/{client}/characters/{slug}/` with `character.md` frontmatter listing all 6 view IDs and the current project in `usedInProjects`.
 
 ### Execution
 
