@@ -52,8 +52,9 @@ When a client is selected, read `brand.md` to pre-load brand voice, visual direc
 | 2 | Context Gathering | Confirm brand, audience, platform, goals; fill gaps (skips brand questions if client loaded) |
 | 3 | Dynamic Generation & Approval | Generate options for every missing component; approval gates |
 | 4 | Scene Breakdown | 1 shot = 1 scene = 1 image; assign timestamps and durations |
+| **4.5** | **Character Sheet (optional)** | **If ≥2 protagonists detected: generate 6 reference views per character (2 full-body + 4 face angles); cache per-client for reuse** |
 | 5 | Visual Direction | Build Style Anchor document + per-scene visual direction |
-| 6 | NanoBanana Prompt Generation | Write optimized prompts per scene within platform constraints |
+| 6 | NanoBanana Prompt Generation | Write optimized prompts per scene within platform constraints (threads character views into `referenceImageIds`) |
 | 7 | Final Assembly | Compile the complete storyboard document + generate professional PDF |
 
 ---
@@ -106,6 +107,33 @@ The Style Anchor enforces visual consistency across every scene. Without it, Nan
 2. **Present for approval** before generating any scene prompts
 3. **Include as preamble** in EVERY NanoBanana Pro prompt for the storyboard
 4. Overrides to the Style Anchor must be explicit and user-approved
+
+---
+
+## Character Sheet System (Stage 4.5)
+
+When a script has ≥2 protagonists, text descriptions alone aren't enough — characters drift between scenes (wrong jaw, wrong hair, wrong jacket). Stage 4.5 fixes this by generating a 6-view reference sheet per character before scene generation starts.
+
+See [generate-storyboard.md](generate-storyboard.md) Stage 4.5 for the full workflow. Summary:
+
+1. **Detect** ≥2 protagonists in the approved scene breakdown.
+2. **Offer** to generate sheets; collect per-character appearance + existing reference photos.
+3. **Reuse** an existing sheet from `systems/scene-board/clients/{client}/characters/{slug}/` when a name matches (fuzzy).
+4. **Generate** 6 views per character: `body-front` (NanoBanana Pro, anchor) → `body-back`, `face-front`, `face-back`, `face-left`, `face-right` (all Flash, chained off the anchor).
+5. **Gate** approval with `[A]/[M]/[R]`; `[M]` supports regenerating a single view, editing a locked description, or swapping a view.
+6. **Cache** the approved sheet under `clients/{client}/characters/{slug}/` for reuse.
+7. **Thread** the angle-matched view of each character into every downstream scene's `referenceImageIds` (via `pickViewForScene()` in `batch-generator.ts`).
+
+**Four-tier consistency model** (updated from the legacy three-tier):
+
+| Tier | Signal | Handled by |
+|---|---|---|
+| 0 | Character view reference (per-scene pixel anchor) | Stage 4.5 output → `resolveReferenceImageIds()` |
+| 1 | Style Anchor preamble (text prefix in every prompt) | Stage 5A |
+| 2 | Locked character description (text, repeated in every prompt) | `Character.lockedDescription` |
+| 3 | Scene-1 environment anchor (pixel continuity for setting) | `dependsOn` chain — **dropped when character views fill the 3-ref cap** |
+
+**Opt-out is safe**: if fewer than 2 protagonists are detected or the user declines, the registry stays empty, no `## Character Sheet` section renders, and the existing Scene-1 anchor workflow runs unchanged.
 
 ---
 
