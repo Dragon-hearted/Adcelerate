@@ -36,10 +36,11 @@ Adcelerate is a monorepo powering an AI-driven marketing and media platform. It 
 |--------|-------------|--------|
 | [**autoCaption**](systems/autoCaption) | Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**SceneBoard**](systems/scene-board) | CLI-driven storyboard creation system that transforms video briefs of any format into professional storyboards with scripts, timestamps, voice scripts, and NanoBanana Pro prompts for visual generation — leveraging marketing, sales, social media, and ads skills | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**Pinboard**](systems/pinboard) | Terminal-first reference board and AI image generator (Ink TUI) — Pinterest import, ImageEngine generation, PromptWriter per-model formatting, Claude Code vision tagging | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**Pinboard**](systems/pinboard) | Terminal-first reference board and AI image generator (Ink TUI) — Pinterest URL import, ImageEngine generation, PromptWriter per-model prompt formatting, Claude Code vision tagging | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram content scraper that extracts posts, reels, and profile data using login-based Instagram Private API access with browser-automated authentication and media downloading | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ImageEngine**](systems/image-engine) | Centralized NanoBanana image generation service using WisGate (JuheAPI) with rate limiting, token-based cost tracking, budget guards, retry/backoff, batch parallel execution, and generation gallery | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ReadmeEngine**](systems/readme-engine) | Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**PromptWriter**](systems/prompt-writer) | Centralized prompt engineering knowledge system with per-model guides, visual direction references, and a model registry for AI image, video, and voice generation — the single authority for prompt writing across all Adcelerate systems | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 
 ---
 
@@ -59,9 +60,9 @@ graph TD
     pinboard[pinboard]
     pinboard --> bun
     pinboard --> sqlite
-    pinboard --> ink
-    pinboard --> image_engine
-    pinboard --> prompt_writer
+    pinboard --> google_ai
+    pinboard --> vite
+    pinboard --> fal_ai
     instagram_scrapper[instagram-scrapper]
     instagram_scrapper --> bun
     instagram_scrapper --> playwright
@@ -77,6 +78,8 @@ graph TD
     image_engine --> sqlite
     readme_engine[readme-engine]
     readme_engine --> bun
+    prompt_writer[prompt-writer]
+    prompt_writer --> bun
 ```
 
 ---
@@ -172,10 +175,11 @@ adcelerate/
 ├── systems/                # Independent processing systems
 │   ├── autoCaption/            # Automated video captioning system using Whisper.cpp for transcription and Rem...
 │   ├── SceneBoard/             # CLI-driven storyboard creation system that transforms video briefs of any for...
-│   ├── Pinboard/               # Terminal-first reference board and AI image generator (Ink TUI) — Pinterest i...
+│   ├── Pinboard/               # Terminal-first reference board and AI image generator (Ink TUI) — Pinterest U...
 │   ├── Instagram Scrapper/     # Instagram content scraper that extracts posts, reels, and profile data using ...
 │   ├── ImageEngine/            # Centralized NanoBanana image generation service using WisGate (JuheAPI) with ...
-│   └── ReadmeEngine/           # Automated README generation and maintenance engine that produces best-in-clas...
+│   ├── ReadmeEngine/           # Automated README generation and maintenance engine that produces best-in-clas...
+│   └── PromptWriter/           # Centralized prompt engineering knowledge system with per-model guides, visual...
 ├── apps/                   # Deployable applications
 ├── knowledge/              # Shared knowledge base
 ├── scripts/                # Automation scripts
@@ -189,16 +193,16 @@ adcelerate/
 
 ## 📝 Recent Changes
 
-- `6a1f401` Clean up repo: remove legacy _bmad/, untrack graphify-out/, update .gitignore
-- `186b40e` Remove duplicate mermaid diagrams from READMEs, fix ReadmeEngine templates
-- `2db238b` Add animated SVG diagram generation to ReadmeEngine
-- `81ff2cc` Update submodule refs after README generation
-- `7105c53` Add ReadmeEngine system with auto-generated READMEs for entire platform
-- `55dab97` Add ImageEngine as submodule, remove BMAD skills, update platform config
-- `5912cbf` Integrate caveman token reduction as always-on default communication style
-- `ac2ccbf` Add Instagram Scrapper system and update SceneBoard storyboard format
-- `c64511b` Fix security vulnerabilities from audit (C1, H1-H6, M1-M4, M7, L4-L12)
-- `950e84b` Restructure systems into systems/ directory with submodules
+- `65028bb` docs(specs): add design system rollout plan
+- `f183705` chore(library): refresh catalog timestamp and add readme-update command
+- `20d8e5b` Merge pull request #5 from Dragon-hearted/feat/character-sheet-single-composite
+- `8605f91` refactor(skills): align scene-board Stage 4.5 with single composite sheet
+- `0253a23` Merge pull request #4 from Dragon-hearted/feat/character-sheet-stage-4-5
+- `4898cee` feat(skills): wire scene-board Stage 4.5 Character Sheet into skill + bump submodule
+- `fd693b3` Bump Pinboard submodule: status bar RATIO chip + picker reorder
+- `e7d8ff9` Merge pull request #3 from Dragon-hearted/pinboard-ci-fix
+- `4aab6c9` Bump Pinboard submodule: aspect-ratio picker + x-clear fix; seed knowledge/
+- `27b3cd1` Bump Pinboard submodule: generations to downloads/, Preview navigation
 
 ---
 

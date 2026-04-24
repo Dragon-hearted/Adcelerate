@@ -21,13 +21,13 @@
   </defs>
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0s" fill="freeze" />
-    <text x="400" y="72" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" filter="url(#glow-0)">Adcelerate</text>
+    <text x="400" y="72" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" filter="url(#glow-0)">multi-agent-observability-server</text>
   </g>
   <line x1="340" y1="96" x2="460" y2="96" stroke="#6366F1" stroke-width="2" stroke-linecap="round" opacity="0">
     <animate attributeName="opacity" from="0" to="0.7" dur="0.6s" begin="0.3s" fill="freeze" />
   </line>
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.6s" fill="freeze" />
-    <text x="400" y="130" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="15">AI-Powered Marketing &amp; Media Platform</text>
+    <text x="400" y="130" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="15">multi-agent-observability-server application</text>
   </g>
 </svg>

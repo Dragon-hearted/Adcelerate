@@ -70,8 +70,6 @@ bun run dev
 multi-agent-observability-client/
 ├── client
 ├── README.md
-├── images
-├── hero.svg
 ├── index.html
 ├── package.json
 ├── postcss.config.js
