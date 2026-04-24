@@ -1,50 +1,144 @@
-# gif-kit
+<div align="center">
 
-Branded GIF rendering for Adcelerate using Remotion. Produces loopable motion assets
-from React compositions — design tokens from `design-system/adapters/remotion.ts`.
+![GifKit](images/hero.svg)
 
-## What it is
+### Branded GIF rendering system using Remotion — composable React motion compositions compiled to loopable GIF assets with design-system token integration
 
-gif-kit renders Remotion compositions to GIF files. Each composition is a React
-component driven by Remotion's frame-based animation primitives (`interpolate`, `Sequence`).
-Design tokens (colors, fonts) are pulled from the shared design-system adapter so brand
-changes propagate automatically.
+![Status](https://img.shields.io/badge/Status-building-lightgrey)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=000)
+![Remotion](https://img.shields.io/badge/Remotion-4-0B84F3?logo=remotion&logoColor=white)
+[![Bun](https://img.shields.io/badge/Bun-Runtime-f9f1e1?logo=bun&logoColor=000)](https://bun.sh/)
 
-Current compositions:
-- **BrandIntro** — 4s, 800×800, 30fps. Scene 1: wordmark fade-in on paper. Scene 2: hub-and-spoke on midnight-purple.
+</div>
 
-## Render a GIF
+---
+
+## 📑 Table of Contents
+
+- [✨ Features](#features)
+- [🏗 Architecture](#architecture)
+- [🛠 Tech Stack](#tech-stack)
+- [🚀 Getting Started](#getting-started)
+- [💻 Development](#development)
+- [📂 Project Structure](#project-structure)
+- [🤝 Contributing](#contributing)
+- [📄 License](#license)
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **gif-rendering** | Core task type |
+| **motion-asset-generation** | Core task type |
+| **brand-animation** | Core task type |
+| **remotion-composition Input** | Supported input type |
+| **design-tokens Input** | Supported input type |
+| **gif Output** | Supported output type |
+| **animated-brand-asset Output** | Supported output type |
+
+---
+
+## 🏗 Architecture
+
+![Pipeline](images/pipeline.svg)
+
+GifKit processes data through a multi-stage pipeline.
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| **@remotion/cli 4** | Remotion CLI |
+| **React 19** | UI framework |
+| **React-dom 19** | React DOM renderer |
+| **Remotion 4** | Programmatic video rendering |
+
+### Backend
+
+| Technology | Purpose |
+|------------|---------|
+| **TypeScript 6.0** | Type safety |
+| **Bun** | JavaScript runtime & package manager |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [**Bun**](https://bun.sh/) v1.0+ — `curl -fsSL https://bun.sh/install | bash`
+
+### Install
 
 ```bash
-# From systems/gif-kit/
-bun run gif:render
-# Output: out/brand-intro.gif
+cd systems/gif-kit
+bun install
 ```
 
-Requires Chromium (Remotion uses it for rendering):
-```bash
-bunx remotion browser ensure
-```
-
-## Preview in Remotion Studio
+### Run
 
 ```bash
-bun run dev
-# Opens http://localhost:3000
+bun run systems/gif-kit/src/index.ts
 ```
 
-## Add a composition
+---
 
-1. Create `src/compositions/YourComp.tsx` — export a React component.
-2. Register it in `src/Root.tsx` with a `<Composition>` entry.
-3. Add render logic to `src/render.ts` or add a new script entry.
-4. Add constants to `design-system/adapters/gif.ts` if needed.
+## 💻 Development
 
-## Scripts
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start development mode |
+| `bun run build` | Build for production |
+| `bun test` | Run tests |
+| `bun run lint` | Check code quality |
 
-| Script | What it does |
-|---|---|
-| `bun run dev` | Opens Remotion Studio (live preview) |
-| `bun run gif:render` | Renders BrandIntro to `out/brand-intro.gif` |
-| `bun run typecheck` | TypeScript type-check without emit |
-| `bun run build` | Bundle src to dist/ |
+---
+
+## 📂 Project Structure
+
+```
+gif-kit/
+├── README.md
+├── justfile
+├── package.json
+├── remotion.config.ts
+├── src
+│   ├── Root.tsx
+│   ├── compositions
+│   │   └── BrandIntro.tsx
+│   ├── index.ts
+│   └── render.ts
+└── tsconfig.json
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Make your changes and ensure tests pass
+4. Commit your changes and open a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+
+**Built with** 🧡 **using Bun, React, Remotion, TypeScript**
+
+</div>

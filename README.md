@@ -40,6 +40,8 @@ Adcelerate is a monorepo powering an AI-driven marketing and media platform. It 
 | [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram content scraper that extracts posts, reels, and profile data using login-based Instagram Private API access with browser-automated authentication and media downloading | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ImageEngine**](systems/image-engine) | Centralized NanoBanana image generation service using WisGate (JuheAPI) with rate limiting, token-based cost tracking, budget guards, retry/backoff, batch parallel execution, and generation gallery | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ReadmeEngine**](systems/readme-engine) | Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**GifKit**](systems/gif-kit) | Branded GIF rendering system using Remotion — composable React motion compositions compiled to loopable GIF assets with design-system token integration | ![building](https://img.shields.io/badge/Status-building-lightgrey) |
+| [**pdf-kit**](systems/pdf-kit) | Branded PDF rendering system — A4 cover-plus-content layouts using @react-pdf/renderer with Adcelerate design-system tokens (Archivo Black wordmark, Inter body, paper/ink palette) | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**PromptWriter**](systems/prompt-writer) | Centralized prompt engineering knowledge system with per-model guides, visual direction references, and a model registry for AI image, video, and voice generation — the single authority for prompt writing across all Adcelerate systems | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 
 ---
@@ -179,6 +181,8 @@ adcelerate/
 │   ├── Instagram Scrapper/     # Instagram content scraper that extracts posts, reels, and profile data using ...
 │   ├── ImageEngine/            # Centralized NanoBanana image generation service using WisGate (JuheAPI) with ...
 │   ├── ReadmeEngine/           # Automated README generation and maintenance engine that produces best-in-clas...
+│   ├── GifKit/                 # Branded GIF rendering system using Remotion — composable React motion composi...
+│   ├── pdf-kit/                # Branded PDF rendering system — A4 cover-plus-content layouts using @react-pdf...
 │   └── PromptWriter/           # Centralized prompt engineering knowledge system with per-model guides, visual...
 ├── apps/                   # Deployable applications
 ├── knowledge/              # Shared knowledge base
@@ -193,6 +197,9 @@ adcelerate/
 
 ## 📝 Recent Changes
 
+- `c63a459` feat(design-system): add pdf-kit + gif-kit; bump submodule pointers
+- `95e207c` feat(design-system): reskin dashboard + regenerate hero/architecture SVGs
+- `cc76096` feat(design-system): import handoff bundle + scaffold root tokens & adapters
 - `65028bb` docs(specs): add design system rollout plan
 - `f183705` chore(library): refresh catalog timestamp and add readme-update command
 - `20d8e5b` Merge pull request #5 from Dragon-hearted/feat/character-sheet-single-composite
@@ -200,9 +207,6 @@ adcelerate/
 - `0253a23` Merge pull request #4 from Dragon-hearted/feat/character-sheet-stage-4-5
 - `4898cee` feat(skills): wire scene-board Stage 4.5 Character Sheet into skill + bump submodule
 - `fd693b3` Bump Pinboard submodule: status bar RATIO chip + picker reorder
-- `e7d8ff9` Merge pull request #3 from Dragon-hearted/pinboard-ci-fix
-- `4aab6c9` Bump Pinboard submodule: aspect-ratio picker + x-clear fix; seed knowledge/
-- `27b3cd1` Bump Pinboard submodule: generations to downloads/, Preview navigation
 
 ---
 

@@ -1,49 +1,139 @@
-# pdf-kit
+<div align="center">
 
-Branded PDF rendering for Adcelerate. Builds A4 documents with cover pages, content layouts, and design-system tokens — powered by `@react-pdf/renderer` and the shared `design-system/adapters/pdf.ts` adapter.
+![pdf-kit](images/hero.svg)
 
-## What it is
+### Branded PDF rendering system — A4 cover-plus-content layouts using @react-pdf/renderer with Adcelerate design-system tokens (Archivo Black wordmark, Inter body, paper/ink palette)
 
-- **Branded templates** — Archivo Black wordmark, Inter body, paper/ink color scheme from DS tokens
-- **Cover + content layout** — dark ink cover page + light paper content area in one A4 document
-- **CLI renderer** — `bun run pdf:render <input.tsx> <output.pdf>` with zero config
+![Status](https://img.shields.io/badge/Status-active-brightgreen)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=000)
+[![Bun](https://img.shields.io/badge/Bun-Runtime-f9f1e1?logo=bun&logoColor=000)](https://bun.sh/)
 
-## How to render
+</div>
+
+---
+
+## 📑 Table of Contents
+
+- [✨ Features](#features)
+- [🏗 Architecture](#architecture)
+- [🛠 Tech Stack](#tech-stack)
+- [🚀 Getting Started](#getting-started)
+- [💻 Development](#development)
+- [📂 Project Structure](#project-structure)
+- [🤝 Contributing](#contributing)
+- [📄 License](#license)
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **pdf-generation** | Core task type |
+| **document-rendering** | Core task type |
+| **branded-output** | Core task type |
+| **tsx-document-module Input** | Supported input type |
+| **title-string Input** | Supported input type |
+| **body-text Input** | Supported input type |
+| **pdf-file Output** | Supported output type |
+
+---
+
+## 🏗 Architecture
+
+![Pipeline](images/pipeline.svg)
+
+pdf-kit processes data through a multi-stage pipeline.
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| **React 19** | UI framework |
+
+### Backend
+
+| Technology | Purpose |
+|------------|---------|
+| **TypeScript 6.0** | Type safety |
+| **Bun** | JavaScript runtime & package manager |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [**Bun**](https://bun.sh/) v1.0+ — `curl -fsSL https://bun.sh/install | bash`
+
+### Install
 
 ```bash
-# From this directory
-bun run pdf:render src/demo/system-doc.tsx out/sample.pdf
-
-# Or via just
-just demo
-
-# Custom input / output
-just render src/my-doc.tsx out/my-doc.pdf
+cd systems/pdf-kit
+bun install
 ```
 
-## How to add a new template
+### Run
 
-1. Create `src/templates/my-template.tsx` — export a `default` React element using `BrandedDoc` or composing DS primitives directly.
-2. Use `registerFonts()` and `pdfStyles` from `../../design-system/adapters/pdf`.
-3. Render: `bun run pdf:render src/templates/my-template.tsx out/my-template.pdf`.
-
-## File layout
-
-```
-systems/pdf-kit/
-  src/
-    template.tsx         # BrandedDoc component (cover + content)
-    render.ts            # CLI entry — reads args, calls renderToFile
-    demo/
-      system-doc.tsx     # Smoke-test doc, default-exports BrandedDoc instance
-  out/                   # Generated PDFs (git-ignored)
-  justfile
-  package.json
-  tsconfig.json
+```bash
+bun run systems/pdf-kit/src/render.ts
 ```
 
-## Dependencies
+---
 
-- `@react-pdf/renderer` — PDF rendering engine
-- `react` — peer dep required by react-pdf
-- `../../design-system/adapters/pdf` — font registration + DS StyleSheet (no extra install needed)
+## 💻 Development
+
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start development mode |
+| `bun run build` | Build for production |
+| `bun test` | Run tests |
+| `bun run lint` | Check code quality |
+
+---
+
+## 📂 Project Structure
+
+```
+pdf-kit/
+├── README.md
+├── biome.json
+├── justfile
+├── package.json
+├── src
+│   ├── demo
+│   │   └── system-doc.tsx
+│   ├── render.ts
+│   └── template.tsx
+└── tsconfig.json
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Make your changes and ensure tests pass
+4. Commit your changes and open a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+
+**Built with** 🧡 **using Bun, React, TypeScript**
+
+</div>

@@ -67,6 +67,8 @@ multi-agent-observability-server/
 ├── events.db
 ├── events.db-shm
 ├── events.db-wal
+├── images
+├── hero.svg
 ├── package.json
 ├── src
 ├── db.ts

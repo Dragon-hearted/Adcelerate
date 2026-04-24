@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 552" width="800" height="552">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 584" width="800" height="584">
   <defs>
     <filter id="glow-0" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
@@ -34,10 +34,10 @@
   </defs>
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.8s" begin="0s" fill="freeze" />
-    <rect x="355" y="231" width="90" height="90" rx="45" fill="#8B2A1D18" stroke="#8B2A1D" stroke-width="2" filter="url(#glow-0)" />
-    <text x="400" y="281" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700">Adcelerate</text>
+    <rect x="355" y="247" width="90" height="90" rx="45" fill="#8B2A1D18" stroke="#8B2A1D" stroke-width="2" filter="url(#glow-0)" />
+    <text x="400" y="297" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700">Adcelerate</text>
   </g>
-<line x1="400" y1="227" x2="400" y2="92"
+<line x1="400" y1="243" x2="400" y2="92"
     stroke="#1E5A7A" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.35s" fill="freeze" />
     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="0.35s" repeatCount="indefinite" />
@@ -49,7 +49,7 @@
     <text x="400" y="54" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">autoCaption</text>
     <text x="400" y="74" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Automated video cap…</text>
   </g>
-<line x1="438.30974264093345" y1="245.44899970892206" x2="511.02007051046024" y2="161.27787645799305"
+<line x1="431.49659287464044" y1="254.46382228717007" x2="501.56044233047317" y2="138.79111137620438"
     stroke="#8B2A1D" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.65s" fill="freeze" />
     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="0.65s" repeatCount="indefinite" />
@@ -57,11 +57,11 @@
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.8s" fill="freeze" />
     <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="3.8s" repeatCount="indefinite" />
-    <rect x="498.87560021309446" y="113.32620279851358" width="140" height="56" rx="10" fill="#8B2A1D14" stroke="#8B2A1D" stroke-width="1.5" filter="url(#glow-0)" />
-    <text x="568.8756002130945" y="135.32620279851358" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">SceneBoard</text>
-    <text x="568.8756002130945" y="155.32620279851358" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">CLI-driven storyboa…</text>
+    <rect x="479.12672544727707" y="86.27768919639709" width="140" height="56" rx="10" fill="#8B2A1D14" stroke="#8B2A1D" stroke-width="1.5" filter="url(#glow-0)" />
+    <text x="549.1267254472771" y="108.27768919639709" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">SceneBoard</text>
+    <text x="549.1267254472771" y="128.2776891963971" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">CLI-driven storyboa…</text>
   </g>
-<line x1="447.7714676969093" y1="286.9035257638594" x2="538.439763529819" y2="316.94385184796187"
+<line x1="448.2555798975982" y1="283.4912392943204" x2="555.5996249759288" y2="257.27036446661396"
     stroke="#1E5A7A" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.9500000000000001s" fill="freeze" />
     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="0.9500000000000001s" repeatCount="indefinite" />
@@ -69,11 +69,11 @@
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.1s" fill="freeze" />
     <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="4.1s" repeatCount="indefinite" />
-    <rect x="540.5844290312739" y="296.0645217345639" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
-    <text x="610.5844290312739" y="318.0645217345639" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">Pinboard</text>
-    <text x="610.5844290312739" y="338.0645217345639" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Terminal-first refe…</text>
+    <rect x="558.4753986988322" y="223.71362278127216" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
+    <text x="628.4753986988322" y="245.71362278127216" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">Pinboard</text>
+    <text x="628.4753986988322" y="265.7136227812722" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Terminal-first refe…</text>
   </g>
-<line x1="421.26030321676035" y1="320.14747452721855" x2="461.6114909546933" y2="441.77827169404515"
+<line x1="442.4352447854375" y1="316.5" x2="536.8320137979414" y2="391.99999999999994"
     stroke="#1E5A7A" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.25s" fill="freeze" />
     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.25s" repeatCount="indefinite" />
@@ -81,11 +81,11 @@
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.4s" fill="freeze" />
     <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="4.4s" repeatCount="indefinite" />
-    <rect x="423.71888764939257" y="442.60927546692255" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
-    <text x="493.71888764939257" y="464.60927546692255" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">Instagram Scrapper</text>
-    <text x="493.71888764939257" y="484.60927546692255" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Instagram content s…</text>
+    <rect x="530.9178936779898" y="379.99999999999994" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
+    <text x="600.9178936779898" y="401.99999999999994" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">Instagram Scrapper</text>
+    <text x="600.9178936779898" y="421.99999999999994" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Instagram content s…</text>
   </g>
-<line x1="378.73969678323965" y1="320.14747452721855" x2="338.38850904530676" y2="441.77827169404515"
+<line x1="416.7589870229578" y1="338.0449384185095" x2="454.0391826454557" y2="479.93852415718163"
     stroke="#1E5A7A" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.55s" fill="freeze" />
     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.55s" repeatCount="indefinite" />
@@ -93,11 +93,11 @@
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.7s" fill="freeze" />
     <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="4.7s" repeatCount="indefinite" />
-    <rect x="236.2811123506075" y="442.60927546692255" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
-    <text x="306.2811123506075" y="464.60927546692255" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">ImageEngine</text>
-    <text x="306.2811123506075" y="484.60927546692255" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Centralized NanoBan…</text>
+    <rect x="409.34867325155517" y="482.0086880223307" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
+    <text x="479.34867325155517" y="504.0086880223307" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">ImageEngine</text>
+    <text x="479.34867325155517" y="524.0086880223307" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Centralized NanoBan…</text>
   </g>
-<line x1="352.2285323030907" y1="286.9035257638594" x2="261.56023647018105" y2="316.94385184796187"
+<line x1="383.2410129770422" y1="338.0449384185095" x2="345.96081735454436" y2="479.93852415718163"
     stroke="#0F5C3E" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.85s" fill="freeze" />
     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.85s" repeatCount="indefinite" />
@@ -105,11 +105,11 @@
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2s" fill="freeze" />
     <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="5s" repeatCount="indefinite" />
-    <rect x="119.41557096872609" y="296.0645217345639" width="140" height="56" rx="10" fill="#0F5C3E14" stroke="#0F5C3E" stroke-width="1.5" filter="url(#glow-2)" />
-    <text x="189.4155709687261" y="318.0645217345639" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">ReadmeEngine</text>
-    <text x="189.4155709687261" y="338.0645217345639" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Automated README ge…</text>
+    <rect x="250.65132674844483" y="482.0086880223307" width="140" height="56" rx="10" fill="#0F5C3E14" stroke="#0F5C3E" stroke-width="1.5" filter="url(#glow-2)" />
+    <text x="320.65132674844483" y="504.0086880223307" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">ReadmeEngine</text>
+    <text x="320.65132674844483" y="524.0086880223307" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Automated README ge…</text>
   </g>
-<line x1="361.69025735906655" y1="245.44899970892206" x2="288.97992948953976" y2="161.27787645799305"
+<line x1="357.5647552145625" y1="316.5" x2="263.1679862020587" y2="392.00000000000006"
     stroke="#1E5A7A" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2.15s" fill="freeze" />
     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="2.15s" repeatCount="indefinite" />
@@ -117,12 +117,36 @@
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2.3s" fill="freeze" />
     <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="5.3s" repeatCount="indefinite" />
-    <rect x="161.12439978690554" y="113.32620279851358" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
-    <text x="231.12439978690554" y="135.32620279851358" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">PromptWriter</text>
-    <text x="231.12439978690554" y="155.32620279851358" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Centralized prompt …</text>
+    <rect x="129.08210632201028" y="380.00000000000006" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
+    <text x="199.08210632201028" y="402.00000000000006" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">GifKit</text>
+    <text x="199.08210632201028" y="422.00000000000006" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Branded GIF renderi…</text>
   </g>
-  <text x="400" y="532" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11" opacity="0">
-    <animate attributeName="opacity" from="0" to="0.7" dur="0.6s" begin="3.1s" fill="freeze" />
-    7 systems registered
+<line x1="351.7444201024018" y1="283.49123929432045" x2="244.4003750240711" y2="257.270364466614"
+    stroke="#0F5C3E" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2.45s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="2.45s" repeatCount="indefinite" />
+  </line>
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2.6s" fill="freeze" />
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="5.6s" repeatCount="indefinite" />
+    <rect x="101.5246013011677" y="223.71362278127225" width="140" height="56" rx="10" fill="#0F5C3E14" stroke="#0F5C3E" stroke-width="1.5" filter="url(#glow-2)" />
+    <text x="171.5246013011677" y="245.71362278127225" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">pdf-kit</text>
+    <text x="171.5246013011677" y="265.71362278127225" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Branded PDF renderi…</text>
+  </g>
+<line x1="368.50340712535956" y1="254.4638222871701" x2="298.4395576695268" y2="138.7911113762044"
+    stroke="#1E5A7A" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2.75s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="2.75s" repeatCount="indefinite" />
+  </line>
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2.9s" fill="freeze" />
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="5.9s" repeatCount="indefinite" />
+    <rect x="180.87327455272282" y="86.27768919639712" width="140" height="56" rx="10" fill="#1E5A7A14" stroke="#1E5A7A" stroke-width="1.5" filter="url(#glow-1)" />
+    <text x="250.87327455272282" y="108.27768919639712" text-anchor="middle" fill="#f3e8ff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">PromptWriter</text>
+    <text x="250.87327455272282" y="128.27768919639712" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11">Centralized prompt …</text>
+  </g>
+  <text x="400" y="564" text-anchor="middle" fill="#d8b4fe" font-family="Inter, system-ui, sans-serif" font-size="11" opacity="0">
+    <animate attributeName="opacity" from="0" to="0.7" dur="0.6s" begin="3.6999999999999997s" fill="freeze" />
+    9 systems registered
   </text>
 </svg>
