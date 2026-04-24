@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans);}
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 60%);
+  }
+  .wrap{padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .sw{
+    height:64px;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:8px 10px;
+    font-size:10px;font-family:var(--font-mono);
+    border:1px solid #1A1714;
+  }
+  .n{font-size:10px;font-weight:600;font-family:var(--font-sans);letter-spacing:.02em}
+  .h{font-size:10px;opacity:.75}
+</style></head>
+<body><div class="wrap">
+  <div class="sw" style="background:#EEE6D4;color:#1A1714"><span class="n">bg-primary</span><span class="h">#EEE6D4 · paper</span></div>
+  <div class="sw" style="background:#F5EEDC;color:#1A1714"><span class="n">bg-secondary</span><span class="h">#F5EEDC · highlight</span></div>
+  <div class="sw" style="background:#E6DCC6;color:#1A1714"><span class="n">bg-tertiary</span><span class="h">#E6DCC6 · shadow</span></div>
+  <div class="sw" style="background:#D4C9B0;color:#1A1714"><span class="n">bg-quaternary</span><span class="h">#D4C9B0</span></div>
+
+  <div class="sw" style="background:#1A1714;color:#F5EEDC"><span class="n">text-primary</span><span class="h">#1A1714 · ink</span></div>
+  <div class="sw" style="background:#2A241E;color:#F5EEDC"><span class="n">text-secondary</span><span class="h">#2A241E</span></div>
+  <div class="sw" style="background:#6B5F4F;color:#F5EEDC"><span class="n">text-tertiary</span><span class="h">#6B5F4F</span></div>
+  <div class="sw" style="background:#8A7C69;color:#F5EEDC"><span class="n">text-quaternary</span><span class="h">#8A7C69</span></div>
+</div></body></html>

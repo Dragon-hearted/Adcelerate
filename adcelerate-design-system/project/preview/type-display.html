@@ -1,0 +1,108 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans);image-rendering:pixelated}
+
+  body{
+    position:relative;
+    background-image:
+      radial-gradient(rgba(26,23,20,.12) 1px, transparent 1px),
+      repeating-linear-gradient(0deg, rgba(26,23,20,.03) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 50%, #E6DCC6 100%);
+    background-size: 3px 3px, 100% 3px, 100% 100%;
+  }
+  body::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      repeating-linear-gradient(45deg, rgba(139,42,29,.04) 0 1px, transparent 1px 7px),
+      /* CRT scanlines */
+      repeating-linear-gradient(0deg, transparent 0 2px, rgba(26,23,20,.05) 2px 3px),
+      radial-gradient(ellipse at center, transparent 50%, rgba(26,23,20,.08) 100%);
+    mix-blend-mode:multiply;
+  }
+
+  .wrap{position:relative;padding:18px 24px;display:flex;flex-direction:column;gap:14px}
+
+  .row{
+    display:flex;align-items:baseline;gap:20px;
+    border-bottom:1px solid rgba(26,23,20,.15);padding-bottom:14px;
+  }
+  .row:last-child{border-bottom:0;padding-bottom:0}
+
+  .spec{width:160px;flex-shrink:0;display:flex;flex-direction:column;gap:2px}
+  .spec .fam{font-family:var(--font-mono);font-size:10px;color:#6B5F4F;letter-spacing:.02em}
+  .spec .num{font-family:var(--font-mono);font-size:10px;color:#A89884}
+  .sample{flex:1;min-width:0;position:relative}
+
+  /* Hero: Press Start 2P — 8-bit arcade.
+     Offset oxblood "shadow" sprite for misregistration / chromatic split. */
+  .s-hero{
+    font-family:var(--font-pixel);
+    font-size:22px;line-height:1.2;color:#1A1714;
+    letter-spacing:.02em;
+    text-shadow:
+      2px 2px 0 #8B2A1D,
+      4px 4px 0 rgba(139,42,29,.35);
+  }
+  .s-hero .dot{color:#8B2A1D;text-shadow:2px 2px 0 #1A1714}
+
+  /* H1: Press Start 2P smaller — UI label scale */
+  .s-h1{
+    font-family:var(--font-pixel);
+    font-size:13px;line-height:1.6;color:#1A1714;
+    letter-spacing:.04em;text-transform:uppercase;
+  }
+
+  /* H2: VT323 — softer CRT pixel, larger x-height reads as body-display */
+  .s-h2{
+    font-family:var(--font-crt);font-weight:400;
+    font-size:32px;line-height:1;color:#1A1714;
+    letter-spacing:.02em;
+  }
+  .s-h2 .num{color:#8B2A1D}
+
+  /* Eyebrow: VT323 uppercase, oxblood */
+  .s-eyebrow{
+    font-family:var(--font-crt);font-size:18px;font-weight:400;
+    letter-spacing:.12em;text-transform:uppercase;
+    color:#8B2A1D;line-height:1;
+  }
+  .s-eyebrow::before{content:"► ";color:#A89884}
+</style></head>
+<body>
+<div class="wrap">
+
+  <div class="row">
+    <div class="spec">
+      <span class="fam">Press Start 2P</span>
+      <span class="num">22 / 8-bit</span>
+    </div>
+    <div class="sample s-hero">ADCELERATE<span class="dot">.</span></div>
+  </div>
+
+  <div class="row">
+    <div class="spec">
+      <span class="fam">Press Start 2P</span>
+      <span class="num">13 / caps</span>
+    </div>
+    <div class="sample s-h1">MULTI-AGENT OBSERVABILITY</div>
+  </div>
+
+  <div class="row">
+    <div class="spec">
+      <span class="fam">VT323</span>
+      <span class="num">32 / CRT pixel</span>
+    </div>
+    <div class="sample s-h2">Live pulse · <span class="num">328</span> events</div>
+  </div>
+
+  <div class="row">
+    <div class="spec">
+      <span class="fam">VT323 · uppercase</span>
+      <span class="num">18 / 0.12em</span>
+    </div>
+    <div class="sample s-eyebrow">SOURCE APP · SESSION · HOOK</div>
+  </div>
+
+</div>
+</body></html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans)}
+  body{
+    background-image:
+      radial-gradient(rgba(26,23,20,.12) 1px, transparent 1px),
+      repeating-linear-gradient(0deg, rgba(26,23,20,.03) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 50%, #E6DCC6 100%);
+    background-size:3px 3px, 100% 3px, 100% 100%;
+    padding:16px 20px;
+  }
+  .card{background:#F5EEDC;border:1.5px solid #1A1714;padding:12px 14px;border-radius:4px;box-shadow:4px 4px 0 #8B2A1D}
+  .hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .icn{width:26px;height:26px;border-radius:3px;background:#8B2A1D;display:flex;align-items:center;justify-content:center;color:#F5EEDC}
+  .ttl{font-family:var(--font-display,system-ui);font-size:13px;font-weight:700;color:#1A1714;letter-spacing:.04em;text-transform:uppercase}
+  .pt{font-family:var(--font-mono);font-size:11px;background:#1A1714;color:#F5EEDC;padding:2px 8px;border-radius:3px;font-weight:700}
+  .await{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:#8B2A1D;display:flex;align-items:center;gap:5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700}
+  .await .spin{width:10px;height:10px;border:2px solid #8B2A1D;border-top-color:transparent;border-radius:50%;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .q{background:#EEE6D4;border:1.5px solid #1A1714;padding:10px 12px;border-radius:3px;font-size:13px;color:#1A1714;margin:0 0 12px 0;font-family:var(--font-editorial,Georgia,serif);line-height:1.5}
+  .q code{font-family:var(--font-mono);background:#1A1714;padding:1px 6px;border-radius:2px;color:#F5EEDC;font-size:12px;font-weight:600}
+
+  .actions{display:flex;gap:8px;justify-content:flex-end}
+  button{font-family:var(--font-mono);font-size:11px;font-weight:700;padding:6px 14px;border-radius:3px;border:1.5px solid #1A1714;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;box-shadow:2px 2px 0 #1A1714}
+  .deny{background:#F5EEDC;color:#1A1714}
+  .appr{background:#8B2A1D;color:#F5EEDC}
+  svg{width:15px;height:15px}
+</style></head>
+<body>
+<div class="card">
+  <div class="hdr">
+    <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div>
+    <span class="ttl">Permission Request</span>
+    <span class="pt">bash</span>
+    <span class="await"><span class="spin"></span>Awaiting</span>
+  </div>
+  <p class="q">Run <code>rm -rf node_modules/.cache</code> in the repo root?</p>
+  <div class="actions">
+    <button class="deny">Deny</button>
+    <button class="appr">Approve</button>
+  </div>
+</div>
+</body></html>

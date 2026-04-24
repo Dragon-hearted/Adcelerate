@@ -41,6 +41,31 @@ sub-update:
 sub project +recipe:
   cd {{project}} && just {{recipe}}
 
+# ─── Design System ──────────────────────────────────────
+
+# Vendor design-system/ adapters + tokens.css into each submodule's vendor/design-system/
+# Submodules consume the vendored copy so they stay self-contained when cloned alone.
+# Re-run after editing design-system/ at the parent.
+sync-design:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  if [ ! -d design-system ]; then
+    echo "ERROR: design-system/ not found at parent root" >&2
+    exit 1
+  fi
+  for sub in autoCaption image-engine pinboard readme-engine scene-board; do
+    target="systems/$sub/vendor/design-system"
+    if [ ! -d "systems/$sub" ]; then
+      echo "  skip $sub (submodule not initialized)"
+      continue
+    fi
+    mkdir -p "$target"
+    cp design-system/tokens.css "$target/"
+    cp -R design-system/adapters "$target/"
+    echo "  synced → $target"
+  done
+  echo "sync-design: done"
+
 # ─── Claude Code Sessions ─────────────────────────────────
 
 # Deterministic codebase setup

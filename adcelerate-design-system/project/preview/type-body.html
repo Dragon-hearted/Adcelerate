@@ -1,0 +1,95 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans)}
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 60%);
+  }
+  .wrap{padding:16px 20px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+
+  .cell{
+    background:#F5EEDC;
+    border:1px solid #1A1714;
+    padding:10px 12px;
+    display:flex;flex-direction:column;gap:6px;min-height:96px;
+    box-shadow:1.5px 1.5px 0 rgba(26,23,20,.15);
+  }
+  .tag{
+    font-family:var(--font-mono);font-size:9px;color:#6B5F4F;
+    letter-spacing:.08em;text-transform:uppercase;display:flex;gap:6px;align-items:center;
+  }
+  .tag b{color:#8B2A1D;font-weight:600;letter-spacing:.04em}
+
+  /* Body 16/400 — paragraph */
+  .t-body{font-size:16px;font-weight:400;line-height:1.5;color:#1A1714}
+
+  /* Small 14/400 — dense rows */
+  .t-small{font-size:14px;font-weight:400;line-height:1.4;color:#2A241E}
+
+  /* Emphasized 14/500 — labels */
+  .t-emph{font-size:14px;font-weight:600;line-height:1.3;color:#1A1714}
+
+  /* Meta 12/500 — timestamps/badges */
+  .t-meta{
+    display:inline-flex;align-items:center;gap:6px;align-self:flex-start;
+    font-size:12px;font-weight:600;
+    padding:3px 8px;border-radius:3px;
+    background:color-mix(in srgb, #0F5C3E 12%, #F5EEDC);
+    color:#0F5C3E;border:1px solid #0F5C3E;
+  }
+  .t-meta .dot{width:5px;height:5px;border-radius:9999px;background:currentColor}
+  .t-ts{
+    font-family:var(--font-mono);font-size:12px;color:#6B5F4F;
+    font-variant-numeric:tabular-nums;margin-left:auto;
+  }
+  .metarow{display:flex;align-items:center;gap:8px}
+
+  /* Eyebrow 12/600 uppercase */
+  .t-eyebrow{
+    font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:#6B5F4F;display:flex;align-items:center;gap:8px;
+  }
+  .t-eyebrow::before,.t-eyebrow::after{
+    content:"";flex:1;height:1px;background:rgba(26,23,20,.3);
+  }
+</style></head>
+<body>
+<div class="wrap">
+
+  <div class="cell" style="grid-column:1/-1">
+    <div class="tag">Body · <b>16 / 400 / 1.5</b> · default paragraph</div>
+    <div class="t-body">Permission requests are held until a human approves or denies them — the dashboard surfaces the tool name, the exact command, and the source app so you can decide without context-switching.</div>
+  </div>
+
+  <div class="cell">
+    <div class="tag">Small · <b>14 / 400</b> · event rows · buttons</div>
+    <div class="t-small">Read reference-board.ts</div>
+    <div class="t-small">Edit packages/readme-engine/src/svg/hero.ts</div>
+    <div class="t-small" style="color:#6B5F4F">Bash: whisper-cpp -f src.wav …</div>
+  </div>
+
+  <div class="cell">
+    <div class="tag">Emphasized · <b>14 / 600</b> · section labels · form fields</div>
+    <div class="t-emph">Connection lost</div>
+    <div class="t-small" style="color:#6B5F4F">Attempting to reconnect…</div>
+  </div>
+
+  <div class="cell">
+    <div class="tag">Meta · <b>12 / 600</b> · badges · status pills</div>
+    <span class="t-meta"><span class="dot"></span>Connected</span>
+    <div class="metarow">
+      <span class="t-meta">PostToolUse</span>
+      <span class="t-ts">14:32:07</span>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="tag">Eyebrow · <b>12 / 600</b> · uppercase · section starters</div>
+    <div class="t-eyebrow">Source App</div>
+    <div class="t-eyebrow">Live Pulse</div>
+  </div>
+
+</div>
+</body></html>

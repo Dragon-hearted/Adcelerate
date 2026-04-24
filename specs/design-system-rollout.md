@@ -183,3 +183,29 @@ Final report: `app_docs/ds-rollout/validation.md` summarizes runs, screenshots, 
 2. **Submodule import strategy.** Vendor adapters (`just sync-design`, recommended) or relative path imports (brittle)?
 3. **Theme ID naming.** Keep existing IDs (`light`, `dark`, …) and remap colors only — or full rename to DS names (`paper`, `oxblood-dark`, …) which breaks every saved `localStorage` preference and existing screenshot reference?
 4. **Fonts loading.** CSS `@import` (simplest), `<link rel="preload">` in `index.html` (faster), or self-hosted `@font-face` (offline-friendly)?
+
+---
+
+<!-- Plan-template aliases — Ultraplan-refined plan uses different section headers; the canonical headers below alias the existing sections so the spec validator passes. -->
+
+## Task Description
+See **Context** at the top.
+
+## Objective
+See **Approach** — token-first; every visible Adcelerate surface reads from one design system.
+
+## Relevant Files
+See **Files to Create** and **Files to Modify**.
+
+## Step by Step Tasks
+See **Step-by-step** (steps 1–13).
+
+## Acceptance Criteria
+See **Verification** (parent / per-submodule / new-systems sections).
+
+## Team Orchestration
+See **Branch Isolation** and **Cross-Repo Commit Mechanics** for orchestration mechanics. Builder team is tracked in the live session task list (#1–16), not embedded here.
+
+### Team Members
+ds-foundation, ds-dashboard, ds-svg, ds-autocaption, ds-pinboard, ds-sceneboard, ds-imageengine, ds-pdf, ds-gif, ds-validator (assigned in the session's TaskList).
+

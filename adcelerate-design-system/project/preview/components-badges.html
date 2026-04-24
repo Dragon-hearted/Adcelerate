@@ -1,0 +1,114 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#2A241E;font-family:var(--font-sans)}
+  body{
+    background-image:
+      radial-gradient(rgba(26,23,20,.10) 1px, transparent 1px),
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 50%, #E6DCC6 100%);
+    background-size:3px 3px, 100% 3px, 100% 100%;
+    padding:14px 18px;
+  }
+  .group{margin-bottom:12px}
+  .group:last-child{margin-bottom:0}
+  .lbl{
+    display:flex;align-items:center;gap:8px;
+    font-size:9px;color:#6B5F4F;font-family:var(--font-mono);
+    letter-spacing:.2em;text-transform:uppercase;font-weight:600;
+    margin-bottom:7px;
+  }
+  .lbl .sw{width:10px;height:10px;border:1px solid rgba(42,36,30,.35)}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+  /* Softer pills — 1px border, muted borders, tinted fills */
+  .pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:3px;display:inline-flex;align-items:center;gap:5px;letter-spacing:.02em;border:1px solid}
+  .pill .hex{font-family:var(--font-mono);font-size:9px;opacity:.55;margin-left:3px;font-weight:500;letter-spacing:0}
+
+  /* HOOK · oxblood, tinted (muted backgrounds + oxblood text) */
+  .hook-1{background:rgba(139,42,29,.15);color:#8B2A1D;border-color:rgba(139,42,29,.3)}
+  .hook-2{background:rgba(179,61,46,.14);color:#8B2A1D;border-color:rgba(139,42,29,.28)}
+  .hook-3{background:rgba(90,27,18,.12);color:#5A1B12;border-color:rgba(90,27,18,.3)}
+  .hook-4{background:#F5EEDC;color:#8B2A1D;border-color:rgba(139,42,29,.35)}
+
+  /* STATUS · tinted */
+  .ok{background:rgba(15,92,62,.12);color:#0F5C3E;border-color:rgba(15,92,62,.3)}
+  .warn{background:rgba(217,119,6,.14);color:#8A4B05;border-color:rgba(217,119,6,.3)}
+  .err{background:rgba(26,23,20,.1);color:#2A241E;border-color:rgba(26,23,20,.3)}
+  .err::before{content:"!";font-weight:700;margin-right:3px;color:#8B2A1D}
+  .idle{background:#F5EEDC;color:#6B5F4F;border-color:rgba(42,36,30,.25)}
+
+  /* TOOL · outline */
+  .tool{background:transparent;color:#2A241E;font-family:var(--font-mono);padding:2px 8px;border-color:rgba(42,36,30,.35);font-weight:500}
+
+  /* APP · paper-harmonized hashed palette */
+  .app-ox     {background:rgba(122,37,25,.14);color:#7A2519;border-color:rgba(122,37,25,.35)}
+  .app-petrol {background:rgba(30,90,122,.14);color:#1E5A7A;border-color:rgba(30,90,122,.35)}
+  .app-amber  {background:rgba(181,106,10,.14);color:#B56A0A;border-color:rgba(181,106,10,.35)}
+  .app-forest {background:rgba(45,94,69,.14);color:#2D5E45;border-color:rgba(45,94,69,.35)}
+  .app-cocoa  {background:rgba(92,74,56,.14);color:#5C4A38;border-color:rgba(92,74,56,.35)}
+
+  /* SESSION · paper */
+  .session{font-family:var(--font-mono);background:#F5EEDC;color:#2A241E;font-weight:500;border-color:rgba(42,36,30,.3)}
+
+  /* Connection dots */
+  .dot{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:3px;letter-spacing:.02em;border:1px solid}
+  .dot .d{width:7px;height:7px;border-radius:9999px}
+  .d-on  {background:rgba(15,92,62,.12);color:#0F5C3E;border-color:rgba(15,92,62,.3)}
+  .d-on .d{background:#0F5C3E}
+  .d-off {background:rgba(139,42,29,.12);color:#8B2A1D;border-color:rgba(139,42,29,.3)}
+  .d-off .d{background:#8B2A1D;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.4}}
+</style></head>
+<body>
+
+<div class="group">
+  <div class="lbl"><span class="sw" style="background:#8B2A1D"></span>Hook family · oxblood</div>
+  <div class="row">
+    <span class="pill hook-1">PostToolUse</span>
+    <span class="pill hook-2">UserPromptSubmit</span>
+    <span class="pill hook-3">PreToolUse</span>
+    <span class="pill hook-4">Notification</span>
+  </div>
+</div>
+
+<div class="group">
+  <div class="lbl"><span class="sw" style="background:#0F5C3E"></span>Status family</div>
+  <div class="row">
+    <span class="pill ok">ok <span class="hex">#0F5C3E</span></span>
+    <span class="pill warn">warn <span class="hex">#B45309</span></span>
+    <span class="pill err">error <span class="hex">#1A1714</span></span>
+    <span class="pill idle">idle <span class="hex">#F5EEDC</span></span>
+  </div>
+</div>
+
+<div class="group">
+  <div class="lbl"><span class="sw" style="background:transparent"></span>Tool · outline · session · paper</div>
+  <div class="row">
+    <span class="pill tool">Bash</span>
+    <span class="pill tool">Read</span>
+    <span class="pill tool">WebFetch</span>
+    <span class="pill session">7f0f56d2</span>
+  </div>
+</div>
+
+<div class="group">
+  <div class="lbl"><span class="sw" style="background:#7A2519"></span>Source app · hashed paper palette</div>
+  <div class="row">
+    <span class="pill app-ox">pinboard</span>
+    <span class="pill app-petrol">instagram-scrapper</span>
+    <span class="pill app-amber">sceneboard</span>
+    <span class="pill app-forest">autocaption</span>
+    <span class="pill app-cocoa">imageengine</span>
+  </div>
+</div>
+
+<div class="group">
+  <div class="lbl"><span class="sw" style="background:#0F5C3E"></span>Connection</div>
+  <div class="row">
+    <span class="dot d-on"><span class="d"></span>Connected</span>
+    <span class="dot d-off"><span class="d"></span>Disconnected</span>
+  </div>
+</div>
+
+</body></html>

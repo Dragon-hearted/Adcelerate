@@ -1,0 +1,79 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans);padding:18px}
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 60%);
+  }
+  .row{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .lbl{font-size:10px;color:#6B5F4F;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px}
+  button{
+    font-family:inherit;font-weight:600;font-size:13px;
+    border-radius:2px;border:1px solid #1A1714;
+    padding:7px 14px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+    transition:transform .08s ease, background .15s ease, color .15s ease;
+    letter-spacing:.02em;
+  }
+  button:active{transform:translate(1px,1px)}
+
+  /* Primary — oxblood */
+  .primary{background:#8B2A1D;color:#F5EEDC;border-color:#1A1714}
+  .primary:hover{background:#6E2116}
+
+  /* Secondary — paper with ink border */
+  .secondary{background:#F5EEDC;color:#1A1714;border-color:#1A1714}
+  .secondary:hover{background:#E6DCC6}
+
+  /* Toggle on — oxblood tinted wash */
+  .toggle-on{
+    background:color-mix(in srgb, #8B2A1D 12%, #F5EEDC);
+    color:#8B2A1D;
+    border-color:#8B2A1D;
+  }
+
+  /* Semantic — success + danger, kept muted */
+  .success{background:#0F5C3E;color:#F5EEDC;border-color:#1A1714}
+  .success:hover{background:#0B4731}
+  .danger{background:#8B2A1D;color:#F5EEDC;border-color:#1A1714}
+  .danger:hover{background:#6E2116}
+
+  /* Ghost */
+  .ghost{background:transparent;color:#2A241E;border-color:transparent}
+  .ghost:hover{background:rgba(26,23,20,.06);color:#1A1714}
+
+  svg{width:14px;height:14px}
+</style></head>
+<body>
+
+<div class="lbl">Primary · Secondary · Toggle · Ghost</div>
+<div class="row">
+  <button class="primary">Submit</button>
+  <button class="secondary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+    </svg>
+    Clear
+  </button>
+  <button class="toggle-on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+    </svg>
+    Filters
+  </button>
+  <button class="ghost">Cancel</button>
+</div>
+
+<div class="lbl">HITL actions</div>
+<div class="row">
+  <button class="success">Approve</button>
+  <button class="danger">Deny</button>
+  <button class="secondary">Option A</button>
+  <button class="secondary">Option B</button>
+</div>
+
+</body></html>

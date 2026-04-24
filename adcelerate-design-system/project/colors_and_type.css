@@ -1,0 +1,253 @@
+/* ============================================================
+   Adcelerate Design System — Colors & Typography
+   Sourced from: apps/client/src/styles/themes.css
+                 apps/client/tailwind.config.js
+                 images/hero.svg (indigo #6366F1 brand glow)
+   ============================================================ */
+
+/* ---------- Typography ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Archivo+Black&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Rubik+Mono+One&family=DM+Serif+Display:ital@0;1&family=Press+Start+2P&family=VT323&display=swap');
+
+:root {
+  /* Type families */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-display: 'Archivo Black', 'Inter', system-ui, sans-serif;         /* heavy geometric sans for H1 */
+  --font-editorial: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;   /* editorial serif */
+  --font-retro: 'Rubik Mono One', 'Archivo Black', system-ui, sans-serif;  /* retro slab-mono display */
+  --font-hero: 'DM Serif Display', 'IBM Plex Serif', Georgia, serif;       /* high-contrast serif */
+  --font-pixel: 'Press Start 2P', 'VT323', monospace;                      /* 8-bit arcade */
+  --font-crt: 'VT323', 'Press Start 2P', monospace;                        /* softer CRT pixel */
+
+  /* Type scale (matches Tailwind defaults used throughout the client) */
+  --text-xs: 0.75rem;     /* 12px — badges, meta, timestamps */
+  --text-sm: 0.875rem;    /* 14px — body small, buttons */
+  --text-base: 1rem;      /* 16px — body */
+  --text-lg: 1.125rem;    /* 18px — header title, emphasized body */
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  /* ---------- Brand accents (paper palette / hero.svg / platform diagram) ---------- */
+  --brand-oxblood:  #8B2A1D;   /* primary mark + CTAs */
+  --brand-petrol:   #1E5A7A;   /* info / secondary accent */
+  --brand-amber:    #B45309;   /* permission / warning */
+  --brand-green:    #0F5C3E;   /* success */
+  --brand-cocoa:    #5A4632;   /* neutral emphasis */
+  --brand-ink:      #1A1714;   /* text on paper */
+  --brand-paper:    #EEE6D4;   /* default surface */
+  --brand-paper-hi: #F5EEDC;   /* raised / highlight */
+  --brand-paper-sh: #E6DCC6;   /* recessed / shadow */
+  --brand-muted:    #6B5F4F;   /* meta text */
+
+  /* App-hash palette (deterministic per source_app) */
+  --app-oxblood:    #7A2519;
+  --app-petrol:     #1E5A7A;
+  --app-amber:      #B56A0A;
+  --app-forest:     #2D5E45;
+  --app-cocoa:      #5C4A38;
+  --app-slate-blue: #3E5F7D;
+  --app-terracotta: #94431E;
+  --app-sage:       #3F6852;
+  --app-oxblood-2:  #6E2116;
+  --app-umber:      #7A5C2E;
+}
+
+/* ============================================================
+   :root defaults — the paper theme IS the brand default.
+   Light/Dark live below as alternate themes applied via class.
+   ============================================================ */
+:root {
+  /* Primary */
+  --theme-primary:        #8B2A1D;  /* oxblood */
+  --theme-primary-hover:  #6E2116;
+  --theme-primary-light:  rgba(139, 42, 29, 0.12);
+  --theme-primary-dark:   #5A1B12;
+
+  /* Surfaces */
+  --theme-bg-primary:     #EEE6D4;  /* paper */
+  --theme-bg-secondary:   #F5EEDC;  /* paper highlight */
+  --theme-bg-tertiary:    #E6DCC6;  /* paper shadow */
+  --theme-bg-quaternary:  #D4C9B0;
+
+  /* Text */
+  --theme-text-primary:    #1A1714;
+  --theme-text-secondary:  #2A241E;
+  --theme-text-tertiary:   #6B5F4F;
+  --theme-text-quaternary: #8A7C69;
+
+  /* Borders */
+  --theme-border-primary:   rgba(26, 23, 20, 0.3);
+  --theme-border-secondary: rgba(26, 23, 20, 0.45);
+  --theme-border-tertiary:  rgba(26, 23, 20, 0.6);
+
+  /* Semantic accents */
+  --theme-accent-success: #0F5C3E;  /* deep green */
+  --theme-accent-warning: #B45309;  /* amber */
+  --theme-accent-error:   #8B2A1D;  /* oxblood */
+  --theme-accent-info:    #1E5A7A;  /* petrol */
+
+  /* Shadows */
+  --theme-shadow:    rgba(26, 23, 20, 0.15);
+  --theme-shadow-lg: rgba(26, 23, 20, 0.35);
+
+  /* Interactive states */
+  --theme-hover-bg:   rgba(26, 23, 20, 0.04);
+  --theme-active-bg:  rgba(26, 23, 20, 0.08);
+  --theme-focus-ring: #8B2A1D;
+
+  /* Motion */
+  --theme-transition:      all 0.2s ease-in-out;
+  --theme-transition-fast: all 0.1s ease-in-out;
+
+  /* Radii (tailwind default scale — rounded-md/lg are the hero sizes) */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;   /* buttons, badges */
+  --radius-lg: 8px;   /* cards, panels */
+  --radius-xl: 12px;  /* modals */
+  --radius-full: 9999px;
+
+  /* Spacing (matches tailwind scale — 4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
+/* ============================================================
+   Paper — explicit class form (same tokens as :root, for composability).
+   ============================================================ */
+.theme-paper {
+  --theme-primary:        #8B2A1D;
+  --theme-primary-hover:  #6E2116;
+  --theme-primary-light:  rgba(139, 42, 29, 0.12);
+  --theme-primary-dark:   #5A1B12;
+
+  --theme-bg-primary:     #EEE6D4;
+  --theme-bg-secondary:   #F5EEDC;
+  --theme-bg-tertiary:    #E6DCC6;
+  --theme-bg-quaternary:  #D4C9B0;
+
+  --theme-text-primary:    #1A1714;
+  --theme-text-secondary:  #2A241E;
+  --theme-text-tertiary:   #6B5F4F;
+  --theme-text-quaternary: #8A7C69;
+
+  --theme-border-primary:   rgba(26, 23, 20, 0.3);
+  --theme-border-secondary: rgba(26, 23, 20, 0.45);
+  --theme-border-tertiary:  rgba(26, 23, 20, 0.6);
+
+  --theme-accent-success: #0F5C3E;
+  --theme-accent-warning: #B45309;
+  --theme-accent-error:   #8B2A1D;
+  --theme-accent-info:    #1E5A7A;
+
+  --theme-shadow:    rgba(26, 23, 20, 0.15);
+  --theme-shadow-lg: rgba(26, 23, 20, 0.35);
+
+  --theme-hover-bg:   rgba(26, 23, 20, 0.04);
+  --theme-active-bg:  rgba(26, 23, 20, 0.08);
+  --theme-focus-ring: #8B2A1D;
+}
+
+/* ============================================================
+   Dark — the primary working surface for the dashboard
+   ============================================================ */
+.theme-dark {
+  --theme-primary:        #60a5fa;
+  --theme-primary-hover:  #3b82f6;
+  --theme-primary-light:  #1e3a8a;
+  --theme-primary-dark:   #1d4ed8;
+
+  --theme-bg-primary:     #111827;
+  --theme-bg-secondary:   #1f2937;
+  --theme-bg-tertiary:    #374151;
+  --theme-bg-quaternary:  #4b5563;
+
+  --theme-text-primary:    #f9fafb;
+  --theme-text-secondary:  #e5e7eb;
+  --theme-text-tertiary:   #d1d5db;
+  --theme-text-quaternary: #9ca3af;
+
+  --theme-border-primary:   #374151;
+  --theme-border-secondary: #4b5563;
+  --theme-border-tertiary:  #6b7280;
+
+  --theme-accent-success: #34d399;
+  --theme-accent-warning: #fbbf24;
+  --theme-accent-error:   #f87171;
+  --theme-accent-info:    #60a5fa;
+
+  --theme-shadow:    rgba(0, 0, 0, 0.5);
+  --theme-shadow-lg: rgba(0, 0, 0, 0.75);
+
+  --theme-hover-bg:   rgba(255, 255, 255, 0.05);
+  --theme-active-bg:  rgba(255, 255, 255, 0.1);
+  --theme-focus-ring: #60a5fa;
+}
+
+/* Midnight Purple — brand-forward variant matching hero.svg glow */
+.theme-midnight-purple {
+  --theme-primary:        #a78bfa;
+  --theme-primary-hover:  #c4b5fd;
+  --theme-primary-light:  #2e1065;
+  --theme-primary-dark:   #6d28d9;
+
+  --theme-bg-primary:     #0f0a1a;
+  --theme-bg-secondary:   #1a1333;
+  --theme-bg-tertiary:    #2d1b4e;
+  --theme-bg-quaternary:  #3f2766;
+
+  --theme-text-primary:    #f3e8ff;
+  --theme-text-secondary:  #e9d5ff;
+  --theme-text-tertiary:   #d8b4fe;
+  --theme-text-quaternary: #c084fc;
+
+  --theme-border-primary:   #6d28d9;
+  --theme-border-secondary: #7e22ce;
+  --theme-border-tertiary:  #a855f7;
+
+  --theme-accent-success: #34d399;
+  --theme-accent-warning: #fbbf24;
+  --theme-accent-error:   #f472b6;
+  --theme-accent-info:    #a78bfa;
+
+  --theme-shadow:    rgba(0, 0, 0, 0.6);
+  --theme-shadow-lg: rgba(0, 0, 0, 0.8);
+  --theme-focus-ring: #a78bfa;
+}
+
+/* ============================================================
+   Semantic type roles (pair with CSS vars above)
+   ============================================================ */
+.ds-h1 { font-family: var(--font-sans); font-size: var(--text-3xl);  font-weight: 700; line-height: var(--leading-tight); letter-spacing: var(--tracking-tight); color: var(--theme-text-primary); }
+.ds-h2 { font-family: var(--font-sans); font-size: var(--text-2xl);  font-weight: 700; line-height: var(--leading-tight); letter-spacing: var(--tracking-tight); color: var(--theme-text-primary); }
+.ds-h3 { font-family: var(--font-sans); font-size: var(--text-lg);   font-weight: 600; line-height: var(--leading-snug);  color: var(--theme-text-primary); }
+.ds-h4 { font-family: var(--font-sans); font-size: var(--text-base); font-weight: 600; line-height: var(--leading-snug);  color: var(--theme-text-primary); }
+.ds-body   { font-family: var(--font-sans); font-size: var(--text-base); font-weight: 400; line-height: var(--leading-normal); color: var(--theme-text-primary); }
+.ds-body-sm{ font-family: var(--font-sans); font-size: var(--text-sm);   font-weight: 400; line-height: var(--leading-normal); color: var(--theme-text-secondary); }
+.ds-meta   { font-family: var(--font-sans); font-size: var(--text-xs);  font-weight: 500; line-height: var(--leading-snug);  color: var(--theme-text-tertiary); }
+.ds-mono   { font-family: var(--font-mono); font-size: var(--text-xs);  font-weight: 400; font-variant-numeric: tabular-nums; color: var(--theme-text-tertiary); }
+.ds-badge  { font-family: var(--font-sans); font-size: var(--text-xs);  font-weight: 600; line-height: 1; letter-spacing: var(--tracking-wide); }
+
+/* Card / panel defaults */
+.ds-card {
+  background: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px var(--theme-shadow);
+}

@@ -1,0 +1,103 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans);font-size:12px}
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 60%);
+  }
+  .wrap{padding:16px 20px;display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:center}
+
+  /* Left: hero — oxblood block over paper */
+  .hero{
+    position:relative;height:96px;
+    background:#F5EEDC;
+    border:1.5px solid #1A1714;
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:2px 2px 0 rgba(26,23,20,.25);
+  }
+  .hero .node{
+    position:relative;width:56px;height:56px;
+    background:#8B2A1D;
+    border:1.5px solid #1A1714;
+    display:flex;align-items:center;justify-content:center;
+    color:#F5EEDC;font-weight:700;font-family:var(--font-mono);font-size:14px;
+    box-shadow:2px 2px 0 rgba(26,23,20,.35);
+  }
+  .caption{
+    margin-top:8px;font-family:var(--font-mono);font-size:10px;
+    color:#6B5F4F;text-align:center;letter-spacing:.04em;
+  }
+
+  /* Right: ramp as token rows */
+  .tokens{display:flex;flex-direction:column;gap:5px}
+  .tok{
+    display:grid;grid-template-columns:16px 1fr auto 110px;align-items:center;gap:10px;
+    padding:5px 8px;
+    font-family:var(--font-mono);font-size:11px;
+    background:rgba(26,23,20,.03);
+    border:1px solid rgba(26,23,20,.08);
+  }
+  .chip{width:16px;height:16px;border:1px solid #1A1714}
+  .name{color:#1A1714;font-weight:500}
+  .hex{color:#6B5F4F;font-size:10px}
+  .use{color:#6B5F4F;font-size:10px;text-align:right}
+  .use strong{color:#1A1714;font-weight:600}
+
+  .receipts{
+    grid-column:1 / -1;
+    display:flex;gap:8px;align-items:center;padding-top:10px;
+    border-top:1px dashed rgba(26,23,20,.25);margin-top:4px;
+  }
+  .r-lbl{font-family:var(--font-mono);font-size:10px;color:#6B5F4F;text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
+  .btn{font:600 12px var(--font-sans);padding:5px 10px;border:1px solid #1A1714;display:inline-flex;align-items:center;gap:4px}
+  .btn-primary{background:#8B2A1D;color:#F5EEDC}
+  .btn-tinted{background:color-mix(in srgb, #8B2A1D 12%, #F5EEDC);color:#8B2A1D;border-color:#8B2A1D}
+  .ring{width:28px;height:28px;background:#F5EEDC;border:1px solid #1A1714;outline:2px solid #8B2A1D;outline-offset:2px}
+  .link{color:#8B2A1D;font-weight:600;font-size:12px;text-decoration:underline;text-underline-offset:2px;font-family:var(--font-mono)}
+</style></head>
+<body><div class="wrap">
+  <div>
+    <div class="hero">
+      <div class="node">Ad</div>
+    </div>
+    <div class="caption">oxblood primary · #8B2A1D</div>
+  </div>
+
+  <div class="tokens">
+    <div class="tok">
+      <span class="chip" style="background:#5A1B12"></span>
+      <span class="name">--theme-primary-dark</span>
+      <span class="hex">#5A1B12</span>
+      <span class="use"><strong>active</strong> · pressed</span>
+    </div>
+    <div class="tok">
+      <span class="chip" style="background:#6E2116"></span>
+      <span class="name">--theme-primary-hover</span>
+      <span class="hex">#6E2116</span>
+      <span class="use"><strong>hover</strong> state</span>
+    </div>
+    <div class="tok">
+      <span class="chip" style="background:#8B2A1D"></span>
+      <span class="name">--theme-primary</span>
+      <span class="hex">#8B2A1D</span>
+      <span class="use">brand <strong>default</strong></span>
+    </div>
+    <div class="tok">
+      <span class="chip" style="background:color-mix(in srgb, #8B2A1D 14%, #F5EEDC)"></span>
+      <span class="name">--theme-primary-light</span>
+      <span class="hex">14% tint</span>
+      <span class="use">tinted fills</span>
+    </div>
+
+    <div class="receipts">
+      <span class="r-lbl">live</span>
+      <button class="btn btn-primary">Submit</button>
+      <button class="btn btn-tinted">● Filters</button>
+      <span class="ring" title="focus ring"></span>
+      <a href="#" class="link">session 7f0f56d2</a>
+    </div>
+  </div>
+</div></body></html>

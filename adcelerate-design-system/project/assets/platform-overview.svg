@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 536" width="800" height="536">
+  <defs>
+    <filter id="glow-0" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"></feGaussianBlur>
+      <feFlood flood-color="#6366F1" flood-opacity="0.35" result="color"></feFlood>
+      <feComposite in="color" in2="blur" operator="in" result="glow"></feComposite>
+      <feMerge>
+        <feMergeNode in="glow"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    <filter id="glow-1" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"></feGaussianBlur>
+      <feFlood flood-color="#8B5CF6" flood-opacity="0.35" result="color"></feFlood>
+      <feComposite in="color" in2="blur" operator="in" result="glow"></feComposite>
+      <feMerge>
+        <feMergeNode in="glow"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    <filter id="glow-2" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"></feGaussianBlur>
+      <feFlood flood-color="#EF4444" flood-opacity="0.35" result="color"></feFlood>
+      <feComposite in="color" in2="blur" operator="in" result="glow"></feComposite>
+      <feMerge>
+        <feMergeNode in="glow"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    <filter id="glow-3" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"></feGaussianBlur>
+      <feFlood flood-color="#06B6D4" flood-opacity="0.35" result="color"></feFlood>
+      <feComposite in="color" in2="blur" operator="in" result="glow"></feComposite>
+      <feMerge>
+        <feMergeNode in="glow"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    <filter id="glow-4" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"></feGaussianBlur>
+      <feFlood flood-color="#10B981" flood-opacity="0.35" result="color"></feFlood>
+      <feComposite in="color" in2="blur" operator="in" result="glow"></feComposite>
+      <feMerge>
+        <feMergeNode in="glow"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    <marker id="hub-arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#9CA3AF"></path>
+    </marker>
+  </defs>
+  <g opacity="0">
+    
+    <rect x="355" y="223" width="90" height="90" rx="45" fill="#6366F118" stroke="#6366F1" stroke-width="2" filter="url(#glow-0)"></rect>
+    <text x="400" y="273" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700">Adcelerate</text>
+  </g>
+<line x1="400" y1="219" x2="400" y2="92" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    
+    
+  </line>
+  <g opacity="0">
+    
+    
+    <rect x="330" y="32" width="140" height="56" rx="10" fill="#8B5CF614" stroke="#8B5CF6" stroke-width="1.5" filter="url(#glow-1)"></rect>
+    <text x="400" y="54" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">autoCaption</text>
+    <text x="400" y="74" text-anchor="middle" fill="#9CA3AF" font-family="Inter, system-ui, sans-serif" font-size="11">Automated video cap…</text>
+  </g>
+<line x1="442.4352447854375" y1="243.5" x2="516.0474041071147" y2="180" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    
+    
+  </line>
+  <g opacity="0">
+    
+    
+    <rect x="510.13328398716317" y="136" width="140" height="56" rx="10" fill="#EF444414" stroke="#EF4444" stroke-width="1.5" filter="url(#glow-2)"></rect>
+    <text x="580.1332839871632" y="158" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">SceneBoard</text>
+    <text x="580.1332839871632" y="178" text-anchor="middle" fill="#9CA3AF" font-family="Inter, system-ui, sans-serif" font-size="11">CLI-driven storyboa…</text>
+  </g>
+<line x1="442.4352447854375" y1="292.5" x2="516.0474041071149" y2="356" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    
+    
+  </line>
+  <g opacity="0">
+    
+    
+    <rect x="510.1332839871633" y="344" width="140" height="56" rx="10" fill="#8B5CF614" stroke="#8B5CF6" stroke-width="1.5" filter="url(#glow-1)"></rect>
+    <text x="580.1332839871633" y="366" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">Pinboard</text>
+    <text x="580.1332839871633" y="386" text-anchor="middle" fill="#9CA3AF" font-family="Inter, system-ui, sans-serif" font-size="11">AI-powered image ge…</text>
+  </g>
+<line x1="400" y1="317" x2="400" y2="444" stroke="#06B6D4" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    
+    
+  </line>
+  <g opacity="0">
+    
+    
+    <rect x="330" y="448" width="140" height="56" rx="10" fill="#06B6D414" stroke="#06B6D4" stroke-width="1.5" filter="url(#glow-3)"></rect>
+    <text x="400" y="470" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">Instagram Scrapper</text>
+    <text x="400" y="490" text-anchor="middle" fill="#9CA3AF" font-family="Inter, system-ui, sans-serif" font-size="11">Instagram content s…</text>
+  </g>
+<line x1="357.5647552145625" y1="292.5" x2="283.95259589288526" y2="356.00000000000006" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    
+    
+  </line>
+  <g opacity="0">
+    
+    
+    <rect x="149.8667160128368" y="344.00000000000006" width="140" height="56" rx="10" fill="#8B5CF614" stroke="#8B5CF6" stroke-width="1.5" filter="url(#glow-1)"></rect>
+    <text x="219.8667160128368" y="366.00000000000006" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">ImageEngine</text>
+    <text x="219.8667160128368" y="386.00000000000006" text-anchor="middle" fill="#9CA3AF" font-family="Inter, system-ui, sans-serif" font-size="11">Centralized NanoBan…</text>
+  </g>
+<line x1="357.5647552145625" y1="243.50000000000003" x2="283.95259589288514" y2="180.0000000000001" stroke="#10B981" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#hub-arrow)" opacity="0">
+    
+    
+  </line>
+  <g opacity="0">
+    
+    
+    <rect x="149.8667160128367" y="136.0000000000001" width="140" height="56" rx="10" fill="#10B98114" stroke="#10B981" stroke-width="1.5" filter="url(#glow-4)"></rect>
+    <text x="219.8667160128367" y="158.0000000000001" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">ReadmeEngine</text>
+    <text x="219.8667160128367" y="178.0000000000001" text-anchor="middle" fill="#9CA3AF" font-family="Inter, system-ui, sans-serif" font-size="11">Automated README ge…</text>
+  </g>
+  <text x="400" y="516" text-anchor="middle" fill="#9CA3AF" font-family="Inter, system-ui, sans-serif" font-size="11" opacity="0">
+    
+    6 systems registered
+  </text>
+</svg>

@@ -151,3 +151,28 @@ Typecheck is necessary but not sufficient — this is a TUI.
 - Undo for delete (a toast is enough; re-upload is trivial).
 - Sixel native protocol (the half-block path covers WezTerm well enough).
 - Confirmation for single-image delete (would add friction for a reversible action).
+
+---
+
+<!-- Plan-template aliases — this spec predates the standard plan format. The canonical headers below alias the existing sections; do not duplicate content. -->
+
+## Task Description
+See **Context** at the top of this file.
+
+## Objective
+See the final paragraph of **Context** ("Outcome: …").
+
+## Relevant Files
+See **Files touched**.
+
+## Step by Step Tasks
+See **Approach by item** (sections 1–6).
+
+## Acceptance Criteria
+See **Verification** (items 1–7).
+
+## Team Orchestration
+
+### Team Members
+N/A — single-author execution; no agent team.
+

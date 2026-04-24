@@ -1,0 +1,40 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans)}
+  body{
+    background-image:
+      radial-gradient(rgba(26,23,20,.12) 1px, transparent 1px),
+      repeating-linear-gradient(0deg, rgba(26,23,20,.03) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 50%, #E6DCC6 100%);
+    background-size:3px 3px, 100% 3px, 100% 100%;
+    padding:14px 18px;
+  }
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .cell{background:#F5EEDC;border:1.5px solid #1A1714;border-radius:3px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;box-shadow:2px 2px 0 #1A1714}
+  .e{font-size:22px;line-height:1;filter:saturate(.85)}
+  .lbl{font-family:var(--font-mono);font-size:9px;color:#1A1714;font-weight:700;letter-spacing:.02em}
+  .ttl{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;color:#8B2A1D;text-transform:uppercase;letter-spacing:.2em;margin:0 0 8px;font-weight:700}
+  .ttl::before,.ttl::after{content:"";flex:1;height:1.5px;background:#1A1714}
+  .ttl::before{max-width:10px}
+</style></head>
+<body>
+<div class="ttl">Event type · useEventEmojis</div>
+<div class="grid">
+  <div class="cell"><span class="e">🔧</span><span class="lbl">PreToolUse</span></div>
+  <div class="cell"><span class="e">✅</span><span class="lbl">PostToolUse</span></div>
+  <div class="cell"><span class="e">❌</span><span class="lbl">Failure</span></div>
+  <div class="cell"><span class="e">🔐</span><span class="lbl">Permission</span></div>
+  <div class="cell"><span class="e">💬</span><span class="lbl">UserPrompt</span></div>
+  <div class="cell"><span class="e">🚀</span><span class="lbl">SessionStart</span></div>
+</div>
+<div class="ttl" style="margin-top:14px">Tool</div>
+<div class="grid">
+  <div class="cell" style="box-shadow:2px 2px 0 #8B2A1D"><span class="e">💻</span><span class="lbl">Bash</span></div>
+  <div class="cell" style="box-shadow:2px 2px 0 #8B2A1D"><span class="e">📖</span><span class="lbl">Read</span></div>
+  <div class="cell" style="box-shadow:2px 2px 0 #8B2A1D"><span class="e">✏️</span><span class="lbl">Edit</span></div>
+  <div class="cell" style="box-shadow:2px 2px 0 #8B2A1D"><span class="e">🔎</span><span class="lbl">Grep</span></div>
+  <div class="cell" style="box-shadow:2px 2px 0 #8B2A1D"><span class="e">🤖</span><span class="lbl">Task</span></div>
+  <div class="cell" style="box-shadow:2px 2px 0 #8B2A1D"><span class="e">⚡</span><span class="lbl">Skill</span></div>
+</div>
+</body></html>
