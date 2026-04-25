@@ -518,3 +518,28 @@ Three-column layout:
 - [ ] UI is visually distinct - glass morphism, warm palette, smooth animations
 - [ ] Three-column layout with all creative inputs in left panel
 - [ ] No generic AI-generated feel - premium creative tool aesthetic
+
+---
+
+<!-- Plan-template aliases — this spec predates the standard plan format. The canonical headers below alias the existing sections; do not duplicate content. -->
+
+## Task Description
+See the top of this file (intro + numbered requirements under **Problem Statement**).
+
+## Objective
+See **Success Criteria** below — each checkbox is an objective.
+
+## Relevant Files
+See the **Files to change** subsections under each Phase (1–4).
+
+## Step by Step Tasks
+See **Step-by-Step Implementation Order** (Steps 1–5).
+
+## Acceptance Criteria
+See **Success Criteria**.
+
+## Team Orchestration
+
+### Team Members
+N/A — single-author execution; no agent team.
+

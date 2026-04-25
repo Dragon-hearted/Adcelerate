@@ -1,0 +1,105 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans);font-size:12px}
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 60%);
+  }
+  .wrap{padding:12px 16px;display:grid;grid-template-columns:220px 1fr;gap:14px;align-items:start}
+
+  /* Left: formula card */
+  .formula{
+    background:#F5EEDC;
+    border:1px solid #1A1714;
+    padding:12px;display:flex;flex-direction:column;gap:8px;
+    font-family:var(--font-mono);font-size:10px;color:#2A241E;
+    min-height:196px;
+    box-shadow:1.5px 1.5px 0 rgba(26,23,20,.2);
+  }
+  .formula .kw{color:#8B2A1D;font-weight:600}
+  .formula .num{color:#B45309;font-weight:600}
+  .formula .comm{color:#6B5F4F;font-style:italic}
+  .formula .sig{font-size:13px;color:#1A1714;font-weight:600}
+  .source{
+    font-family:var(--font-mono);font-size:9px;color:#6B5F4F;
+    padding-top:4px;border-top:1px dashed rgba(26,23,20,.25);
+  }
+
+  /* Right: hashed app rows */
+  .rows{display:flex;flex-direction:column;gap:4px}
+  .row{
+    position:relative;
+    background:#F5EEDC;
+    border:1px solid #1A1714;
+    padding:6px 10px 6px 14px;
+    display:grid;grid-template-columns:150px 1fr 64px;align-items:center;gap:10px;
+    height:32px;
+  }
+  .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .app{font-family:var(--font-mono);font-size:11px;color:#1A1714}
+  .app .h{color:#6B5F4F;font-size:9px;margin-left:4px}
+  .badge{
+    display:inline-flex;align-items:center;
+    font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;
+    font-family:var(--font-mono);justify-self:start;
+    border:1px solid currentColor;
+  }
+  .hex{font-family:var(--font-mono);font-size:10px;color:#6B5F4F;justify-self:end;text-align:right}
+</style></head>
+<body><div class="wrap">
+
+  <div class="formula">
+    <div class="sig">hashApp(name)</div>
+    <div class="comm">// stable per-app hue from name hash</div>
+    <div><span class="kw">const</span> h = hash(app);</div>
+    <div><span class="kw">return</span> PALETTE[</div>
+    <div>&nbsp;&nbsp;Math.abs(h) % <span class="num">10</span>];</div>
+    <div class="source">ui_kits/observability/<br>mockData.js · APP_PALETTE</div>
+  </div>
+
+  <div class="rows">
+    <div class="row">
+      <div class="bar" style="background:#8B2A1D"></div>
+      <span class="app">pinboard<span class="h">→ idx 0</span></span>
+      <span class="badge" style="background:color-mix(in srgb, #8B2A1D 12%, #F5EEDC);color:#8B2A1D">pinboard</span>
+      <span class="hex">#8B2A1D</span>
+    </div>
+
+    <div class="row">
+      <div class="bar" style="background:#1E5A7A"></div>
+      <span class="app">instagram-scrapper<span class="h">→ idx 1</span></span>
+      <span class="badge" style="background:color-mix(in srgb, #1E5A7A 12%, #F5EEDC);color:#1E5A7A">instagram-scrapper</span>
+      <span class="hex">#1E5A7A</span>
+    </div>
+
+    <div class="row">
+      <div class="bar" style="background:#B56A0A"></div>
+      <span class="app">sceneboard<span class="h">→ idx 2</span></span>
+      <span class="badge" style="background:color-mix(in srgb, #B56A0A 14%, #F5EEDC);color:#B45309">sceneboard</span>
+      <span class="hex">#B56A0A</span>
+    </div>
+
+    <div class="row">
+      <div class="bar" style="background:#0F5C3E"></div>
+      <span class="app">autocaption<span class="h">→ idx 3</span></span>
+      <span class="badge" style="background:color-mix(in srgb, #0F5C3E 12%, #F5EEDC);color:#0F5C3E">autocaption</span>
+      <span class="hex">#0F5C3E</span>
+    </div>
+
+    <div class="row">
+      <div class="bar" style="background:#5A4632"></div>
+      <span class="app">imageengine<span class="h">→ idx 4</span></span>
+      <span class="badge" style="background:color-mix(in srgb, #5A4632 12%, #F5EEDC);color:#5A4632">imageengine</span>
+      <span class="hex">#5A4632</span>
+    </div>
+
+    <div class="row">
+      <div class="bar" style="background:#3E5F7D"></div>
+      <span class="app">readmeengine<span class="h">→ idx 5</span></span>
+      <span class="badge" style="background:color-mix(in srgb, #3E5F7D 12%, #F5EEDC);color:#3E5F7D">readmeengine</span>
+      <span class="hex">#3E5F7D</span>
+    </div>
+  </div>
+</div></body></html>

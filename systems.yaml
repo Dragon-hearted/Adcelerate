@@ -248,6 +248,66 @@ readme-engine:
       produces: "Complete README.md file(s) written to disk"
   registered_at: "2026-04-13"
 
+gif-kit:
+  name: "GifKit"
+  path: "systems/gif-kit"
+  status: "building"
+  description: "Branded GIF rendering system using Remotion — composable React motion compositions compiled to loopable GIF assets with design-system token integration"
+  task_types:
+    - "gif-rendering"
+    - "motion-asset-generation"
+    - "brand-animation"
+  knowledge_path: "systems/gif-kit/knowledge"
+  input_types:
+    - "remotion-composition"
+    - "design-tokens"
+  output_types:
+    - "gif"
+    - "animated-brand-asset"
+  domain_tags:
+    - "video"
+    - "animation"
+    - "brand"
+    - "remotion"
+  entry_point: "systems/gif-kit/src/index.ts"
+  justfile: true
+  stages:
+    - name: "composition"
+      produces: "Remotion React composition with frame-based animation using DS tokens"
+    - name: "rendering"
+      produces: "GIF file via Remotion bundler + renderer pipeline (Chromium headless)"
+  registered_at: "2026-04-25"
+
+pdf-kit:
+  name: "pdf-kit"
+  path: "systems/pdf-kit"
+  status: "active"
+  description: "Branded PDF rendering system — A4 cover-plus-content layouts using @react-pdf/renderer with Adcelerate design-system tokens (Archivo Black wordmark, Inter body, paper/ink palette)"
+  task_types:
+    - "pdf-generation"
+    - "document-rendering"
+    - "branded-output"
+  knowledge_path: "systems/pdf-kit/knowledge"
+  input_types:
+    - "tsx-document-module"
+    - "title-string"
+    - "body-text"
+  output_types:
+    - "pdf-file"
+  domain_tags:
+    - "pdf"
+    - "design-system"
+    - "document"
+    - "rendering"
+  entry_point: "systems/pdf-kit/src/render.ts"
+  justfile: true
+  stages:
+    - name: "template-authoring"
+      produces: "BrandedDoc TSX component with cover + content layout using pdfStyles"
+    - name: "rendering"
+      produces: "Binary PDF file written to disk via @react-pdf/renderer renderToFile"
+  registered_at: "2026-04-25"
+
 prompt-writer:
   name: "PromptWriter"
   path: "systems/prompt-writer"

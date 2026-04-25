@@ -97,9 +97,9 @@ export function useEventColors() {
 
   const getHexColorForApp = (appName: string): string => {
     const hash = hashString(appName);
-    // Generate HSL color with fixed saturation and lightness for consistency
-    const hue = hash % 360;
-    return `hsl(${hue}, 70%, 50%)`;
+    // Use DS app-hash CSS vars (--ds-app-hash-0 through --ds-app-hash-9) for theme-aware coloring.
+    const index = Math.abs(hash) % 10;
+    return `var(--ds-app-hash-${index})`;
   };
 
   return {

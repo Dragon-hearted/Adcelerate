@@ -1,6 +1,6 @@
 // Theme type definitions
 
-export type ThemeName = 'light' | 'dark' | 'modern' | 'earth' | 'glass' | 'high-contrast' | 'dark-blue' | 'colorblind-friendly' | 'ocean' | 'midnight-purple' | 'sunset-orange' | 'mint-fresh';
+export type ThemeName = 'paper' | 'dark' | 'modern' | 'earth' | 'glass' | 'high-contrast' | 'dark-blue' | 'colorblind-friendly' | 'ocean' | 'midnight-purple' | 'sunset-orange' | 'mint-fresh';
 
 export interface ThemeColors {
   // Primary colors
@@ -177,7 +177,7 @@ export const THEME_COLOR_KEYS: ThemeColorKey[] = [
 ];
 
 export const PREDEFINED_THEME_NAMES: ThemeName[] = [
-  'light',
+  'paper',
   'dark',
   'modern',
   'earth',
@@ -197,13 +197,13 @@ export const RGBA_REGEX = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d?(?:\.\d+)?)
 
 // Theme metadata
 export const THEME_METADATA = {
-  light: {
-    name: 'light' as ThemeName,
-    displayName: 'Light',
-    description: 'Clean and bright theme with high contrast',
-    cssClass: 'theme-light',
+  paper: {
+    name: 'paper' as ThemeName,
+    displayName: 'Paper',
+    description: 'Warm brand-default theme — paper background with oxblood accents',
+    cssClass: 'theme-paper',
     category: 'default',
-    accessibility: 'high-contrast',
+    accessibility: 'standard',
   },
   dark: {
     name: 'dark' as ThemeName,

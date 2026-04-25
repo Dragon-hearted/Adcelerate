@@ -11,6 +11,14 @@ export default {
         'mobile': {'max': '699px'}, // Custom mobile breakpoint for < 700px
         'short': {'raw': '(max-height: 400px)'}, // Custom breakpoint for height <= 400px
       },
+      fontFamily: {
+        display:   ['var(--font-display)',   'system-ui', 'sans-serif'],
+        editorial: ['var(--font-editorial)', 'Georgia', 'serif'],
+        hero:      ['var(--font-hero)',      'Georgia', 'serif'],
+        pixel:     ['var(--font-pixel)',     'monospace'],
+        crt:       ['var(--font-crt)',       'monospace'],
+        retro:     ['var(--font-retro)',     'system-ui', 'sans-serif'],
+      },
       colors: {
         // Theme-aware colors using CSS custom properties
         'theme': {
@@ -126,6 +134,7 @@ export default {
     'theme-focus',
     'backdrop-blur',
     // Theme class names
+    'theme-paper',
     'theme-light',
     'theme-dark',
     'theme-modern',

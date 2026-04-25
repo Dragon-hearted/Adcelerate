@@ -16,37 +16,20 @@ import { PREDEFINED_THEME_NAMES, COLOR_REGEX, RGBA_REGEX } from '../types/theme'
 
 // Predefined themes configuration
 const PREDEFINED_THEMES: Record<ThemeName, PredefinedTheme> = {
-  light: {
-    name: 'light',
-    displayName: 'Light',
-    description: 'Clean and bright theme with high contrast',
-    cssClass: 'theme-light',
-    preview: { primary: '#ffffff', secondary: '#f9fafb', accent: '#3b82f6' },
+  paper: {
+    name: 'paper' as ThemeName,
+    displayName: 'Paper',
+    description: 'Warm brand default — paper background with oxblood accents',
+    cssClass: 'theme-paper',
+    preview: { primary: '#8B2A1D', secondary: '#1E5A7A', accent: '#B45309' },
     colors: {
-      primary: '#3b82f6',
-      primaryHover: '#2563eb',
-      primaryLight: '#dbeafe',
-      primaryDark: '#1e40af',
-      bgPrimary: '#ffffff',
-      bgSecondary: '#f9fafb',
-      bgTertiary: '#f3f4f6',
-      bgQuaternary: '#e5e7eb',
-      textPrimary: '#111827',
-      textSecondary: '#374151',
-      textTertiary: '#6b7280',
-      textQuaternary: '#9ca3af',
-      borderPrimary: '#e5e7eb',
-      borderSecondary: '#d1d5db',
-      borderTertiary: '#9ca3af',
-      accentSuccess: '#10b981',
-      accentWarning: '#f59e0b',
-      accentError: '#ef4444',
-      accentInfo: '#3b82f6',
-      shadow: 'rgba(0, 0, 0, 0.1)',
-      shadowLg: 'rgba(0, 0, 0, 0.25)',
-      hoverBg: 'rgba(0, 0, 0, 0.05)',
-      activeBg: 'rgba(0, 0, 0, 0.1)',
-      focusRing: '#3b82f6'
+      primary: '#8B2A1D', primaryHover: '#6E2116', primaryLight: 'rgba(139, 42, 29, 0.12)', primaryDark: '#5A1B12',
+      bgPrimary: '#EEE6D4', bgSecondary: '#F5EEDC', bgTertiary: '#E6DCC6', bgQuaternary: '#D4C9B0',
+      textPrimary: '#1A1714', textSecondary: '#2A241E', textTertiary: '#6B5F4F', textQuaternary: '#8A7C69',
+      borderPrimary: 'rgba(26, 23, 20, 0.3)', borderSecondary: 'rgba(26, 23, 20, 0.45)', borderTertiary: 'rgba(26, 23, 20, 0.6)',
+      accentSuccess: '#0F5C3E', accentWarning: '#B45309', accentError: '#8B2A1D', accentInfo: '#1E5A7A',
+      shadow: 'rgba(26, 23, 20, 0.15)', shadowLg: 'rgba(26, 23, 20, 0.35)',
+      hoverBg: 'rgba(26, 23, 20, 0.04)', activeBg: 'rgba(26, 23, 20, 0.08)', focusRing: '#8B2A1D',
     }
   },
   dark: {
@@ -417,7 +400,7 @@ const PREDEFINED_THEMES: Record<ThemeName, PredefinedTheme> = {
 export function useThemes() {
   // State
   const state = ref<ThemeState>({
-    currentTheme: 'light',
+    currentTheme: 'paper',
     customThemes: [],
     isCustomTheme: false,
     isLoading: false,
@@ -587,7 +570,7 @@ export function useThemes() {
       
       // Switch to default theme if current theme was deleted
       if (state.value.currentTheme === themeId) {
-        setTheme('light');
+        setTheme('paper');
       }
     }
   };
@@ -749,16 +732,22 @@ export function useThemes() {
   // Initialization
   const initializeTheme = () => {
     loadCustomThemes();
-    
+
+    // Migrate legacy 'light' theme ID → 'paper' (DS rename).
+    const legacyTheme = localStorage.getItem('theme');
+    if (legacyTheme === 'light') {
+      localStorage.setItem('theme', 'paper');
+    }
+
     // Load saved theme
     const savedTheme = localStorage.getItem('theme');
-    
+
     if (savedTheme) {
       setTheme(savedTheme);
     } else {
       // Detect system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(prefersDark ? 'dark' : 'light');
+      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      setTheme(prefersDark ? 'dark' : 'paper');
     }
   };
 

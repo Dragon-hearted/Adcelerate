@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans)}
+  body{
+    background-image:
+      radial-gradient(rgba(26,23,20,.10) 1px, transparent 1px),
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 50%, #E6DCC6 100%);
+    background-size:3px 3px, 100% 3px, 100% 100%;
+    padding:22px 28px;
+    display:flex;align-items:center;gap:24px;min-height:110px;
+  }
+  .mark{
+    font-family:var(--font-pixel,'Press Start 2P',monospace);
+    font-size:22px;line-height:1;color:#1A1714;letter-spacing:.02em;
+    text-shadow:2px 2px 0 #8B2A1D, 4px 4px 0 rgba(139,42,29,.3);
+  }
+  .mark .dot{color:#8B2A1D;text-shadow:2px 2px 0 #1A1714}
+  .tag{
+    font-family:var(--font-mono);font-size:10px;color:#8B2A1D;
+    letter-spacing:.22em;text-transform:uppercase;font-weight:700;
+    padding-top:8px;border-top:1.5px solid #1A1714;
+    display:flex;flex-direction:column;gap:3px;
+  }
+  .tag .sub{color:#6B5F4F;font-weight:600;letter-spacing:.12em}
+</style></head>
+<body>
+  <div class="mark">ADCELERATE<span class="dot">.</span></div>
+  <div class="tag">
+    <span>Dragon-hearted Labs</span>
+    <span class="sub">Multi-agent observability</span>
+  </div>
+</body></html>

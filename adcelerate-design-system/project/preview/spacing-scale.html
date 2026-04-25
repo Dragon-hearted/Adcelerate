@@ -1,0 +1,90 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans);padding:18px}
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 60%);
+  }
+
+  .lbl{
+    font-family:var(--font-mono);font-size:10px;color:#6B5F4F;
+    text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px;
+  }
+
+  /* Spacing rows */
+  .row{
+    display:grid;grid-template-columns:78px 50px 1fr;
+    align-items:center;gap:12px;margin-bottom:8px;
+    font-family:var(--font-mono);font-size:11px;
+  }
+  .token{color:#1A1714;font-weight:600}
+  .px{color:#8B2A1D}
+  .box{
+    background:#8B2A1D;
+    height:16px;
+    box-shadow:1px 1px 0 rgba(26,23,20,.25);
+  }
+
+  /* Radii — shape on top, label below, fixed 80px column so text never clips */
+  .radii{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:12px;margin-top:14px;
+    max-width:560px;
+  }
+  .r-cell{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    font-family:var(--font-mono);font-size:10px;color:#6B5F4F;
+  }
+  .r-shape{
+    width:44px;height:44px;
+    background:#F5EEDC;
+    border:1.5px solid #1A1714;
+    box-shadow:1.5px 1.5px 0 rgba(26,23,20,.2);
+  }
+  .r-name{color:#1A1714;font-weight:600;font-size:10px}
+  .r-use{color:#6B5F4F;font-size:9px}
+</style></head>
+<body>
+
+<div class="lbl">Spacing scale · 4pt base</div>
+
+<div class="row"><span class="token">space-1</span><span class="px">4px</span>  <div class="box" style="width:4px"></div></div>
+<div class="row"><span class="token">space-2</span><span class="px">8px</span>  <div class="box" style="width:8px"></div></div>
+<div class="row"><span class="token">space-3</span><span class="px">12px</span> <div class="box" style="width:12px"></div></div>
+<div class="row"><span class="token">space-4</span><span class="px">16px</span> <div class="box" style="width:16px"></div></div>
+<div class="row"><span class="token">space-6</span><span class="px">24px</span> <div class="box" style="width:24px"></div></div>
+<div class="row"><span class="token">space-8</span><span class="px">32px</span> <div class="box" style="width:32px"></div></div>
+
+<div class="lbl" style="margin-top:18px">Corner radii</div>
+<div class="radii">
+  <div class="r-cell">
+    <div class="r-shape" style="border-radius:0"></div>
+    <div class="r-name">0</div>
+    <div class="r-use">default</div>
+  </div>
+  <div class="r-cell">
+    <div class="r-shape" style="border-radius:2px"></div>
+    <div class="r-name">2</div>
+    <div class="r-use">buttons</div>
+  </div>
+  <div class="r-cell">
+    <div class="r-shape" style="border-radius:4px"></div>
+    <div class="r-name">4</div>
+    <div class="r-use">chips</div>
+  </div>
+  <div class="r-cell">
+    <div class="r-shape" style="border-radius:6px"></div>
+    <div class="r-name">6</div>
+    <div class="r-use">cards</div>
+  </div>
+  <div class="r-cell">
+    <div class="r-shape" style="border-radius:9999px"></div>
+    <div class="r-name">full</div>
+    <div class="r-use">pills</div>
+  </div>
+</div>
+
+</body></html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans);font-size:12px}
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 60%);
+  }
+  .grid{padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+
+  .card{
+    position:relative;
+    background:#F5EEDC;
+    border:1px solid #1A1714;
+    padding:10px 12px 10px 14px;
+    overflow:hidden;
+    display:flex;flex-direction:column;gap:6px;
+    min-height:128px;
+    box-shadow:1.5px 1.5px 0 rgba(26,23,20,.15);
+  }
+  .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+
+  .hdr{display:flex;align-items:center;gap:6px}
+  .dot{width:8px;height:8px;border-radius:9999px;flex-shrink:0}
+  .name{font-family:var(--font-mono);font-size:10px;color:#1A1714;letter-spacing:.02em;font-weight:500}
+  .hex{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:#6B5F4F}
+
+  .chip{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;
+    align-self:flex-start;font-family:var(--font-mono);
+    border:1px solid currentColor;
+  }
+  .msg{font-size:11px;color:#2A241E;line-height:1.4}
+  code{
+    font-family:var(--font-mono);
+    background:rgba(26,23,20,.08);
+    padding:1px 4px;border-radius:2px;font-size:10px;color:#1A1714;
+  }
+  .meta{
+    display:flex;gap:6px;align-items:center;
+    font-family:var(--font-mono);font-size:10px;color:#6B5F4F;margin-top:auto;
+  }
+  .ts{margin-left:auto;font-variant-numeric:tabular-nums}
+
+  /* Deep green */
+  .s-success .bar{background:#0F5C3E}
+  .s-success .chip{background:color-mix(in srgb, #0F5C3E 12%, #F5EEDC);color:#0F5C3E}
+  .s-success .dot{background:#0F5C3E;box-shadow:0 0 0 3px color-mix(in srgb, #0F5C3E 15%, transparent)}
+  /* Amber */
+  .s-warning .bar{background:#B45309}
+  .s-warning .chip{background:color-mix(in srgb, #B45309 14%, #F5EEDC);color:#B45309}
+  .s-warning .dot{background:#B45309;box-shadow:0 0 0 3px color-mix(in srgb, #B45309 18%, transparent)}
+  /* Oxblood */
+  .s-error .bar{background:#8B2A1D}
+  .s-error .chip{background:color-mix(in srgb, #8B2A1D 12%, #F5EEDC);color:#8B2A1D}
+  .s-error .dot{background:#8B2A1D;box-shadow:0 0 0 3px color-mix(in srgb, #8B2A1D 18%, transparent)}
+  /* Petrol */
+  .s-info .bar{background:#1E5A7A}
+  .s-info .chip{background:color-mix(in srgb, #1E5A7A 12%, #F5EEDC);color:#1E5A7A}
+  .s-info .dot{background:#1E5A7A;box-shadow:0 0 0 3px color-mix(in srgb, #1E5A7A 18%, transparent)}
+</style></head>
+<body>
+<div class="grid">
+  <div class="card s-success">
+    <div class="bar"></div>
+    <div class="hdr"><span class="dot"></span><span class="name">--accent-success</span><span class="hex">#0F5C3E</span></div>
+    <span class="chip">PostToolUse</span>
+    <div class="msg"><code>Read</code> reference-board.ts</div>
+    <div class="meta"><span>pinboard</span><span class="ts">14:32:07</span></div>
+  </div>
+
+  <div class="card s-warning">
+    <div class="bar"></div>
+    <div class="hdr"><span class="dot"></span><span class="name">--accent-warning</span><span class="hex">#B45309</span></div>
+    <span class="chip">PermissionRequest</span>
+    <div class="msg">Run <code>rm -rf .cache</code>?</div>
+    <div class="meta"><span>awaiting HITL</span><span class="ts">14:32:45</span></div>
+  </div>
+
+  <div class="card s-error">
+    <div class="bar"></div>
+    <div class="hdr"><span class="dot"></span><span class="name">--accent-error</span><span class="hex">#8B2A1D</span></div>
+    <span class="chip">PostToolUseFailure</span>
+    <div class="msg">WebFetch · <code>403</code> on instagram.com</div>
+    <div class="meta"><span>disconnected</span><span class="ts">14:33:12</span></div>
+  </div>
+
+  <div class="card s-info">
+    <div class="bar"></div>
+    <div class="hdr"><span class="dot"></span><span class="name">--accent-info</span><span class="hex">#1E5A7A</span></div>
+    <span class="chip">UserPromptSubmit</span>
+    <div class="msg" style="font-style:italic">"Scrape the top 20 reels..."</div>
+    <div class="meta"><span>instagram-scrapper</span><span class="ts">14:33:40</span></div>
+  </div>
+</div>
+</body></html>

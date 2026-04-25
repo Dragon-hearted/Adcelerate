@@ -247,3 +247,8 @@ app_docs/
 
 # Worktrees
 trees/
+
+# Claude Code session data — never commit (private prompts/transcripts)
+apps/*/.claude/data/
+.claude/data/
+.claude/scheduled_tasks*

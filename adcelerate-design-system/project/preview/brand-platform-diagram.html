@@ -1,0 +1,101 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans)}
+  body{
+    background-image:
+      radial-gradient(rgba(26,23,20,.10) 1px, transparent 1px),
+      repeating-linear-gradient(0deg, rgba(26,23,20,.025) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 50%, #E6DCC6 100%);
+    background-size:3px 3px, 100% 3px, 100% 100%;
+    padding:18px 16px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  svg{width:100%;height:auto;max-height:140px;display:block}
+</style></head>
+<body>
+
+<!--
+  Platform diagram — apps (left) POST to the Hooks hub (center)
+  which fans events out over a websocket to the Observer (right).
+
+  All three app blocks share identical geometry and a common
+  type size; the brand color appears only as a left accent stripe
+  + tinted wash so the boxes sit softly on paper.
+-->
+<svg viewBox="0 0 660 140" xmlns="http://www.w3.org/2000/svg"
+     font-family="'JetBrains Mono', ui-monospace, monospace">
+
+  <!-- ===== edges ===== -->
+  <g stroke="#1A1714" stroke-width="1.2" fill="none" opacity=".6">
+    <path d="M150 36 Q 240 50 300 70" />
+    <path d="M150 70 Q 240 70 300 70" />
+    <path d="M150 104 Q 240 90 300 70" />
+    <path d="M360 70 L 520 70" stroke-dasharray="3 4" />
+  </g>
+  <g fill="#1A1714" opacity=".75">
+    <polygon points="300,70 292,66 292,74" />
+    <polygon points="520,70 512,66 512,74" />
+  </g>
+
+  <!-- ===== apps (left) — uniform soft blocks, colored stripe only ===== -->
+  <g font-size="10" font-weight="600">
+    <!-- pinboard -->
+    <g>
+      <rect x="20" y="22" width="130" height="28" rx="2"
+            fill="#F5EEDC" stroke="#1A1714" stroke-width="1.2"/>
+      <rect x="20" y="22" width="4" height="28" fill="#8B4A9E"/>
+      <text x="34" y="40" fill="#1A1714" text-anchor="start">pinboard</text>
+    </g>
+    <!-- instagram-scrapper -->
+    <g>
+      <rect x="20" y="56" width="130" height="28" rx="2"
+            fill="#F5EEDC" stroke="#1A1714" stroke-width="1.2"/>
+      <rect x="20" y="56" width="4" height="28" fill="#3E7A9A"/>
+      <text x="34" y="74" fill="#1A1714" text-anchor="start">instagram-scrapper</text>
+    </g>
+    <!-- imageengine -->
+    <g>
+      <rect x="20" y="90" width="130" height="28" rx="2"
+            fill="#F5EEDC" stroke="#1A1714" stroke-width="1.2"/>
+      <rect x="20" y="90" width="4" height="28" fill="#5A8A5A"/>
+      <text x="34" y="108" fill="#1A1714" text-anchor="start">imageengine</text>
+    </g>
+  </g>
+
+  <!-- ===== hub (center) ===== -->
+  <g>
+    <rect x="302" y="57" width="56" height="28" rx="2"
+          fill="#8B2A1D" opacity=".12"/>
+    <rect x="300" y="55" width="56" height="28" rx="2"
+          fill="#F5EEDC" stroke="#1A1714" stroke-width="1.2"/>
+    <text x="328" y="73" fill="#8B2A1D" font-size="10" font-weight="700"
+          text-anchor="middle" letter-spacing=".12em">HOOKS</text>
+  </g>
+
+  <!-- ===== observer (right) ===== -->
+  <g>
+    <rect x="522" y="36" width="118" height="68" rx="3"
+          fill="#F5EEDC" stroke="#1A1714" stroke-width="1.2"/>
+    <text x="581" y="54" fill="#8B2A1D" font-size="9" font-weight="700"
+          text-anchor="middle" letter-spacing=".15em">OBSERVER</text>
+    <!-- event rows -->
+    <g>
+      <rect x="530" y="62" width="102" height="9" fill="#EEE6D4"
+            stroke="#1A1714" stroke-width=".5" opacity=".8"/>
+      <rect x="530" y="75" width="102" height="9" fill="#EEE6D4"
+            stroke="#1A1714" stroke-width=".5" opacity=".8"/>
+      <rect x="530" y="88" width="102" height="9" fill="#EEE6D4"
+            stroke="#1A1714" stroke-width=".5" opacity=".8"/>
+      <circle cx="537" cy="66.5" r="2" fill="#0F5C3E"/>
+      <circle cx="537" cy="79.5" r="2" fill="#8B2A1D"/>
+      <circle cx="537" cy="92.5" r="2" fill="#8B4A9E"/>
+    </g>
+  </g>
+
+  <!-- ===== edge labels ===== -->
+  <text x="200" y="42" fill="#6B5F4F" font-size="8" letter-spacing=".1em">POST /events</text>
+  <text x="410" y="64" fill="#6B5F4F" font-size="8" letter-spacing=".1em">ws://stream</text>
+</svg>
+
+</body></html>

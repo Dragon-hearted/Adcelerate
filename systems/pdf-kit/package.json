@@ -1,0 +1,24 @@
+{
+  "name": "@adcelerate/pdf-kit",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Branded PDF rendering system for Adcelerate — cover pages, content layouts, and design-system tokens via @react-pdf/renderer",
+  "scripts": {
+    "dev": "bun run --watch src/render.ts",
+    "build": "bun build src/render.ts --outdir dist --target bun",
+    "typecheck": "tsc --noEmit",
+    "pdf:render": "NODE_PATH=./node_modules bun run src/render.ts",
+    "lint": "bunx @biomejs/biome check .",
+    "check": "bunx @biomejs/biome check --write ."
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "react": "^19.2.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.14",
+    "typescript": "^6.0.3"
+  }
+}

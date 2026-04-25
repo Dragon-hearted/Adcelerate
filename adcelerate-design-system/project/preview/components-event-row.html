@@ -1,0 +1,55 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:#EEE6D4;color:#1A1714;font-family:var(--font-sans)}
+  body{
+    background-image:
+      radial-gradient(rgba(26,23,20,.12) 1px, transparent 1px),
+      repeating-linear-gradient(0deg, rgba(26,23,20,.03) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 20%, #F5EEDC 0%, #EEE6D4 50%, #E6DCC6 100%);
+    background-size:3px 3px, 100% 3px, 100% 100%;
+    padding:18px 20px;
+  }
+  .row{position:relative;background:#F5EEDC;border:1.5px solid #1A1714;border-radius:4px;padding:10px 12px 10px 16px;margin-bottom:12px;box-shadow:3px 3px 0 #1A1714}
+  .accent{position:absolute;left:0;top:0;bottom:0;width:6px;border-right:1.5px solid #1A1714}
+  .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+  .app{font-size:11px;font-weight:700;padding:2px 9px;border-radius:3px;color:#F5EEDC;letter-spacing:.02em}
+  .sid{font-family:var(--font-mono);font-size:11px;color:#1A1714;background:#EEE6D4;border:1.5px solid #1A1714;padding:1px 7px;border-radius:3px;font-weight:700}
+  .ts{font-family:var(--font-mono);font-size:12px;color:#1A1714;margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700}
+  .ts .ms{color:#8B2A1D;font-size:10px}
+  .chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:.02em}
+  .tool{font-family:var(--font-mono);font-size:11px;color:#1A1714;border:1.5px solid #1A1714;padding:1px 7px;border-radius:3px;font-weight:700;background:transparent}
+  .detail{font-size:12px;color:#1A1714;font-family:var(--font-editorial,Georgia,serif)}
+  .detail em{color:#8B2A1D;font-style:italic}
+</style></head>
+<body>
+
+<div class="row">
+  <div class="accent" style="background:#7A2519"></div>
+  <div class="meta">
+    <span class="app" style="background:#7A2519">pinboard</span>
+    <span class="sid">7f0f56d2</span>
+    <span class="ts">14:32:07<span class="ms">.284</span></span>
+  </div>
+  <div class="chips">
+    <span class="chip" style="background:#0F5C3E;color:#F5EEDC">PostToolUse</span>
+    <span class="tool">Read</span>
+    <span class="detail">reference-board.ts</span>
+  </div>
+</div>
+
+<div class="row">
+  <div class="accent" style="background:#1E5A7A"></div>
+  <div class="meta">
+    <span class="app" style="background:#1E5A7A">instagram-scrapper</span>
+    <span class="sid">a1c9e2f0</span>
+    <span class="ts">14:32:12<span class="ms">.019</span></span>
+  </div>
+  <div class="chips">
+    <span class="chip" style="background:#1E5A7A;color:#F5EEDC">UserPromptSubmit</span>
+    <span class="detail"><em>"Scrape the top 20 reels from..."</em></span>
+  </div>
+</div>
+
+</body></html>

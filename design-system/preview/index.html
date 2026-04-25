@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adcelerate Design System — Theme Preview</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: #18181b;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h1 {
+      color: #f4f4f5;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    /* Each card lives inside .theme-X so tokens.css custom props apply */
+    .card {
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-title {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+      color: var(--theme-text-tertiary);
+    }
+
+    /* Swatches */
+    .swatches {
+      display: flex;
+      gap: 6px;
+    }
+    .swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--theme-border-primary);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .swatch[title]::after {
+      content: attr(title);
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      white-space: nowrap;
+      color: var(--theme-text-tertiary);
+      font-family: var(--font-mono);
+    }
+    .swatches-row {
+      display: flex;
+      gap: 6px;
+      padding-bottom: 20px;
+    }
+
+    /* Type specimen */
+    .type-specimen {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .specimen-h1 {
+      font-family: var(--font-sans);
+      font-size: var(--text-xl);
+      font-weight: 700;
+      line-height: var(--leading-tight);
+      color: var(--theme-text-primary);
+    }
+    .specimen-body {
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      font-weight: 400;
+      line-height: var(--leading-normal);
+      color: var(--theme-text-secondary);
+    }
+    .specimen-mono {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 400;
+      color: var(--theme-text-tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Accent chips */
+    .accents {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .accent-chip {
+      padding: 2px 8px;
+      border-radius: var(--radius-md);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .chip-success { background: var(--theme-accent-success); color: #fff; }
+    .chip-warning { background: var(--theme-accent-warning); color: #fff; }
+    .chip-error   { background: var(--theme-accent-error);   color: #fff; }
+    .chip-info    { background: var(--theme-accent-info);    color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Adcelerate Design System — 12-theme preview</h1>
+  <div class="grid">
+
+    <!-- 1. Paper (renamed from light) -->
+    <div class="theme-paper ds-card card">
+      <div class="card-title">paper</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 2. Dark -->
+    <div class="theme-dark ds-card card">
+      <div class="card-title">dark</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 3. Midnight Purple -->
+    <div class="theme-midnight-purple ds-card card">
+      <div class="card-title">midnight-purple</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 4. Modern -->
+    <div class="theme-modern ds-card card">
+      <div class="card-title">modern</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 5. Earth -->
+    <div class="theme-earth ds-card card">
+      <div class="card-title">earth</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 6. Glass -->
+    <div class="theme-glass ds-card card">
+      <div class="card-title">glass</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 7. High Contrast -->
+    <div class="theme-high-contrast ds-card card">
+      <div class="card-title">high-contrast</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 8. Dark Blue -->
+    <div class="theme-dark-blue ds-card card">
+      <div class="card-title">dark-blue</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 9. Colorblind Friendly -->
+    <div class="theme-colorblind-friendly ds-card card">
+      <div class="card-title">colorblind-friendly</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 10. Ocean -->
+    <div class="theme-ocean ds-card card">
+      <div class="card-title">ocean</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 11. Sunset Orange -->
+    <div class="theme-sunset-orange ds-card card">
+      <div class="card-title">sunset-orange</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+    <!-- 12. Mint Fresh -->
+    <div class="theme-mint-fresh ds-card card">
+      <div class="card-title">mint-fresh</div>
+      <div class="swatches-row">
+        <div class="swatch" style="background:var(--theme-primary)" title="primary"></div>
+        <div class="swatch" style="background:var(--theme-bg-primary)" title="bg"></div>
+        <div class="swatch" style="background:var(--theme-text-primary)" title="text"></div>
+        <div class="swatch" style="background:var(--theme-accent-success)" title="success"></div>
+        <div class="swatch" style="background:var(--theme-accent-error)" title="error"></div>
+      </div>
+      <div class="type-specimen">
+        <div class="specimen-h1">Adcelerate</div>
+        <div class="specimen-body">Multi-Agent Observability dashboard. Engineering-first with a pixel-art wink.</div>
+        <div class="specimen-mono">PreToolUse · Bash · 14ms</div>
+      </div>
+      <div class="accents">
+        <span class="accent-chip chip-success">success</span>
+        <span class="accent-chip chip-warning">warning</span>
+        <span class="accent-chip chip-error">error</span>
+        <span class="accent-chip chip-info">info</span>
+      </div>
+    </div>
+
+  </div><!-- .grid -->
+</body>
+</html>

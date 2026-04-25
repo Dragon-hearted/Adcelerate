@@ -1,0 +1,22 @@
+# gif-kit
+set dotenv-load := true
+
+# List all recipes
+default:
+  @just --list
+
+# Open Remotion Studio (live preview)
+dev:
+  bun run dev
+
+# Render BrandIntro to out/brand-intro.gif
+render:
+  bun run gif:render
+
+# TypeScript type check
+typecheck:
+  bun run typecheck
+
+# Build to dist/
+build:
+  bun run build
