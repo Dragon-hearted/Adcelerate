@@ -25,7 +25,7 @@ autocaption:
   name: "autoCaption"
   path: "systems/autoCaption"
   status: "active"
-  description: "Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video"
+  description: "Word-highlighted caption renderer for vertical video. Whisper.cpp transcribes the audio, Remotion paints TikTok-style overlays back on top, and a CLI ties it all together."
   task_types:
     - "video-captioning"
     - "transcription"
@@ -56,7 +56,7 @@ scene-board:
   name: "SceneBoard"
   path: "systems/scene-board"
   status: "active"
-  description: "CLI-driven storyboard creation system that transforms video briefs of any format into professional storyboards with scripts, timestamps, voice scripts, and NanoBanana Pro prompts for visual generation — leveraging marketing, sales, social media, and ads skills"
+  description: "Brief-to-storyboard CLI for short-form video. Turns rough scripts and references into scene breakdowns with timestamps, voice script, and NanoBanana Pro prompts ready to render."
   task_types:
     - "storyboard-creation"
     - "script-generation"
@@ -110,7 +110,7 @@ pinboard:
   name: "Pinboard"
   path: "systems/pinboard"
   status: "active"
-  description: "Terminal-first reference board and AI image generator (Ink TUI) — Pinterest URL import, ImageEngine generation, PromptWriter per-model prompt formatting, Claude Code vision tagging"
+  description: "Terminal-first reference board with built-in AI image generation. Pinterest-style import, ImageEngine generations, PromptWriter formatting, and Claude Code vision tagging — all in an Ink TUI."
   task_types:
     - "image-generation"
     - "reference-management"
@@ -143,7 +143,7 @@ instagram-scrapper:
   name: "Instagram Scrapper"
   path: "systems/instagram-scrapper"
   status: "active"
-  description: "Instagram content scraper that extracts posts, reels, and profile data using login-based Instagram Private API access with browser-automated authentication and media downloading"
+  description: "Instagram post, reel, and profile extractor. Authenticates against the Instagram Private API via a browser-driven login and downloads media to disk."
   task_types:
     - "instagram-scraping"
     - "social-media-data-extraction"
@@ -182,7 +182,7 @@ image-engine:
   name: "ImageEngine"
   path: "systems/image-engine"
   status: "active"
-  description: "Centralized NanoBanana image generation service using WisGate (JuheAPI) with rate limiting, token-based cost tracking, budget guards, retry/backoff, batch parallel execution, and generation gallery"
+  description: "Centralized NanoBanana image-generation gateway over WisGate. Rate-limited, budget-tracked, batch-capable HTTP service with retries and a built-in generation gallery."
   task_types:
     - "image-generation"
     - "batch-image-generation"
@@ -217,7 +217,7 @@ readme-engine:
   name: "ReadmeEngine"
   path: "systems/readme-engine"
   status: "active"
-  description: "Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure"
+  description: "Drift-aware README generator for the monorepo. Pulls from systems.yaml, library.yaml, package manifests, and live git state to produce consistent docs for the root, every system, and every app."
   task_types:
     - "readme-generation"
     - "documentation-update"
@@ -252,7 +252,7 @@ prompt-writer:
   name: "PromptWriter"
   path: "systems/prompt-writer"
   status: "active"
-  description: "Centralized prompt engineering knowledge system with per-model guides, visual direction references, and a model registry for AI image, video, and voice generation — the single authority for prompt writing across all Adcelerate systems"
+  description: "Single source of prompt-engineering knowledge. Per-model writing guides, style anchors, and a registry of image, video, and voice generation models referenced by every other system."
   task_types:
     - "prompt-generation"
     - "model-selection"

@@ -12,7 +12,7 @@
 
 ---
 
-Adcelerate is a monorepo powering an AI-driven marketing and media platform. It houses multiple systems — from image generation studios to video pipelines — along with a rich library of skills, agents, and commands orchestrated through Claude Code.
+Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles seven independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
 
 ---
 
@@ -33,13 +33,13 @@ Adcelerate is a monorepo powering an AI-driven marketing and media platform. It 
 
 | System | Description | Status |
 |--------|-------------|--------|
-| [**autoCaption**](systems/autoCaption) | Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**SceneBoard**](systems/scene-board) | CLI-driven storyboard creation system that transforms video briefs of any format into professional storyboards with scripts, timestamps, voice scripts, and NanoBanana Pro prompts for visual generation — leveraging marketing, sales, social media, and ads skills | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**Pinboard**](systems/pinboard) | Terminal-first reference board and AI image generator (Ink TUI) — Pinterest URL import, ImageEngine generation, PromptWriter per-model prompt formatting, Claude Code vision tagging | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram content scraper that extracts posts, reels, and profile data using login-based Instagram Private API access with browser-automated authentication and media downloading | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**ImageEngine**](systems/image-engine) | Centralized NanoBanana image generation service using WisGate (JuheAPI) with rate limiting, token-based cost tracking, budget guards, retry/backoff, batch parallel execution, and generation gallery | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**ReadmeEngine**](systems/readme-engine) | Automated README generation and maintenance engine that produces best-in-class documentation for the monorepo, systems, and sub-projects using knowledge infrastructure | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**PromptWriter**](systems/prompt-writer) | Centralized prompt engineering knowledge system with per-model guides, visual direction references, and a model registry for AI image, video, and voice generation — the single authority for prompt writing across all Adcelerate systems | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**autoCaption**](systems/autoCaption) | Word-highlighted caption renderer for vertical video. Whisper.cpp transcribes the audio, Remotion paints TikTok-style overlays back on top, and a CLI ties it all together. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**SceneBoard**](systems/scene-board) | Brief-to-storyboard CLI for short-form video. Turns rough scripts and references into scene breakdowns with timestamps, voice script, and NanoBanana Pro prompts ready to render. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**Pinboard**](systems/pinboard) | Terminal-first reference board with built-in AI image generation. Pinterest-style import, ImageEngine generations, PromptWriter formatting, and Claude Code vision tagging — all in an Ink TUI. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram post, reel, and profile extractor. Authenticates against the Instagram Private API via a browser-driven login and downloads media to disk. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**ImageEngine**](systems/image-engine) | Centralized NanoBanana image-generation gateway over WisGate. Rate-limited, budget-tracked, batch-capable HTTP service with retries and a built-in generation gallery. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**ReadmeEngine**](systems/readme-engine) | Drift-aware README generator for the monorepo. Pulls from systems.yaml, library.yaml, package manifests, and live git state to produce consistent docs for the root, every system, and every app. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**PromptWriter**](systems/prompt-writer) | Single source of prompt-engineering knowledge. Per-model writing guides, style anchors, and a registry of image, video, and voice generation models referenced by every other system. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 
 ---
 
@@ -172,13 +172,13 @@ just install
 ```
 adcelerate/
 ├── systems/                # Independent processing systems
-│   ├── autoCaption/            # Automated video captioning system using Whisper.cpp for transcription and Rem...
-│   ├── SceneBoard/             # CLI-driven storyboard creation system that transforms video briefs of any for...
-│   ├── Pinboard/               # Terminal-first reference board and AI image generator (Ink TUI) — Pinterest U...
-│   ├── Instagram Scrapper/     # Instagram content scraper that extracts posts, reels, and profile data using ...
-│   ├── ImageEngine/            # Centralized NanoBanana image generation service using WisGate (JuheAPI) with ...
-│   ├── ReadmeEngine/           # Automated README generation and maintenance engine that produces best-in-clas...
-│   └── PromptWriter/           # Centralized prompt engineering knowledge system with per-model guides, visual...
+│   ├── autoCaption/            # Word-highlighted caption renderer for vertical video
+│   ├── SceneBoard/             # Brief-to-storyboard CLI for short-form video
+│   ├── Pinboard/               # Terminal-first reference board with built-in AI image generation
+│   ├── Instagram Scrapper/     # Instagram post, reel, and profile extractor
+│   ├── ImageEngine/            # Centralized NanoBanana image-generation gateway over WisGate
+│   ├── ReadmeEngine/           # Drift-aware README generator for the monorepo
+│   └── PromptWriter/           # Single source of prompt-engineering knowledge
 ├── apps/                   # Deployable applications
 ├── knowledge/              # Shared knowledge base
 ├── scripts/                # Automation scripts
