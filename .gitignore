@@ -241,6 +241,7 @@ app_docs/
 
 # Claude Code session data
 .claude/data/
+.claude/scheduled_tasks*
 
 # MCP config
 .mcp.json

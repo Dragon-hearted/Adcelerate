@@ -36,7 +36,7 @@ systems:
     related_systems:
       - "autocaption"
       - "scene-board"
-    failure_patterns: []
+    failure_patterns: ["fp-002"]
 
   instagram-scrapper:
     depends_on:
@@ -149,3 +149,8 @@ failure_patterns:
     diagnosed: "2026-03-26"
     resolution: "Added detect_team_membership() to send_event.py that scans ~/.claude/teams/*/config.json and enriches SessionStart events with team_info (team_name, teammate_name, teammate_type, is_team_lead)"
     affects: ["observability"]
+  - id: "fp-002"
+    description: "TUI launcher CLI surface non-compliant with cli-ux-designer rubric — silent failures on unknown flags, no TTY guard, jargon flag names, help text missing required sections"
+    diagnosed: "2026-04-29"
+    resolution: "Migrated to node:util parseArgs(strict:true), added TTY guard + SIGINT cleanup, renamed --ci to --smoke (kept --ci as hidden alias), added --smoke-timeout-ms + PINBOARD_SMOKE_TIMEOUT_MS env + --no-color, rewrote help text with USAGE/FLAGS/EXAMPLES/LEARN MORE/FEEDBACK sections per rubric. Pinboard cli.tsx bumped to v0.2.0. Audit reference: app_docs/pinboard-cli-audit.md"
+    affects: ["pinboard"]
