@@ -24,6 +24,11 @@
           },
           {
             "type": "command",
+            "command": "uv run \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/log_rotation.py",
+            "timeout": 30
+          },
+          {
+            "type": "command",
             "command": "uv run \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/setup_maintenance.py",
             "timeout": 60
           },
