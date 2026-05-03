@@ -2,12 +2,14 @@
   <div class="bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-primary)] px-4 py-2.5 mobile:px-3 mobile:py-2">
     <div class="flex flex-wrap gap-2.5 items-end mobile:flex-col mobile:items-stretch">
       <div class="min-w-[140px] mobile:w-full">
-        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
+        <label for="filter-source" class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
           Source
         </label>
         <select
+          id="filter-source"
           v-model="localFilters.sourceApp"
           @change="updateFilters"
+          aria-label="Filter by source app"
           class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
         >
           <option value="">All Sources</option>
@@ -18,12 +20,14 @@
       </div>
 
       <div class="min-w-[140px] mobile:w-full">
-        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
+        <label for="filter-session" class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
           Session
         </label>
         <select
+          id="filter-session"
           v-model="localFilters.sessionId"
           @change="updateFilters"
+          aria-label="Filter by session"
           class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
         >
           <option value="">All Sessions</option>
@@ -34,12 +38,14 @@
       </div>
 
       <div class="min-w-[140px] mobile:w-full">
-        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
+        <label for="filter-event-type" class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
           Event Type
         </label>
         <select
+          id="filter-event-type"
           v-model="localFilters.eventType"
           @change="updateFilters"
+          aria-label="Filter by event type"
           class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
         >
           <option value="">All Types</option>
@@ -50,12 +56,14 @@
       </div>
 
       <div v-if="uniqueTeamNames.length > 0" class="min-w-[140px] mobile:w-full">
-        <label class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
+        <label for="filter-team" class="block text-xs font-medium text-[var(--theme-text-tertiary)] mb-1 uppercase tracking-wider">
           Team
         </label>
         <select
+          id="filter-team"
           v-model="localFilters.team"
           @change="updateFilters"
+          aria-label="Filter by team"
           class="w-full px-2.5 py-1.5 text-sm border border-[var(--theme-border-primary)] rounded-md focus:ring-1 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] transition-colors duration-150 appearance-none cursor-pointer"
         >
           <option value="">All Teams</option>

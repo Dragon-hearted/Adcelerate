@@ -120,6 +120,99 @@ export function initDatabase(): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_themes_createdAt ON themes(createdAt)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_theme_shares_token ON theme_shares(shareToken)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_theme_ratings_theme ON theme_ratings(themeId)');
+
+  // Token usage tracking — populated by transcript-ingest.ts watching
+  // ~/.claude/projects/**/*.jsonl. One row per assistant turn.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS token_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ts INTEGER NOT NULL,
+      session_id TEXT NOT NULL,
+      cwd TEXT,
+      git_branch TEXT,
+      model TEXT NOT NULL,
+      input INTEGER NOT NULL DEFAULT 0,
+      cache_read INTEGER NOT NULL DEFAULT 0,
+      cache_write_5m INTEGER NOT NULL DEFAULT 0,
+      cache_write_1h INTEGER NOT NULL DEFAULT 0,
+      output INTEGER NOT NULL DEFAULT 0,
+      cost_usd REAL,
+      request_id TEXT,
+      transcript_file TEXT NOT NULL,
+      transcript_line_offset INTEGER NOT NULL,
+      UNIQUE(transcript_file, transcript_line_offset)
+    )
+  `);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_ts ON token_events(ts)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_session ON token_events(session_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_model ON token_events(model)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_cwd ON token_events(cwd)');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS transcript_offsets (
+      file TEXT PRIMARY KEY,
+      offset INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+}
+
+export interface TokenEventRow {
+  id?: number;
+  ts: number;
+  session_id: string;
+  cwd: string | null;
+  git_branch: string | null;
+  model: string;
+  input: number;
+  cache_read: number;
+  cache_write_5m: number;
+  cache_write_1h: number;
+  output: number;
+  cost_usd: number | null;
+  request_id: string | null;
+  transcript_file: string;
+  transcript_line_offset: number;
+}
+
+export function insertTokenEvent(row: TokenEventRow): TokenEventRow | null {
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO token_events
+      (ts, session_id, cwd, git_branch, model, input, cache_read, cache_write_5m, cache_write_1h, output, cost_usd, request_id, transcript_file, transcript_line_offset)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const result = stmt.run(
+    row.ts,
+    row.session_id,
+    row.cwd,
+    row.git_branch,
+    row.model,
+    row.input,
+    row.cache_read,
+    row.cache_write_5m,
+    row.cache_write_1h,
+    row.output,
+    row.cost_usd,
+    row.request_id,
+    row.transcript_file,
+    row.transcript_line_offset
+  );
+  if (result.changes === 0) return null;
+  return { ...row, id: result.lastInsertRowid as number };
+}
+
+export function getTranscriptOffset(file: string): number {
+  const stmt = db.prepare('SELECT offset FROM transcript_offsets WHERE file = ?');
+  const row = stmt.get(file) as { offset: number } | undefined;
+  return row?.offset ?? 0;
+}
+
+export function setTranscriptOffset(file: string, offset: number): void {
+  const stmt = db.prepare(`
+    INSERT INTO transcript_offsets (file, offset, updated_at) VALUES (?, ?, ?)
+    ON CONFLICT(file) DO UPDATE SET offset = excluded.offset, updated_at = excluded.updated_at
+  `);
+  stmt.run(file, offset, Date.now());
 }
 
 export function insertEvent(event: HookEvent): HookEvent {

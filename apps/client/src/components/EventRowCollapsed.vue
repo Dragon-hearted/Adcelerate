@@ -43,6 +43,12 @@
           <span v-if="event.model_name" class="text-xs text-[var(--theme-text-quaternary)] font-mono" :title="`Model: ${event.model_name}`">
             {{ formatModelName(event.model_name) }}
           </span>
+          <!-- Cost badge (matched from token_events) -->
+          <EventCostBadge
+            v-if="costMatch"
+            :cost-usd="costMatch.cost_usd"
+            :tokens="costMatch.tokens"
+          />
         </div>
         <!-- Timestamp -->
         <span class="text-xs text-[var(--theme-text-quaternary)] tabular-nums whitespace-nowrap flex-shrink-0">
@@ -81,6 +87,8 @@
 import { computed } from 'vue';
 import type { HookEvent } from '../types';
 import { formatModelName } from '../utils/formatters';
+import { findCostForEvent } from '../composables/useTokens';
+import EventCostBadge from './EventCostBadge.vue';
 
 const props = defineProps<{
   event: HookEvent;
@@ -90,6 +98,11 @@ const props = defineProps<{
 }>();
 
 const sessionIdShort = computed(() => props.event.session_id.slice(0, 8));
+
+const costMatch = computed(() => {
+  if (!props.event.timestamp) return null;
+  return findCostForEvent(props.event.session_id, props.event.timestamp);
+});
 
 const teamInfo = computed(() => props.event.payload?.team_info || null);
 

@@ -111,7 +111,7 @@ graph TD
 
 | Category | Count |
 |----------|-------|
-| Skills | 34 |
+| Skills | 36 |
 | Agents | 10 |
 | Commands | 11 |
 

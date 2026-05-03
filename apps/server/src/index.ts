@@ -1,21 +1,41 @@
 import { initDatabase, insertEvent, getFilterOptions, getRecentEvents, updateEventHITLResponse } from './db';
 import type { HookEvent, HumanInTheLoopResponse } from './types';
-import { 
-  createTheme, 
-  updateThemeById, 
-  getThemeById, 
-  searchThemes, 
-  deleteThemeById, 
-  exportThemeById, 
+import {
+  createTheme,
+  updateThemeById,
+  getThemeById,
+  searchThemes,
+  deleteThemeById,
+  exportThemeById,
   importTheme,
-  getThemeStats 
+  getThemeStats
 } from './theme';
+import { handleTokensRequest } from './routes/tokens';
+import { startTranscriptIngest } from './transcript-ingest';
 
 // Initialize database
 initDatabase();
 
 // Store WebSocket clients
 const wsClients = new Set<any>();
+
+function broadcast(message: unknown): void {
+  const payload = JSON.stringify(message);
+  for (const client of wsClients) {
+    try {
+      client.send(payload);
+    } catch {
+      wsClients.delete(client);
+    }
+  }
+}
+
+// Start transcript ingest watcher (non-blocking — server boots even if it fails)
+startTranscriptIngest({
+  onTokenEvent: (record) => broadcast({ type: 'token_event', data: record }),
+}).catch((err) => {
+  console.error('[ingest] failed to start watcher:', err);
+});
 
 // Validate WebSocket URL to prevent SSRF - only allow localhost connections
 function isAllowedWebSocketUrl(wsUrl: string): boolean {
@@ -154,18 +174,10 @@ const server = Bun.serve({
         
         // Insert event into database
         const savedEvent = insertEvent(event);
-        
+
         // Broadcast to all WebSocket clients
-        const message = JSON.stringify({ type: 'event', data: savedEvent });
-        wsClients.forEach(client => {
-          try {
-            client.send(message);
-          } catch (err) {
-            // Client disconnected, remove from set
-            wsClients.delete(client);
-          }
-        });
-        
+        broadcast({ type: 'event', data: savedEvent });
+
         return new Response(JSON.stringify(savedEvent), {
           headers: { ...headers, 'Content-Type': 'application/json' }
         });
@@ -228,14 +240,7 @@ const server = Bun.serve({
         }
 
         // Broadcast updated event to all connected clients
-        const message = JSON.stringify({ type: 'event', data: updatedEvent });
-        wsClients.forEach(client => {
-          try {
-            client.send(message);
-          } catch (err) {
-            wsClients.delete(client);
-          }
-        });
+        broadcast({ type: 'event', data: updatedEvent });
 
         return new Response(JSON.stringify(updatedEvent), {
           headers: { ...headers, 'Content-Type': 'application/json' }
@@ -435,6 +440,10 @@ const server = Bun.serve({
       });
     }
     
+    // Token usage endpoints (/api/tokens/summary, /timeseries, /breakdown)
+    const tokensResponse = handleTokensRequest(url, req, headers);
+    if (tokensResponse) return tokensResponse;
+
     // WebSocket upgrade
     if (url.pathname === '/stream') {
       const success = server.upgrade(req);
