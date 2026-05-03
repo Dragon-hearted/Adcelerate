@@ -23,10 +23,20 @@ interface RawAssistantLine {
   };
 }
 
+/**
+ * Parse one JSONL transcript line.
+ *
+ * `mtimeMs` is the file's last-modified time (ms since epoch). It is used as a
+ * fallback when the line does not include a `timestamp` field. If both are
+ * missing, the line is skipped (returns null) — we never silently substitute
+ * `Date.now()`, which would attribute backfilled rows to the current wall
+ * clock instead of when the turn actually happened.
+ */
 export function parseLine(
   line: string,
   file: string,
-  offset: number
+  offset: number,
+  mtimeMs?: number
 ): TokenEventRow | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
@@ -37,6 +47,7 @@ export function parseLine(
   } catch {
     return null;
   }
+  if (!obj || typeof obj !== 'object') return null;
 
   if (obj.type !== 'assistant') return null;
   const usage = obj.message?.usage;
@@ -48,8 +59,16 @@ export function parseLine(
   const sessionId = obj.sessionId;
   if (!sessionId) return null;
 
-  const ts = obj.timestamp ? Date.parse(obj.timestamp) : Date.now();
-  if (Number.isNaN(ts)) return null;
+  let ts: number;
+  if (obj.timestamp) {
+    ts = Date.parse(obj.timestamp);
+    if (Number.isNaN(ts)) return null;
+  } else if (typeof mtimeMs === 'number' && Number.isFinite(mtimeMs)) {
+    ts = mtimeMs;
+  } else {
+    // No transcript timestamp and no fallback mtime — refuse to invent one.
+    return null;
+  }
 
   const input          = usage.input_tokens ?? 0;
   const cacheRead      = usage.cache_read_input_tokens ?? 0;
