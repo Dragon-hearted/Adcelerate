@@ -46,17 +46,18 @@ function broadcast(message: unknown): void {
 }
 
 // Capture stop thunk so SIGTERM/SIGINT can flush in-flight ingests cleanly.
-// Promise resolves to the thunk; rejection is logged but doesn't crash the boot.
+// Awaiting before Bun.serve listens removes the "ingest-not-ready race" where
+// /api/tokens/* could return empty results in the brief window between server
+// boot and watcher backfill completing. If the watcher fails to start, we log
+// and continue with a null stop thunk so signal handlers don't blow up.
 let ingestStop: (() => Promise<void>) | null = null;
-startTranscriptIngest({
-  onTokenEvent: (record) => broadcast({ type: 'token_event', data: record }),
-})
-  .then((stop) => {
-    ingestStop = stop;
-  })
-  .catch((err) => {
-    console.error('[ingest] failed to start watcher:', err);
+try {
+  ingestStop = await startTranscriptIngest({
+    onTokenEvent: (record) => broadcast({ type: 'token_event', data: record }),
   });
+} catch (err) {
+  console.error('[ingest] failed to start watcher:', err);
+}
 
 // Helper to coerce query-string ints. SQLite's LIMIT/OFFSET will throw on
 // NaN — anything non-finite or non-positive falls back to defaults.
@@ -550,14 +551,23 @@ console.log(`🚀 Server running on http://localhost:${server.port}`);
 console.log(`📊 WebSocket endpoint: ws://localhost:${server.port}/stream`);
 console.log(`📮 POST events to: http://localhost:${server.port}/events`);
 
-// Graceful shutdown — flush in-flight ingest, checkpoint the WAL via db.close,
-// then stop accepting new connections. Each step is wrapped so a failure in
-// one stage doesn't deadlock the others; final exit is unconditional.
+// Graceful shutdown — order matters:
+//   1. server.stop(true) closes ALL connections (in-flight + new), preventing
+//      late requests from racing against a closing DB.
+//   2. ingestStop drains the watcher's in-flight reads + offset writes.
+//   3. db.close checkpoints the WAL and releases the file lock.
+// Each step is wrapped so a failure in one stage doesn't deadlock the others;
+// the final exit is unconditional.
 let shuttingDown = false;
 async function shutdown(sig: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`[shutdown] received ${sig}`);
+  try {
+    server.stop(true);
+  } catch (e) {
+    console.error('[shutdown] server stop error:', e);
+  }
   try {
     if (ingestStop) await ingestStop();
   } catch (e) {
@@ -567,11 +577,6 @@ async function shutdown(sig: string): Promise<void> {
     db.close();
   } catch (e) {
     console.error('[shutdown] db close error:', e);
-  }
-  try {
-    server.stop(true);
-  } catch (e) {
-    console.error('[shutdown] server stop error:', e);
   }
   process.exit(0);
 }
