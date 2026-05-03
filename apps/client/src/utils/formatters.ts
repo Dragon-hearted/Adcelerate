@@ -70,12 +70,16 @@ export function formatTokens(n: number | null | undefined): string {
  * `Intl.RelativeTimeFormat`. Picks the largest sensible unit (second /
  * minute / hour / day).
  */
+// Cached because hot paths (e.g. cost-badge tooltips, every event row in a
+// long timeline) call this on every render. Allocating a fresh
+// Intl.RelativeTimeFormat per call shows up in profiles.
+const relativeFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
 export function formatRelative(tsMs: number, nowMs: number = Date.now()): string {
   const diff = tsMs - nowMs;
   const absSec = Math.abs(diff) / 1000;
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
-  if (absSec < 60) return rtf.format(Math.round(diff / 1000), 'second');
-  if (absSec < 3600) return rtf.format(Math.round(diff / 60000), 'minute');
-  if (absSec < 86400) return rtf.format(Math.round(diff / 3600000), 'hour');
-  return rtf.format(Math.round(diff / 86400000), 'day');
+  if (absSec < 60) return relativeFormatter.format(Math.round(diff / 1000), 'second');
+  if (absSec < 3600) return relativeFormatter.format(Math.round(diff / 60000), 'minute');
+  if (absSec < 86400) return relativeFormatter.format(Math.round(diff / 3600000), 'hour');
+  return relativeFormatter.format(Math.round(diff / 86400000), 'day');
 }

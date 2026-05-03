@@ -231,13 +231,28 @@ export async function startTranscriptIngest(opts: IngestOptions = {}): Promise<(
   // Wait for chokidar to finish the initial enumeration. This is FAST even
   // on large trees — chokidar fires `ready` after the directory walk, before
   // our per-file ingest handlers run. Bounded with a 30s timeout so a stuck
-  // watcher (e.g. permissions error on a project dir) cannot wedge boot.
-  await Promise.race([
-    new Promise<void>((resolve) => watcher.once('ready', () => resolve())),
-    new Promise<void>((_resolve, reject) =>
-      setTimeout(() => reject(new Error('chokidar ready timeout (30s)')), 30_000),
-    ),
-  ]);
+  // watcher (e.g. permissions error on a project dir) cannot wedge boot. We
+  // explicitly clear the timer when ready wins (else it fires later as an
+  // unhandled rejection) and close the watcher when timeout wins (else it
+  // leaks since ingestStop is never bound by the caller).
+  let readyTimer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      readyTimer = setTimeout(() => {
+        reject(new Error('chokidar ready timeout (30s)'));
+      }, 30_000);
+      watcher.once('ready', () => {
+        if (readyTimer) clearTimeout(readyTimer);
+        readyTimer = null;
+        resolve();
+      });
+    });
+  } catch (err) {
+    // Best-effort cleanup so we don't leak the watcher / handlers / Maps.
+    if (readyTimer) clearTimeout(readyTimer);
+    try { await watcher.close(); } catch { /* swallow */ }
+    throw err;
+  }
 
   // Backfill runs in the BACKGROUND so server boot doesn't block on large
   // ~/.claude/projects histories. /api/tokens/* may return partial data
