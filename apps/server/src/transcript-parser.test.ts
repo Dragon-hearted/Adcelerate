@@ -148,12 +148,9 @@ describe('parseLine — malformed input', () => {
     expect(parseLine('[}', FILE, 0)).toBeNull();
   });
 
-  it.skip('returns null for valid JSON that is not an object (TODO: fix in source)', () => {
-    // BUG DISCOVERED: parseLine throws TypeError on `JSON.parse('null')` and
-    // `JSON.parse('42')` because the type-check at line 51 dereferences `obj`
-    // without a null/typeof guard. The fix would be:
-    //   if (!obj || typeof obj !== 'object' || obj.type !== 'assistant') return null;
-    // Skipping (not fixing) per the test-builder's no-source-edit constraint.
+  it('returns null for valid JSON that is not an object', () => {
+    // Guard against `JSON.parse('null')` / `JSON.parse('42')` / `JSON.parse('[]')`
+    // — the parser must reject these without throwing.
     expect(parseLine('null', FILE, 0)).toBeNull();
     expect(parseLine('42', FILE, 0)).toBeNull();
     expect(parseLine('[]', FILE, 0)).toBeNull();
