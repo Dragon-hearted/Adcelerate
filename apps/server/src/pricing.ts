@@ -40,12 +40,31 @@ export interface UsageBreakdown {
 function findPricing(model: string): ModelPricing | null {
   if (PRICING[model]) return PRICING[model]!;
   // Date-suffix match: "claude-opus-4-7-20251101" → "claude-opus-4-7"
+  //
+  // BOUNDARY REQUIREMENT: we must require either an exact match OR that the
+  // matched key is followed by a literal '-' separator. Plain `startsWith(key)`
+  // is unsafe because, depending on the iteration order of `Object.keys`, a
+  // shorter SKU like 'claude-opus-4' would swallow a future SKU like
+  // 'claude-opus-4-10-20260101' (and similarly 'claude-opus-4-7' would
+  // incorrectly match 'claude-opus-4-10' if the version tokens are
+  // numerically multi-digit). The '-' boundary check anchors the match to
+  // a real version segment, not a digit-prefix collision.
   for (const key of Object.keys(PRICING)) {
-    if (model.startsWith(key)) return PRICING[key]!;
+    if (model === key || model.startsWith(key + '-')) return PRICING[key]!;
   }
   return null;
 }
 
+// UNKNOWN MODEL HANDLING:
+// `computeCost` returns `null` (NOT 0) for unknown models. Callers and SQL
+// aggregations MUST handle this distinction:
+//   - In SQL, wrap with `COALESCE(SUM(cost_usd), 0)` so reporting renders 0
+//     for periods with only unpriced rows (instead of NULL → empty cell).
+//   - Token volume from unpriced rows still counts in `SUM(input)` etc., so
+//     dashboards may want to surface "unpriced_tokens" separately to flag
+//     coverage gaps. Today we don't, but the seam is here when needed.
+// The `null` return is a load-bearing signal that pricing data is missing,
+// not zero — do not coerce it upstream.
 export function computeCost(usage: UsageBreakdown, model: string): number | null {
   const p = findPricing(model);
   if (!p) {
