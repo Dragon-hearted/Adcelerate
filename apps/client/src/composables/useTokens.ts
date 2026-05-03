@@ -45,7 +45,12 @@ interface TokensState {
     breakdown: AbortController | null;
   };
   // Cache for the REST event-cost fallback, keyed by `${session_id}|${ts}`.
+  // The Map itself is plain (not reactive), but every mutation bumps
+  // `costCacheVersion` so consumers reading the cache via the public
+  // `findCostForEvent` register a reactive dep that refires when the
+  // async REST fallback resolves.
   costCache: Map<string, { cost_usd: number; tokens: number } | null>;
+  costCacheVersion: Ref<number>;
 }
 
 let sharedState: TokensState | null = null;
@@ -70,6 +75,7 @@ function createState(): TokensState {
     seq: { summary: 0, timeseries: 0, breakdown: 0 },
     controllers: { summary: null, timeseries: null, breakdown: null },
     costCache: new Map(),
+    costCacheVersion: ref(0),
   };
 }
 
@@ -97,6 +103,19 @@ function resetState(s: TokensState): void {
   s.seq.timeseries = 0;
   s.seq.breakdown = 0;
   s.costCache.clear();
+  s.costCacheVersion.value = 0;
+}
+
+// Mutate the cache and bump the reactive version counter in one place so
+// every write is visible to reactive consumers without making the Map
+// itself reactive (which Vue 3 cannot track on Map mutations).
+function setCostCache(
+  s: TokensState,
+  key: string,
+  value: { cost_usd: number; tokens: number } | null
+): void {
+  s.costCache.set(key, value);
+  s.costCacheVersion.value++;
 }
 
 // -----------------------------------------------------------------------------
@@ -308,12 +327,12 @@ async function findCostForEventInternal(
     const url = `${API_BASE_URL}/api/tokens/event?session_id=${encodeURIComponent(session_id)}&ts=${ts}&window=${MATCH_WINDOW_MS}`;
     const res = await fetch(url);
     if (res.status === 404 || !res.ok) {
-      s.costCache.set(cacheKey, null);
+      setCostCache(s, cacheKey, null);
       return null;
     }
     const row = (await res.json()) as TokenEvent | null;
     if (!row || row.cost_usd == null) {
-      s.costCache.set(cacheKey, null);
+      setCostCache(s, cacheKey, null);
       return null;
     }
     const ev = coerceEvent(row);
@@ -321,12 +340,12 @@ async function findCostForEventInternal(
       cost_usd: ev.cost_usd as number,
       tokens: ev.input + ev.output + ev.cache_read + ev.cache_write_5m + ev.cache_write_1h,
     };
-    s.costCache.set(cacheKey, result);
+    setCostCache(s, cacheKey, result);
     return result;
   } catch {
     // Network errors should not surface as an exception to UI callers —
     // a missing cost is a routine "not yet ingested" state, not an error.
-    s.costCache.set(cacheKey, null);
+    setCostCache(s, cacheKey, null);
     return null;
   }
 }
@@ -364,6 +383,12 @@ export function findCostForEvent(
 ): { cost_usd: number; tokens: number } | null {
   if (!sharedState) return null;
   const s = sharedState;
+  // Read the version BEFORE checking the cache so that consumers running
+  // inside a reactive scope (computed/template) register a dep on the
+  // version counter. Any subsequent setCostCache() bumps the counter and
+  // re-fires this read with the freshly-populated value.
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  s.costCacheVersion.value;
   const live = findCostInLive(s, session_id, ts);
   if (live) return live;
   // Cache hit (possibly null) — return it without firing another fetch.
