@@ -21,6 +21,10 @@ import type {
   TokenBucket,
   TokenBreakdownDimension,
 } from '../../types/tokens';
+// Use the shared currency formatter for assertions so the test stays correct
+// in locales that render decimal commas (e.g. de-DE → "6,75 $") rather than
+// hard-coding the en-US digit pattern "6.75".
+import { formatCost } from '../../utils/formatters';
 
 // --- Hardcoded fixtures ---------------------------------------------------
 
@@ -121,9 +125,9 @@ describe('TokenUsagePanel — smoke mount', () => {
     // `lg:grid-cols-2` two-up layout.
     expect(html).toContain('lg:grid-cols-2');
     // Total spend in the header pulls from the stubbed summary.month.cost_usd.
-    // formatCost($6.75) yields a string containing "6.75" (locale-aware,
-    // so we match the digits rather than the leading currency symbol).
-    expect(html).toContain('6.75');
+    // Use the shared formatter so this assertion survives locales that render
+    // decimal commas (e.g. de-DE) — hard-coding "6.75" would falsely fail.
+    expect(html).toContain(formatCost(fixtureSummary.month.cost_usd));
   });
 
   it('calls refetchAll on mount', async () => {
@@ -182,7 +186,7 @@ describe('TokenUsagePanel — reactive updates', () => {
     const wrapper = mount(TokenUsagePanel);
     await flushPromises();
     await nextTick();
-    expect(wrapper.html()).toContain('6.75');
+    expect(wrapper.html()).toContain(formatCost(fixtureSummary.month.cost_usd));
 
     // Bump month spend; the header should re-render to the new total.
     stubSummary.value = {
@@ -190,6 +194,6 @@ describe('TokenUsagePanel — reactive updates', () => {
       month: { ...fixtureSummary.month, cost_usd: 99.99 },
     };
     await nextTick();
-    expect(wrapper.html()).toContain('99.99');
+    expect(wrapper.html()).toContain(formatCost(99.99));
   });
 });

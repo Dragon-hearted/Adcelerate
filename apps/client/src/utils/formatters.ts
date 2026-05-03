@@ -48,6 +48,10 @@ const tokenFormatter = new Intl.NumberFormat(undefined, {
  * so micro-costs aren't rounded to `$0.00`. Non-finite input renders as `—`.
  */
 export function formatCost(usd: number | null | undefined): string {
+  // Explicit nullish guard: `Number(null)` is `0` (finite), so without this
+  // check `null` would render as `$0.00` while `undefined` (→ NaN) renders
+  // as `—`. Both nullish sentinels mean "no data" — render them identically.
+  if (usd === null || usd === undefined) return '—';
   const n = Number(usd);
   if (!Number.isFinite(n)) return '—';
   if (n === 0) return usdFormatter.format(0);

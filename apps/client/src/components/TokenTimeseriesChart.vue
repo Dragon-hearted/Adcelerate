@@ -11,12 +11,21 @@
       </div>
       <div
         class="flex gap-0.5 bg-[var(--theme-bg-secondary)] rounded-md p-0.5 border border-[var(--theme-border-primary)]"
-        role="tablist"
+        role="group"
         aria-label="Time range"
       >
+        <!--
+          Plain toggle buttons with `aria-pressed` — accurately models the
+          UI (a group of mutually-exclusive buttons that filter the chart)
+          without advertising the full ARIA tabs contract (roving tabindex,
+          arrow-key navigation, tab-panel association) which we don't
+          implement. Screen readers will announce "pressed/not pressed"
+          state, which matches the visual selected indicator.
+        -->
         <button
           v-for="r in ranges"
           :key="r"
+          type="button"
           @click="$emit('update:range', r)"
           :class="[
             'px-2 py-0.5 text-xs font-medium rounded transition-colors duration-150',
@@ -24,8 +33,7 @@
               ? 'bg-[var(--theme-primary)] text-white shadow-sm'
               : 'text-[var(--theme-text-tertiary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
           ]"
-          role="tab"
-          :aria-selected="range === r"
+          :aria-pressed="range === r"
         >{{ r }}</button>
       </div>
     </div>

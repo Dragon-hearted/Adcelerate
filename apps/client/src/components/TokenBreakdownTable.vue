@@ -197,7 +197,11 @@ function barPct(cost: number): number {
 
 function shortKey(key: string, segments: number): string {
   if (props.currentDim !== 'cwd') return key;
-  const parts = key.split('/').filter(Boolean);
+  // Split on both POSIX (`/`) and Windows (`\`) separators — `cwd` comes
+  // straight from transcript metadata and Windows sessions render the
+  // backslash form, which the previous single-separator split left
+  // untouched and broke the same-basename disambiguation pass below.
+  const parts = key.split(/[/\\]+/).filter(Boolean);
   if (parts.length === 0) return key;
   return parts.slice(-segments).join('/');
 }

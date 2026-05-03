@@ -26,6 +26,21 @@ export function useWebSocket(url: string) {
   // engines and silences `radix` lint warnings.
   const maxEvents = parseInt(import.meta.env.VITE_MAX_EVENTS_TO_DISPLAY || '300', 10);
 
+  // Runtime shape guard for `token_event` frames. The WS layer is untrusted
+  // input from the network — a malformed payload that downstream code
+  // assumes has `session_id`/`ts`/`model` would otherwise throw deep inside
+  // the reactive store. Reject anything that doesn't carry the minimum
+  // primitive fields the rest of the app reads.
+  function isTokenEventLike(d: unknown): d is TokenEvent {
+    if (!d || typeof d !== 'object') return false;
+    const t = d as Record<string, unknown>;
+    return (
+      typeof t.session_id === 'string' &&
+      typeof t.ts === 'number' &&
+      typeof t.model === 'string'
+    );
+  }
+
   async function backfillRecentEvents(): Promise<void> {
     try {
       const res = await fetch(`${API_BASE_URL}/events/recent?limit=${maxEvents}`);
@@ -74,8 +89,12 @@ export function useWebSocket(url: string) {
               // Remove the oldest events (first 10) when limit is exceeded
               events.value = events.value.slice(events.value.length - maxEvents + 10);
             }
-          } else if ((message as { type: string }).type === 'token_event') {
-            const record = (message as unknown as { data: TokenEvent }).data;
+          } else if ((message as { type?: string }).type === 'token_event') {
+            const record = (message as { data?: unknown }).data;
+            if (!isTokenEventLike(record)) {
+              console.warn('[ws] dropping malformed token_event payload');
+              return;
+            }
             applyTokenEvent(record);
           }
         } catch (err) {

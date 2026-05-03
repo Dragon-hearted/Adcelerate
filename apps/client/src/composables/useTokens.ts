@@ -36,7 +36,10 @@ interface TokensState {
   refetchScheduled: { value: boolean };
   // Monotonic per-endpoint sequence counters; a fetch captures the seq
   // before its await and discards the result if a newer fetch superseded it.
-  seq: { summary: number; timeseries: number; breakdown: number };
+  // `refetch` is a wrapper-level counter for `refetchAllInternal` so two
+  // concurrent refetch wrappers can't interleave their post-await side
+  // effects (loading flag, etc.).
+  seq: { summary: number; timeseries: number; breakdown: number; refetch: number };
   // AbortControllers tracked per endpoint so a new fetch can cancel its
   // predecessor and unmount can cancel everything in flight.
   controllers: {
@@ -75,7 +78,7 @@ function createState(): TokensState {
     bucket: ref<TokenBucket>('day'),
     breakdownDim: ref<TokenBreakdownDimension>('model'),
     refetchScheduled: { value: false },
-    seq: { summary: 0, timeseries: 0, breakdown: 0 },
+    seq: { summary: 0, timeseries: 0, breakdown: 0, refetch: 0 },
     controllers: { summary: null, timeseries: null, breakdown: null },
     costCache: new Map(),
     costCacheVersion: ref(0),
@@ -106,6 +109,7 @@ function resetState(s: TokensState): void {
   s.seq.summary = 0;
   s.seq.timeseries = 0;
   s.seq.breakdown = 0;
+  s.seq.refetch = 0;
   s.costCache.clear();
   s.costCacheVersion.value = 0;
   s.costFetchInflight.clear();
@@ -249,13 +253,23 @@ async function fetchBreakdown(s: TokensState): Promise<void> {
 }
 
 async function refetchAllInternal(s: TokensState): Promise<void> {
+  // Wrapper-level seq guard: two refetch wrappers fired in quick succession
+  // (e.g. range change + WebSocket reconnect backfill) must not interleave
+  // their post-await side-effects. Capture our seq before the await and
+  // bail out of the loading-flag toggle if a newer wrapper has started.
+  // Per-endpoint seqs already protect summary/timeseries/breakdown from
+  // out-of-order assignment — this guard is purely about the wrapper state.
+  const mySeq = ++s.seq.refetch;
   s.loading.value = true;
+  // Clear stale error at the START of a fresh attempt so the banner resets
+  // when a new run begins. Previously we cleared it AFTER `Promise.all`,
+  // which silently wiped per-helper failures stored during the same run
+  // (each helper catches its own error and writes to s.error.value).
+  s.error.value = null;
   try {
     await Promise.all([fetchSummary(s), fetchTimeseries(s), fetchBreakdown(s)]);
-    // If every fetch succeeded, clear any prior error banner.
-    s.error.value = null;
   } finally {
-    s.loading.value = false;
+    if (mySeq === s.seq.refetch) s.loading.value = false;
   }
 }
 
@@ -338,12 +352,23 @@ async function findCostForEventInternal(
     try {
       const url = `${API_BASE_URL}/api/tokens/event?session_id=${encodeURIComponent(session_id)}&ts=${ts}&window=${MATCH_WINDOW_MS}`;
       const res = await fetch(url);
-      if (res.status === 404 || !res.ok) {
+      // Only negative-cache an authoritative "no row exists" response.
+      // 404 means the server looked and found nothing — safe to remember.
+      if (res.status === 404) {
         setCostCache(s, cacheKey, null);
+        return null;
+      }
+      // Any other non-OK status (5xx, 401, network proxy errors) is
+      // treated as transient: do NOT negative-cache, so the next read
+      // is allowed to retry. The in-flight slot is cleared in `finally`.
+      if (!res.ok) {
         return null;
       }
       const row = (await res.json()) as TokenEvent | null;
       if (!row || row.cost_usd == null) {
+        // Server returned a valid response with no row / no cost — this
+        // is the legitimate "not yet ingested" steady state; cache null
+        // so we don't re-fetch on every render.
         setCostCache(s, cacheKey, null);
         return null;
       }
@@ -355,9 +380,10 @@ async function findCostForEventInternal(
       setCostCache(s, cacheKey, result);
       return result;
     } catch {
-      // Network errors should not surface as an exception to UI callers —
-      // a missing cost is a routine "not yet ingested" state, not an error.
-      setCostCache(s, cacheKey, null);
+      // Network errors / aborts / DNS blips are transient — do NOT cache,
+      // so the next read can retry. (A persistent outage just means the
+      // badge stays blank until the network recovers, which is the
+      // intended UX.)
       return null;
     } finally {
       // Always release the in-flight slot once done so a future re-attempt
