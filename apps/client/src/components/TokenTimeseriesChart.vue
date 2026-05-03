@@ -32,8 +32,6 @@
     <div class="px-3 py-2 mobile:px-2">
       <canvas
         ref="canvasRef"
-        :width="canvasWidth"
-        :height="canvasHeight"
         class="w-full block"
         :style="{ height: `${canvasHeight}px` }"
       />
@@ -47,6 +45,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import type { TokenTimeseriesPoint, TokenRange } from '../types/tokens';
+import { formatCost } from '../utils/formatters';
 
 const props = defineProps<{
   points: TokenTimeseriesPoint[];
@@ -56,18 +55,14 @@ defineEmits<{ 'update:range': [r: TokenRange] }>();
 
 const ranges: TokenRange[] = ['1d', '7d', '30d'];
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const canvasWidth = ref(900);
 const canvasHeight = 140;
+
 let resizeObserver: ResizeObserver | null = null;
+let themeObserver: MutationObserver | null = null;
+let rafPending = false;
 
 const rangeLabel = computed(() => `(last ${props.range})`);
 const rangeTotal = computed(() => props.points.reduce((sum, p) => sum + p.cost_usd, 0));
-
-function formatCost(usd: number): string {
-  if (usd >= 100) return `$${usd.toFixed(0)}`;
-  if (usd >= 10)  return `$${usd.toFixed(2)}`;
-  return `$${usd.toFixed(3)}`;
-}
 
 function getCssVar(name: string): string {
   if (typeof window === 'undefined') return '#888';
@@ -83,9 +78,23 @@ function draw(): void {
   const dpr = window.devicePixelRatio || 1;
   const cssW = canvas.clientWidth;
   const cssH = canvasHeight;
-  canvas.width = Math.floor(cssW * dpr);
-  canvas.height = Math.floor(cssH * dpr);
-  ctx.scale(dpr, dpr);
+
+  // Guard against zero/near-zero canvas sizes (e.g. parent collapsed). Drawing
+  // into a 0-px canvas is a wasted call and `Math.floor(0 * dpr) = 0` causes
+  // browsers to ignore subsequent strokes silently.
+  if (cssW <= 8 || cssH <= 8) return;
+
+  // Set the backing-store size only inside draw() — binding `:width`/`:height`
+  // reactively in the template causes Vue to re-set them between draws and
+  // wipe the canvas state.
+  const targetW = Math.floor(cssW * dpr);
+  const targetH = Math.floor(cssH * dpr);
+  if (canvas.width !== targetW) canvas.width = targetW;
+  if (canvas.height !== targetH) canvas.height = targetH;
+
+  // setTransform avoids accumulating scales across redraws (which `ctx.scale`
+  // would do on every call, doubling DPR each frame).
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cssW, cssH);
 
   if (props.points.length === 0) return;
@@ -122,21 +131,47 @@ function draw(): void {
   }
 }
 
+function scheduleDraw(): void {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    draw();
+  });
+}
+
 watch(() => props.points, draw, { deep: true });
 watch(() => props.range, draw);
 
 onMounted(() => {
   draw();
   if (canvasRef.value && typeof ResizeObserver !== 'undefined') {
+    // Coalesce resize bursts into a single rAF-aligned draw — DevTools docking,
+    // window animations and Tailwind transitions otherwise spam the callback.
     resizeObserver = new ResizeObserver(() => {
-      canvasWidth.value = canvasRef.value?.clientWidth ?? canvasWidth.value;
-      draw();
+      scheduleDraw();
     });
     resizeObserver.observe(canvasRef.value);
+  }
+
+  // Theme switch is signalled by class mutations on <html>. Mirror the pattern
+  // already used by LivePulseChart so this chart picks up CSS variable changes
+  // without prop churn.
+  if (typeof MutationObserver !== 'undefined') {
+    themeObserver = new MutationObserver(() => {
+      scheduleDraw();
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
   }
 });
 
 onUnmounted(() => {
   resizeObserver?.disconnect();
+  resizeObserver = null;
+  themeObserver?.disconnect();
+  themeObserver = null;
 });
 </script>

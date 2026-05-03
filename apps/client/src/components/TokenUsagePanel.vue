@@ -28,19 +28,18 @@
         <span class="text-[var(--theme-text-quaternary)] mobile:hidden">/ 30d</span>
       </div>
     </header>
-    <Transition
-      enter-active-class="transition-all duration-200 ease-out"
-      leave-active-class="transition-all duration-150 ease-in"
-      enter-from-class="opacity-0 -translate-y-1 max-h-0"
-      enter-to-class="opacity-100 translate-y-0 max-h-[1000px]"
-      leave-from-class="opacity-100 translate-y-0 max-h-[1000px]"
-      leave-to-class="opacity-0 -translate-y-1 max-h-0"
+    <!--
+      grid-template-rows trick: outer grid animates 0fr -> 1fr; inner div uses
+      `min-height: 0` + overflow-hidden so the body's natural height drives the
+      transition without a hardcoded max-height ceiling that clips at large widths.
+    -->
+    <div
+      id="token-usage-body"
+      class="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
+      :style="{ gridTemplateRows: collapsed ? '0fr' : '1fr' }"
+      :aria-hidden="collapsed ? 'true' : 'false'"
     >
-      <div
-        v-if="!collapsed"
-        id="token-usage-body"
-        class="overflow-hidden"
-      >
+      <div class="overflow-hidden min-h-0">
         <div class="px-4 pb-3 mobile:px-3 mobile:pb-2 space-y-2">
           <TokenSummaryCards :summary="summary" />
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -58,13 +57,14 @@
           <p v-if="error" class="text-[11px] text-[var(--theme-accent-error)]">{{ error }}</p>
         </div>
       </div>
-    </Transition>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useTokens } from '../composables/useTokens';
+import { formatCost, formatRelative } from '../utils/formatters';
 import TokenSummaryCards from './TokenSummaryCards.vue';
 import TokenTimeseriesChart from './TokenTimeseriesChart.vue';
 import TokenBreakdownTable from './TokenBreakdownTable.vue';
@@ -88,18 +88,4 @@ const {
 onMounted(() => {
   refetchAll();
 });
-
-function formatCost(usd: number): string {
-  if (usd >= 100) return `$${usd.toFixed(0)}`;
-  if (usd >= 10)  return `$${usd.toFixed(2)}`;
-  return `$${usd.toFixed(3)}`;
-}
-
-function formatRelative(ms: number): string {
-  const diff = Date.now() - ms;
-  if (diff < 60_000) return 'just now';
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
-}
 </script>

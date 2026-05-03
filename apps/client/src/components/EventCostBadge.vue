@@ -9,17 +9,25 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatCost } from '../utils/formatters';
 
 const props = defineProps<{
   costUsd: number;
   tokens: number;
 }>();
 
+const tokens = computed<number>(() => {
+  const v = Number(props.tokens);
+  return Number.isFinite(v) ? v : 0;
+});
+
+const cost = computed<number | null>(() => {
+  const v = Number(props.costUsd);
+  return Number.isFinite(v) ? v : null;
+});
+
 const formatted = computed(() => {
-  const c = props.costUsd;
-  if (c >= 100) return `$${c.toFixed(0)}`;
-  if (c >= 10)  return `$${c.toFixed(2)}`;
-  if (c >= 0.01) return `$${c.toFixed(3)}`;
-  return `<1¢`;
+  if (cost.value === null) return '—';
+  return formatCost(cost.value);
 });
 </script>

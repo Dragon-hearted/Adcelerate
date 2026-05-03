@@ -91,7 +91,7 @@ import { useChartData } from '../composables/useChartData';
 import { createChartRenderer, type ChartDimensions } from '../utils/chartRenderer';
 import { useEventEmojis } from '../composables/useEventEmojis';
 import { useEventColors } from '../composables/useEventColors';
-import { formatGap } from '../utils/formatters';
+import { formatCost, formatGap } from '../utils/formatters';
 import { useTokens } from '../composables/useTokens';
 
 const props = defineProps<{
@@ -166,12 +166,6 @@ const totalEventCount = computed(() => {
 
 const { summary: tokenSummary } = useTokens();
 const todayCost = computed(() => tokenSummary.value?.today.cost_usd ?? 0);
-
-function formatCost(usd: number): string {
-  if (usd >= 100) return `$${usd.toFixed(0)}`;
-  if (usd >= 10)  return `$${usd.toFixed(2)}`;
-  return `$${usd.toFixed(3)}`;
-}
 
 const chartAriaLabel = computed(() => {
   const rangeText = timeRange.value === '1m' ? '1 minute' : timeRange.value === '3m' ? '3 minutes' : timeRange.value === '5m' ? '5 minutes' : '10 minutes';

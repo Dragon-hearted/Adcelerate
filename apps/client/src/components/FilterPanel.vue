@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue';
 import type { FilterOptions, HookEvent } from '../types';
 import { API_BASE_URL } from '../config';
 
@@ -118,23 +118,35 @@ const uniqueTeamNames = computed(() => {
   return Array.from(teams).sort();
 });
 
-const localFilters = ref({ ...props.filters });
+// `reactive` so we can `Object.assign` from the props watcher and the
+// individual `v-model` bindings stay live.
+const localFilters = reactive({ ...props.filters });
+
+// Re-sync when the parent resets/changes filters externally — e.g. a
+// "Clear filters" elsewhere or a deep-link applying a saved view.
+watch(
+  () => props.filters,
+  (next) => {
+    Object.assign(localFilters, next);
+  },
+  { deep: true }
+);
 
 const hasActiveFilters = computed(() => {
-  return localFilters.value.sourceApp || localFilters.value.sessionId || localFilters.value.eventType || localFilters.value.team;
+  return localFilters.sourceApp || localFilters.sessionId || localFilters.eventType || localFilters.team;
 });
 
 const updateFilters = () => {
-  emit('update:filters', { ...localFilters.value });
+  emit('update:filters', { ...localFilters });
 };
 
 const clearFilters = () => {
-  localFilters.value = {
+  Object.assign(localFilters, {
     sourceApp: '',
     sessionId: '',
     eventType: '',
     team: ''
-  };
+  });
   updateFilters();
 };
 
