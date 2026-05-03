@@ -155,6 +155,55 @@ export function initDatabase(): void {
       updated_at INTEGER NOT NULL
     )
   `);
+
+  // Migration mirror for token_events — same pattern as the events table above.
+  // If a future column is added to the CREATE TABLE block, add an ADD COLUMN
+  // here so existing databases pick it up without a rebuild.
+  try {
+    const tokenEventsCols = db.prepare("PRAGMA table_info(token_events)").all() as any[];
+    const expectedTokenCols: { name: string; ddl: string }[] = [
+      { name: 'ts', ddl: 'ts INTEGER NOT NULL DEFAULT 0' },
+      { name: 'session_id', ddl: 'session_id TEXT NOT NULL DEFAULT \'\'' },
+      { name: 'cwd', ddl: 'cwd TEXT' },
+      { name: 'git_branch', ddl: 'git_branch TEXT' },
+      { name: 'model', ddl: 'model TEXT NOT NULL DEFAULT \'\'' },
+      { name: 'input', ddl: 'input INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cache_read', ddl: 'cache_read INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cache_write_5m', ddl: 'cache_write_5m INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cache_write_1h', ddl: 'cache_write_1h INTEGER NOT NULL DEFAULT 0' },
+      { name: 'output', ddl: 'output INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cost_usd', ddl: 'cost_usd REAL' },
+      { name: 'request_id', ddl: 'request_id TEXT' },
+      { name: 'transcript_file', ddl: 'transcript_file TEXT NOT NULL DEFAULT \'\'' },
+      { name: 'transcript_line_offset', ddl: 'transcript_line_offset INTEGER NOT NULL DEFAULT 0' },
+    ];
+    for (const col of expectedTokenCols) {
+      const has = tokenEventsCols.some((c: any) => c.name === col.name);
+      if (!has) {
+        db.exec(`ALTER TABLE token_events ADD COLUMN ${col.ddl}`);
+      }
+    }
+  } catch (error) {
+    // table doesn't exist or pragma failed — CREATE TABLE above handles fresh installs
+  }
+
+  // Migration mirror for transcript_offsets
+  try {
+    const offsetsCols = db.prepare("PRAGMA table_info(transcript_offsets)").all() as any[];
+    const expectedOffsetCols: { name: string; ddl: string }[] = [
+      { name: 'file', ddl: 'file TEXT' },
+      { name: 'offset', ddl: 'offset INTEGER NOT NULL DEFAULT 0' },
+      { name: 'updated_at', ddl: 'updated_at INTEGER NOT NULL DEFAULT 0' },
+    ];
+    for (const col of expectedOffsetCols) {
+      const has = offsetsCols.some((c: any) => c.name === col.name);
+      if (!has) {
+        db.exec(`ALTER TABLE transcript_offsets ADD COLUMN ${col.ddl}`);
+      }
+    }
+  } catch (error) {
+    // table doesn't exist or pragma failed — CREATE TABLE above handles fresh installs
+  }
 }
 
 export interface TokenEventRow {
@@ -198,7 +247,7 @@ export function insertTokenEvent(row: TokenEventRow): TokenEventRow | null {
     row.transcript_line_offset
   );
   if (result.changes === 0) return null;
-  return { ...row, id: result.lastInsertRowid as number };
+  return { ...row, id: Number(result.lastInsertRowid) };
 }
 
 export function getTranscriptOffset(file: string): number {
@@ -213,6 +262,31 @@ export function setTranscriptOffset(file: string, offset: number): void {
     ON CONFLICT(file) DO UPDATE SET offset = excluded.offset, updated_at = excluded.updated_at
   `);
   stmt.run(file, offset, Date.now());
+}
+
+// Used by the transcript-ingest unlink handler — drop the row when its
+// underlying file is removed so the offsets table doesn't grow forever.
+export function deleteTranscriptOffset(file: string): void {
+  const stmt = db.prepare('DELETE FROM transcript_offsets WHERE file = ?');
+  stmt.run(file);
+}
+
+// Used by the /api/tokens/event REST fallback in the client's findCostForEvent.
+// Returns the closest token_events row (by |ts - target|) within the window,
+// or null if no row is within window ms.
+export function findTokenEventNear(
+  sessionId: string,
+  ts: number,
+  windowMs: number,
+): TokenEventRow | null {
+  const stmt = db.prepare(`
+    SELECT * FROM token_events
+    WHERE session_id = ? AND ABS(ts - ?) <= ?
+    ORDER BY ABS(ts - ?) ASC
+    LIMIT 1
+  `);
+  const row = stmt.get(sessionId, ts, windowMs, ts) as TokenEventRow | undefined;
+  return row ?? null;
 }
 
 export function insertEvent(event: HookEvent): HookEvent {
@@ -244,7 +318,7 @@ export function insertEvent(event: HookEvent): HookEvent {
 
   return {
     ...event,
-    id: result.lastInsertRowid as number,
+    id: Number(result.lastInsertRowid),
     timestamp,
     humanInTheLoopStatus
   };
