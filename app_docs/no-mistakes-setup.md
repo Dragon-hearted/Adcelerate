@@ -6,18 +6,21 @@
 
 ## Status: INSTALLED
 
-- **Binary:** `/Users/dragonhearted/go/bin/no-mistakes`
-- **Version:** `v1.11.0` (reported by `no-mistakes --version`)
+- **Binary:** `$HOME/go/bin/no-mistakes` (wherever `go install` places binaries on
+  your machine — confirm via `go env GOBIN` / `go env GOPATH`)
+- **Version:** run `no-mistakes --version` after install to confirm (verified at
+  `v1.11.0` during initial setup)
 - **Install method:** `go install github.com/kunchenguid/no-mistakes/cmd/no-mistakes@latest`
-  - `go` toolchain present at `/usr/local/bin/go` (`go1.26.2 darwin/amd64`)
+  - `go` toolchain must be available on `PATH` (verify with `go version`); the
+    install script auto-detects your platform (`go env GOOS/GOARCH`)
   - This avoided the upstream `curl ... | sh` install path (denied by sandbox
     policy in this Claude Code session for piped-shell execution).
 
 ### PATH note (manual user step pending)
 
-`$GOPATH/bin` (`/Users/dragonhearted/go/bin`) is **not** currently on the user's
-shell `PATH`, so bare invocations of `no-mistakes` in a fresh terminal will not
-resolve. Either of these one-liners fixes it:
+`$GOPATH/bin` (typically `$HOME/go/bin`) may not be on your shell `PATH`, so
+bare invocations of `no-mistakes` in a fresh terminal will not resolve. Either
+of these one-liners fixes it:
 
 ```sh
 # Option A — add Go's bin to PATH (preferred; persists for all go-installed tools)
@@ -34,7 +37,7 @@ succeed.
 
 The upstream README publishes a `curl ... | sh` installer at:
 
-```
+```text
 https://raw.githubusercontent.com/kunchenguid/no-mistakes/main/docs/install.sh
 ```
 
@@ -52,7 +55,7 @@ installer is **not required**.
 
 ## Current Repo State
 
-```
+```text
 $ git remote -v
 origin	https://github.com/Dragon-hearted/Adcelerate.git (fetch)
 origin	https://github.com/Dragon-hearted/Adcelerate.git (push)
@@ -64,7 +67,7 @@ claude/refine-local-plan-BYyga
 There is **no** `no-mistakes` remote yet — `init` has not been run for this
 repo. After `init` succeeds the expected output is:
 
-```
+```text
 $ git remote -v
 origin       https://github.com/Dragon-hearted/Adcelerate.git (fetch)
 origin       https://github.com/Dragon-hearted/Adcelerate.git (push)
@@ -111,7 +114,7 @@ no-mistakes daemon start
 no-mistakes daemon status      # expect: running
 
 # 3. From inside this repo, initialize the gate.
-cd /Users/dragonhearted/Desktop/Adcelerate
+cd <repo-root>                 # the repo root where this file lives
 no-mistakes init               # adds the "no-mistakes" git remote
 git remote -v                  # confirm the remote is present
 
@@ -147,6 +150,6 @@ user-environment-side work. The user should run, in order:
 
 1. Add `$HOME/go/bin` to PATH (see "PATH note" above).
 2. `no-mistakes daemon start`
-3. `no-mistakes init` from `/Users/dragonhearted/Desktop/Adcelerate`
+3. `no-mistakes init` from the repo root (`<repo-root>`)
 4. `git push no-mistakes claude/refine-local-plan-BYyga` once the spec's fixes
    are committed.
