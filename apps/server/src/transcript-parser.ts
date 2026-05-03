@@ -73,11 +73,26 @@ export function parseLine(
   const input          = usage.input_tokens ?? 0;
   const cacheRead      = usage.cache_read_input_tokens ?? 0;
   const totalCacheCreate = usage.cache_creation_input_tokens ?? 0;
-  const ephemeral5m    = usage.cache_creation?.ephemeral_5m_input_tokens ?? 0;
-  const ephemeral1h    = usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
+  // Detect the ephemeral split fields by PRESENCE, not by summed value.
+  // A transcript with an explicit split where both fields are 0 is a legitimate
+  // shape — the previous `(ephemeral5m + ephemeral1h) > 0` check incorrectly
+  // treated that case as if the split were absent and fell back to dumping
+  // `cache_creation_input_tokens` into cacheWrite5m, drifting both token totals
+  // and cost. Inspecting the keys on `cache_creation` (rather than coalesced
+  // values) preserves the explicit zero case correctly.
+  const cacheCreation = usage.cache_creation;
+  const hasSplitCacheFields =
+    cacheCreation !== undefined &&
+    cacheCreation !== null &&
+    (
+      'ephemeral_5m_input_tokens' in cacheCreation ||
+      'ephemeral_1h_input_tokens' in cacheCreation
+    );
+  const ephemeral5m    = cacheCreation?.ephemeral_5m_input_tokens ?? 0;
+  const ephemeral1h    = cacheCreation?.ephemeral_1h_input_tokens ?? 0;
   // Prefer the split fields when present; otherwise treat all cache_creation as 5m.
-  const cacheWrite5m = ephemeral5m + ephemeral1h > 0 ? ephemeral5m : totalCacheCreate;
-  const cacheWrite1h = ephemeral1h;
+  const cacheWrite5m = hasSplitCacheFields ? ephemeral5m : totalCacheCreate;
+  const cacheWrite1h = hasSplitCacheFields ? ephemeral1h : 0;
   const output         = usage.output_tokens ?? 0;
 
   // Drop empty turns (keep-alives etc.)

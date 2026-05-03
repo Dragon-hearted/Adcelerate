@@ -159,10 +159,16 @@ describe('pricing — cost computation', () => {
 });
 
 describe('pricing — NaN guard', () => {
-  it('treats undefined/missing usage fields as 0 (no NaN)', () => {
-    // The parser layer is supposed to coerce missing fields to 0 with `?? 0`,
-    // but we double-check that even if a 0 slips through to computeCost,
-    // the result is finite (not NaN).
+  it('returns a finite zero (not NaN) when all usage fields are explicitly 0', () => {
+    // The parser layer is supposed to coerce missing fields to 0 with `?? 0`
+    // before they reach computeCost. This test exercises the all-zero path
+    // that results from that coercion: every multiplication is 0 * rate = 0,
+    // and the sum is a finite 0 — never NaN.
+    //
+    // Note: this test deliberately does NOT cover MISSING (undefined) fields
+    // reaching computeCost — the current implementation has no defensive
+    // `?? 0` inside computeCost itself, so passing `{}` would produce NaN.
+    // Coverage of the missing-field path lives at the parser boundary.
     const cost = computeCost(
       { input: 0, cacheRead: 0, cacheWrite5m: 0, cacheWrite1h: 0, output: 0 },
       'claude-opus-4-7',

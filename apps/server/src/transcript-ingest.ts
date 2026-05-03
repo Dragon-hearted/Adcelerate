@@ -7,6 +7,7 @@ import { parseLine } from './transcript-parser';
 import {
   insertTokenEvent,
   getTranscriptOffset,
+  getTranscriptOffsetRow,
   setTranscriptOffset,
   deleteTranscriptOffset,
   type TokenEventRow,
@@ -41,8 +42,15 @@ interface InodeKey {
 async function ingestFile(
   file: string,
   inodeMap: Map<string, InodeKey>,
+  deletedPaths: Set<string>,
   onTokenEvent?: TokenEventBroadcast,
 ): Promise<number> {
+  // If the file has been unlinked since this run was scheduled, bail before
+  // touching the DB. Without this guard a slow-running ingest could resurrect
+  // the offset row we just deleted in the unlink handler — and on the next
+  // file at the same path we'd skip the opening rows.
+  if (deletedPaths.has(file)) return 0;
+
   let st;
   try {
     st = await stat(file);
@@ -51,24 +59,38 @@ async function ingestFile(
   }
   if (!st.isFile()) return 0;
 
-  // (dev, ino) check — if the inode for this path changed since last time we
-  // saw it, the file was rotated/replaced underneath us. Reset the offset so
-  // we re-ingest from byte 0 of the new file.
+  // (dev, ino) check across THREE sources of truth, in order of authority:
+  //   1. Persisted offset row's stored inode (survives restarts).
+  //   2. In-memory inodeMap from the current process.
+  //   3. The current on-disk inode.
+  // If (1) is set and disagrees with (3) the file was rotated since we last
+  // ran — reset the offset to 0 so we re-ingest the new incarnation from the
+  // top. (2) handles intra-process rotation when (1) is NULL (legacy DB).
+  const currentInode = st.ino;
+  const persisted = getTranscriptOffsetRow(file);
+  const persistedInodeMismatch =
+    persisted !== null &&
+    persisted.inode !== null &&
+    persisted.inode !== currentInode;
+  if (persistedInodeMismatch) {
+    setTranscriptOffset(file, 0, currentInode);
+  }
+
   const prevInode = inodeMap.get(file);
   const inodeChanged =
     prevInode !== undefined &&
     (prevInode.dev !== st.dev || prevInode.ino !== st.ino);
   if (inodeChanged) {
-    setTranscriptOffset(file, 0);
+    setTranscriptOffset(file, 0, currentInode);
   }
   inodeMap.set(file, { dev: st.dev, ino: st.ino });
 
-  let startOffset = getTranscriptOffset(file);
+  let startOffset = persistedInodeMismatch ? 0 : getTranscriptOffset(file);
 
   // Truncation / rotation: file shrank below where we left off. Reset and
   // re-ingest from the top of the (now smaller) file.
   if (st.size < startOffset) {
-    setTranscriptOffset(file, 0);
+    setTranscriptOffset(file, 0, currentInode);
     startOffset = 0;
   }
 
@@ -126,6 +148,9 @@ async function ingestFile(
       }
 
       if (row) {
+        // Stamp the row with the current file inode so the dedupe key
+        // includes file identity, not just path + offset.
+        row.inode = currentInode;
         try {
           const saved = insertTokenEvent(row);
           if (saved) {
@@ -149,7 +174,12 @@ async function ingestFile(
     // positions — never via `Buffer.byteLength` of a re-encoded string, which
     // is what the old code did and which drifted on multibyte boundaries.
     const newOffset = startOffset + lastNl + 1;
-    setTranscriptOffset(file, newOffset);
+    // Final guard: if the file was unlinked while we were reading it, do NOT
+    // resurrect the offset row. The unlink handler already deleted it; the
+    // tombstone in deletedPaths tells us not to write a new one.
+    if (!deletedPaths.has(file)) {
+      setTranscriptOffset(file, newOffset, currentInode);
+    }
     return inserted;
   } finally {
     await fh.close();
@@ -173,13 +203,23 @@ export async function startTranscriptIngest(opts: IngestOptions = {}): Promise<(
   const inodeMap = new Map<string, InodeKey>();
   // Debounce timers per file to coalesce rapid-fire change events.
   const pending = new Map<string, NodeJS.Timeout>();
+  // Tombstone set: paths whose `unlink` event has been processed but which
+  // may still have an in-flight ingestFile() running. `setTranscriptOffset`
+  // calls inside ingestFile gate on this set so a late-finishing run cannot
+  // resurrect the offset row we already deleted. The set is cleared the next
+  // time chokidar fires `add` for the same path.
+  const deletedPaths = new Set<string>();
+  // Shutdown gate. Set true at the top of the stop callback so any chokidar
+  // event landing during the drain window is rejected before scheduling
+  // new work.
+  let stopping = false;
 
   function runIngest(file: string): Promise<void> {
     const prev = inflight.get(file) ?? Promise.resolve();
     const next = prev
       .then(async () => {
         try {
-          const n = await ingestFile(file, inodeMap, onTokenEvent);
+          const n = await ingestFile(file, inodeMap, deletedPaths, onTokenEvent);
           if (n > 0) console.log(`[ingest] ${file} +${n} token_events`);
         } catch (err) {
           console.error('[ingest] error processing', file, err);
@@ -195,11 +235,18 @@ export async function startTranscriptIngest(opts: IngestOptions = {}): Promise<(
   }
 
   const schedule = (file: string) => {
+    if (stopping) return;
     if (!file.endsWith('.jsonl')) return;
+    // A new add/change for a previously-deleted path means the path is alive
+    // again — clear the tombstone so this run is allowed to write its offset.
+    deletedPaths.delete(file);
     const existing = pending.get(file);
     if (existing) clearTimeout(existing);
     pending.set(file, setTimeout(() => {
       pending.delete(file);
+      // Re-check stopping at fire time — a debounce timer queued just before
+      // shutdown started must not enqueue work after `stopping` flipped.
+      if (stopping) return;
       runIngest(file);
     }, debounceMs));
   };
@@ -217,6 +264,10 @@ export async function startTranscriptIngest(opts: IngestOptions = {}): Promise<(
   watcher.on('change', schedule);
   watcher.on('unlink', (file: string) => {
     if (!file.endsWith('.jsonl')) return;
+    // Mark BEFORE deleting the row. Order matters: any concurrent ingestFile
+    // run that finishes after this point will see the tombstone and skip
+    // writing a fresh offset, so the row stays deleted.
+    deletedPaths.add(file);
     try {
       deleteTranscriptOffset(file);
     } catch (err) {
@@ -279,11 +330,20 @@ export async function startTranscriptIngest(opts: IngestOptions = {}): Promise<(
   console.log(`[ingest] watcher ready (backfill ${backfillFiles.length} files in background)`);
 
   return async () => {
+    // Single-shot shutdown: flip the gate FIRST so any chokidar event that
+    // lands during the drain window is rejected by `schedule` before it can
+    // queue new ingest work. Without this gate, an `add`/`change` arriving
+    // between `clearTimeout` below and `watcher.close()` would schedule a
+    // fresh debounce timer that the await-snapshot doesn't include —
+    // shutdown was no longer a closed system.
+    stopping = true;
     // Stop accepting new debounced runs.
     for (const t of pending.values()) clearTimeout(t);
     pending.clear();
     // Drain background backfill first, then in-flight per-file runs, before
     // closing the watcher — otherwise we strand a half-applied offset.
+    // The `stopping` gate prevents the watcher from spawning new ingest work
+    // during this await window.
     await backfillDone;
     await Promise.allSettled([...inflightSet]);
     await watcher.close();
