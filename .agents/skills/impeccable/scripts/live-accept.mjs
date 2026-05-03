@@ -19,6 +19,21 @@ import { isGeneratedFile } from './is-generated.mjs';
 
 const EXTENSIONS = ['.html', '.jsx', '.tsx', '.vue', '.svelte', '.astro'];
 
+// ADCL-2026-002: refuse to write through any path whose realpath escapes cwd.
+// Defense against a malicious dep dropping a symlink into src/ that points at
+// e.g. ~/.ssh/authorized_keys — accept/discard would otherwise clobber it.
+function assertWithinCwd(targetFile) {
+  let realTarget;
+  try { realTarget = fs.realpathSync(targetFile); }
+  catch { return; } // file may not yet exist; writeFileSync below will create it
+  let cwdReal;
+  try { cwdReal = fs.realpathSync(process.cwd()); } catch { cwdReal = process.cwd(); }
+  const rel = path.relative(cwdReal, realTarget);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`refusing to write through symlink escape: ${targetFile} → ${realTarget}`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
@@ -122,6 +137,7 @@ function handleDiscard(id, lines, targetFile) {
     ...restored,
     ...lines.slice(replaceRange.end + 1),
   ];
+  assertWithinCwd(targetFile);
   fs.writeFileSync(targetFile, newLines.join('\n'), 'utf-8');
   return {};
 }
@@ -202,6 +218,7 @@ function handleAccept(id, variantNum, lines, targetFile, paramValues) {
     ...replacement,
     ...lines.slice(replaceRange.end + 1),
   ];
+  assertWithinCwd(targetFile);
   fs.writeFileSync(targetFile, newLines.join('\n'), 'utf-8');
 
   return { carbonize: needsCarbonize };
@@ -557,11 +574,24 @@ function searchDir(dir, query, seen, depth) {
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
   catch { return null; }
 
+  // ADCL-2026-002: realpath each candidate and reject anything whose real
+  // path escapes cwd. A symlinked file inside the search tree could
+  // otherwise resolve to /etc/passwd or any sibling dir and be returned as
+  // the "session file" — a later writeFileSync would then clobber it.
+  const cwd = process.cwd();
+  const cwdReal = (() => { try { return fs.realpathSync(cwd); } catch { return cwd; } })();
+  const escapesCwd = (real) => {
+    const rel = path.relative(cwdReal, real);
+    return rel.startsWith('..') || path.isAbsolute(rel);
+  };
+
   for (const entry of entries) {
     if (!entry.isFile()) continue;
     if (!EXTENSIONS.includes(path.extname(entry.name).toLowerCase())) continue;
     const filePath = path.join(dir, entry.name);
     try {
+      const real = fs.realpathSync(filePath);
+      if (escapesCwd(real)) continue; // symlink escape, skip
       const content = fs.readFileSync(filePath, 'utf-8');
       if (content.includes(query)) return filePath;
     } catch { /* skip */ }

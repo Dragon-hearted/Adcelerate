@@ -43,7 +43,10 @@ function parseFrontmatter(md) {
 // dependency we don't want to vendor.
 function parseYamlSubset(yaml) {
   const lines = yaml.split(/\r?\n/);
-  const root = {};
+  // ADCL-2026-003: Object.create(null) so a malicious DESIGN.md frontmatter
+  // key like __proto__ can't pollute Object.prototype across the long-running
+  // live server process.
+  const root = Object.create(null);
   const stack = [{ indent: -1, obj: root }];
 
   for (const raw of lines) {
@@ -63,11 +66,15 @@ function parseYamlSubset(yaml) {
     }
 
     const key = content.slice(0, colonIdx).trim();
+    // ADCL-2026-003: filter prototype-pollution keys before they reach any
+    // assignment. Even with Object.create(null) sub-objects, downstream code
+    // might transfer values onto a regular object.
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
     const rest = content.slice(colonIdx + 1).trim();
     const parent = stack[stack.length - 1].obj;
 
     if (rest === '') {
-      const obj = {};
+      const obj = Object.create(null);
       parent[key] = obj;
       stack.push({ indent, obj });
     } else {

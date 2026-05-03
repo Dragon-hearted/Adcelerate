@@ -13,7 +13,7 @@
  *      within the first ~300 characters — catches non-git projects.
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -41,9 +41,18 @@ export function isGeneratedFile(filePath, options = {}) {
 
 function isGitIgnored(absPath, cwd) {
   try {
-    execSync(`git check-ignore --quiet ${JSON.stringify(absPath)}`, {
+    // ADCL-2026-004: execFileSync with arg array (no shell), and neutralize
+    // any global/system git config (CVE-2022-24765 family — hostile clones
+    // can plant a config that runs arbitrary code via fsmonitor or similar
+    // hooks the moment any git command runs in that directory).
+    execFileSync('git', ['check-ignore', '--quiet', absPath], {
       cwd,
       stdio: 'ignore',
+      env: {
+        ...process.env,
+        GIT_CONFIG_GLOBAL: '/dev/null',
+        GIT_CONFIG_SYSTEM: '/dev/null',
+      },
     });
     return true; // exit 0 = ignored
   } catch (err) {

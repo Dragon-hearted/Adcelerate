@@ -186,8 +186,41 @@ function validateEvent(msg) {
 
 function createRequestHandler({ detectScript, livePath }) {
   return (req, res) => {
+    // ADCL-2026-001: Host header validation (DNS rebinding closure).
+    // Reject any request whose Host header doesn't match the local bind so a
+    // hostile DNS rebind can't trick the browser into treating an external
+    // origin as same-origin against this server.
+    const host = (req.headers.host || '').toLowerCase();
+    if (host !== `localhost:${state.port}` && host !== `127.0.0.1:${state.port}`) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden host');
+      return;
+    }
+
+    // ADCL-2026-001: Origin header validation (CSRF closure).
+    // Origin is absent for direct browser navigation but present for
+    // cross-origin fetch/XHR — that's the exact surface we need to gate.
+    const origin = req.headers.origin;
+    const allowed = [
+      `http://localhost:${state.port}`,
+      `http://127.0.0.1:${state.port}`,
+    ];
+    if (state.appOrigin) allowed.push(state.appOrigin);
+    if (origin && !allowed.includes(origin)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden origin');
+      return;
+    }
+
     const url = new URL(req.url, `http://localhost:${state.port}`);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // ADCL-2026-001: drop wildcard CORS — reflect only the validated Origin.
+    // Do NOT set Access-Control-Allow-Origin when origin is missing or
+    // unallowlisted; a wildcard combined with the token in /live.js is what
+    // turned a same-origin token into a CSRF capability.
+    if (origin && allowed.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
@@ -382,11 +415,29 @@ function createRequestHandler({ detectScript, livePath }) {
       if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
       const filePath = url.searchParams.get('path');
       if (!filePath || filePath.includes('..')) { res.writeHead(400); res.end('Bad path'); return; }
-      const absPath = path.resolve(process.cwd(), filePath);
-      if (!absPath.startsWith(process.cwd())) { res.writeHead(403); res.end('Forbidden'); return; }
+      // ADCL-2026-001: realpath containment.
+      // The previous `startsWith(process.cwd())` check let any sibling
+      // directory whose name starts with the project basename through
+      // (e.g. /Users/x/Adcelerate-secrets vs /Users/x/Adcelerate). Using
+      // realpathSync resolves both ends through symlinks, and an explicit
+      // path-separator check defeats the prefix collision.
       let content;
-      try { content = fs.readFileSync(absPath, 'utf-8'); }
-      catch { res.writeHead(404); res.end('File not found'); return; }
+      try {
+        const root = fs.realpathSync(process.cwd());
+        const abs = fs.realpathSync(path.resolve(root, filePath));
+        if (abs !== root && !abs.startsWith(root + path.sep)) {
+          res.writeHead(403); res.end('Forbidden'); return;
+        }
+        // Defense in depth: refuse to read symlinks even if their target
+        // happens to be inside cwd. Avoids an attacker symlinking a project
+        // file to /etc/shadow and reading it back through /source.
+        if (fs.lstatSync(abs).isSymbolicLink()) {
+          res.writeHead(403); res.end('Forbidden symlink'); return;
+        }
+        content = fs.readFileSync(abs, 'utf-8');
+      } catch {
+        res.writeHead(404); res.end('Not found'); return;
+      }
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(content);
       return;
@@ -430,8 +481,27 @@ function createRequestHandler({ detectScript, livePath }) {
     // --- Browser→server events (replaces WebSocket messages) ---
     if (p === '/events' && req.method === 'POST') {
       let body = '';
-      req.on('data', (c) => { body += c; });
+      // ADCL-2026-001: cap JSON body at 1 MB to prevent unbounded memory
+      // growth from a misbehaving (or hostile) client.
+      let bodyLen = 0;
+      const MAX = 1024 * 1024;
+      let bodyAborted = false;
+      req.on('data', (chunk) => {
+        if (bodyAborted) return;
+        bodyLen += chunk.length;
+        if (bodyLen > MAX) {
+          bodyAborted = true;
+          try {
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Payload too large' }));
+          } catch {}
+          req.destroy(new Error('Body too large'));
+          return;
+        }
+        body += chunk;
+      });
       req.on('end', () => {
+        if (bodyAborted) return;
         let msg;
         try { msg = JSON.parse(body); } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -518,8 +588,26 @@ function handlePollGet(req, res, url) {
 
 function handlePollPost(req, res) {
   let body = '';
-  req.on('data', (c) => { body += c; });
+  // ADCL-2026-001: cap JSON body at 1 MB on the agent poll channel too.
+  let bodyLen = 0;
+  const MAX = 1024 * 1024;
+  let bodyAborted = false;
+  req.on('data', (chunk) => {
+    if (bodyAborted) return;
+    bodyLen += chunk.length;
+    if (bodyLen > MAX) {
+      bodyAborted = true;
+      try {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+      } catch {}
+      req.destroy(new Error('Body too large'));
+      return;
+    }
+    body += chunk;
+  });
   req.on('end', () => {
+    if (bodyAborted) return;
     let msg;
     try { msg = JSON.parse(body); } catch {
       res.writeHead(400, { 'Content-Type': 'application/json' });
