@@ -78,7 +78,8 @@ Systematically improve resilience:
 
 **Responsive text sizing**:
 - Use `clamp()` for fluid typography
-- Set minimum readable sizes (14px on mobile)
+- Set minimum readable body sizes (16px / 1rem on mobile)
+- Use 14px only for secondary metadata/captions when contrast and spacing are adequate
 - Test text scaling (zoom to 200%)
 - Ensure containers expand with text
 

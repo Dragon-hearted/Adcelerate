@@ -23,6 +23,16 @@ const MARKER_OPEN_TEXT = 'impeccable-live-start';
 const MARKER_CLOSE_TEXT = 'impeccable-live-end';
 
 /**
+ * Escape regex metacharacters in a fixed string so it can be safely embedded
+ * inside a `new RegExp(...)` body. We use this whenever a captured HTML
+ * attribute fragment is interpolated into a regex — those fragments routinely
+ * contain `.`, `(`, `)`, `[`, `+`, `?` etc. and must be matched literally.
+ */
+function escapeRegExp(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Hard-excluded directory patterns. These are NEVER user-facing pages and
  * matching them would silently inject tracking scripts into third-party
  * code. The user cannot turn these off via config — they are the floor.
@@ -280,9 +290,15 @@ function insertTag(content, config, port) {
   const idx = content.indexOf(config.insertAfter);
   if (idx === -1) return content;
   const after = idx + config.insertAfter.length;
-  // Preserve a single trailing newline if the anchor didn't end with one
-  const prefix = content[after] === '\n' ? content.slice(0, after + 1) : content.slice(0, after) + '\n';
-  return prefix + block + content.slice(prefix.length);
+  // Preserve a single trailing newline if the anchor didn't end with one. The
+  // synthesized '\n' MUST NOT advance the suffix cursor — slicing by
+  // `prefix.length` would otherwise drop one real byte after the anchor.
+  const hasTrailingNewline = content[after] === '\n';
+  const prefix = hasTrailingNewline
+    ? content.slice(0, after + 1)
+    : content.slice(0, after) + '\n';
+  const suffixStart = hasTrailingNewline ? after + 1 : after;
+  return prefix + block + content.slice(suffixStart);
 }
 
 /**
@@ -424,7 +440,7 @@ export function revertCspMeta(content) {
     const newContentAttr = `content=${contentAttr.quote}${originalValue}${contentAttr.quote}`;
     let newAttrs = tag.attrs.replace(contentAttr.full, newContentAttr);
     // Drop the marker attribute and any single space immediately preceding it.
-    newAttrs = newAttrs.replace(new RegExp(`\\s*${origAttr.full}`), '');
+    newAttrs = newAttrs.replace(new RegExp(`\\s*${escapeRegExp(origAttr.full)}`), '');
     const newTag = tag.full.replace(tag.attrs, newAttrs);
 
     result = result.slice(0, tag.start) + newTag + result.slice(tag.end);

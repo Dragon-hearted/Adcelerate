@@ -5,7 +5,7 @@ Identify and fix performance issues to create faster, smoother user experiences.
 Understand current performance and identify problems:
 
 1. **Measure current state**:
-   - **Core Web Vitals**: LCP, FID/INP, CLS scores
+   - **Core Web Vitals**: LCP, INP, CLS scores (INP replaced FID as a Core Web Vital on 2024-03-12; FID was fully removed from Chrome tooling on 2024-09-10)
    - **Load time**: Time to interactive, first contentful paint
    - **Bundle size**: JavaScript, CSS, image sizes
    - **Runtime performance**: Frame rate, memory usage, CPU usage
@@ -38,7 +38,8 @@ Create systematic improvement plan:
   src="hero.webp"
   srcset="hero-400.webp 400w, hero-800.webp 800w, hero-1200.webp 1200w"
   sizes="(max-width: 400px) 400px, (max-width: 800px) 800px, 1200px"
-  loading="lazy"
+  loading="eager"
+  fetchpriority="high"
   alt="Hero image"
 />
 ```
@@ -196,7 +197,8 @@ const observer = new IntersectionObserver((entries) => {
 - Use CDN
 - Server-side rendering
 
-### First Input Delay (FID < 100ms) / INP (< 200ms)
+### Interaction to Next Paint (INP < 200ms)
+> INP replaced First Input Delay (FID) as a Core Web Vital on 2024-03-12. FID is deprecated; optimize for INP.
 - Break up long tasks
 - Defer non-critical JavaScript
 - Use web workers for heavy computation
@@ -226,7 +228,7 @@ const observer = new IntersectionObserver((entries) => {
 - Performance monitoring (Sentry, DataDog, New Relic)
 
 **Key metrics**:
-- LCP, FID/INP, CLS (Core Web Vitals)
+- LCP, INP, CLS (Core Web Vitals — INP replaced FID in March 2024)
 - Time to Interactive (TTI)
 - First Contentful Paint (FCP)
 - Total Blocking Time (TBT)

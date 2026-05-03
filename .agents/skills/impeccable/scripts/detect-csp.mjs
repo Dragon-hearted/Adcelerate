@@ -88,16 +88,19 @@ export function detectCsp(cwd = process.cwd()) {
   const hits = { appendArrays: [], appendString: [], middleware: [], metaTag: [] };
 
   walk(cwd, cwd, 0, (absPath, relPath, body) => {
+    // Normalize relative path to POSIX-style so all forward-slash regexes below
+    // also match on Windows (path.relative() returns OS-native separators).
+    const rel = relPath.split(path.sep).join('/');
     const ext = path.extname(absPath);
     const base = path.basename(absPath).toLowerCase();
     const isConfig = (name) =>
-      new RegExp('(^|/)' + name + '\\.config\\.').test(relPath);
+      new RegExp('(^|/)' + name + '\\.config\\.').test(rel);
 
     // === append-arrays candidates ===
 
     // Monorepo CSP helper: packages/*/src/.../(config|security)/*
     if (SCAN_EXTS.has(ext) &&
-        /packages\/[^/]+\/src\/.*(config|next-config|security)/.test(relPath) &&
+        /packages\/[^/]+\/src\/.*(config|next-config|security)/.test(rel) &&
         MONOREPO_HELPER_SIGNALS.some((re) => re.test(body))) {
       hits.appendArrays.push(relPath);
       return;
@@ -121,7 +124,7 @@ export function detectCsp(cwd = process.cwd()) {
 
     // Inline headers in Next/Nuxt/SvelteKit/Astro/Vite config
     if (SCAN_EXTS.has(ext) &&
-        /(^|\/)(next|nuxt|vite|astro|svelte)\.config\./.test(relPath) &&
+        /(^|\/)(next|nuxt|vite|astro|svelte)\.config\./.test(rel) &&
         INLINE_HEADER_SIGNALS.every((re) => re.test(body))) {
       // Nuxt routeRules is a sub-shape of append-string; we already covered
       // nuxt-security above via return, so any remaining Nuxt CSP match here

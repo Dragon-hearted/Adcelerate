@@ -459,6 +459,10 @@ function collectColorValues(s) {
     out.push(v);
     return v;
   });
+  s.replace(RGBA_RE, (v) => {
+    out.push(v);
+    return v;
+  });
   return out;
 }
 
@@ -631,7 +635,9 @@ function extractInlineShadows(text) {
   const re = /box-shadow\s*:\s*([^`;\n]+)/gi;
   let m;
   while ((m = re.exec(text)) !== null) {
-    const value = m[1].replace(/[`.)]+$/, '').trim();
+    // Trim trailing backticks/whitespace/punctuation but never strip a balanced
+    // closing ')' — that would corrupt rgba(...)/hsl(...) values.
+    const value = m[1].replace(/[`\s.]+$/, '').trim();
     if (!value) continue;
     // Name heuristic: the noun immediately before the shadow phrase.
     // e.g. "an extra-diffused shadow: ..." -> "extra-diffused shadow"

@@ -111,7 +111,7 @@ The modern solution uses the CSS Anchor Positioning API to tether an overlay to 
 }
 ```
 
-Because the dropdown uses `position: fixed`, it escapes any `overflow` clipping on ancestor elements. The `@position-try` block handles viewport edges automatically. **Browser support**: Chrome 125+, Edge 125+. Not yet in Firefox or Safari - use a fallback for those browsers.
+Because the dropdown uses `position: fixed`, it escapes any `overflow` clipping on ancestor elements. The `@position-try` block handles viewport edges automatically. **Browser support (as of May 2026)**: Chrome/Edge 125+, Firefox 147+, Safari 26+. Some sub-properties (`position-anchor`, `position-area`) had partial support in early Chromium releases — confirm via [CanIUse](https://caniuse.com/css-anchor-positioning) and [MDN](https://developer.mozilla.org/docs/Web/CSS/anchor-name) and provide a `position: absolute` + JS fallback for older targets.
 
 ### Popover + Anchor Combo
 

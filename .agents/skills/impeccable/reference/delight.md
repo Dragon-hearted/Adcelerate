@@ -211,7 +211,7 @@ Add personality and joy through these methods:
 - Konami code unlocks special theme
 - Hidden keyboard shortcuts (Cmd+K for special features)
 - Hover reveals on logos or illustrations
-- Alt text jokes on images (for screen reader users too!)
+- Descriptive alt text for meaningful images; empty `alt=""` for decorative graphics. Reserve any humor for adjacent visible captions, never inside the alt attribute.
 - Console messages for developers ("Like what you see? We're hiring!")
 
 **Seasonal touches**:

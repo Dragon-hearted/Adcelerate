@@ -118,21 +118,21 @@ Use appropriate techniques for each animation:
 **Exit animations are faster than entrances.** Use ~75% of enter duration.
 
 ### CSS Animations
-```css
-/* Prefer for simple, declarative animations */
-- transitions for state changes
-- @keyframes for complex sequences
-- transform and opacity for reliable movement
+
+Prefer for simple, declarative animations:
+
+- `transition` for state changes
+- `@keyframes` for complex sequences
+- `transform` and `opacity` for reliable movement
 - blur, filters, masks, clip paths, shadows, and color shifts for premium atmospheric effects when verified smooth
-```
 
 ### JavaScript Animation
-```javascript
-/* Use for complex, interactive animations */
+
+Use for complex, interactive animations:
+
 - Web Animations API for programmatic control
 - Framer Motion for React
 - GSAP for complex sequences
-```
 
 ### Performance
 - **Motion materials**: Use transform/opacity for reliable movement, but use blur, filters, masks, shadows, and color shifts when they materially improve the effect

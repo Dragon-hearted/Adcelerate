@@ -18,7 +18,7 @@ Understand the current state and goals before touching anything:
 
 1. **Review completeness**:
    - Is it functionally complete?
-   - Are there known issues to preserve (mark with TODOs)?
+   - Are there pre-existing TODOs that must be preserved? (Polish must not introduce new TODOs; existing ones stay only if they reference a tracked follow-up issue.)
    - What's the quality bar? (MVP vs flagship feature?)
    - When does it ship? (How much time for polish?)
 
@@ -148,7 +148,7 @@ Every interactive element needs all states:
 
 - **All breakpoints**: Test mobile, tablet, desktop
 - **Touch targets**: 44x44px minimum on touch devices
-- **Readable text**: No text smaller than 14px on mobile
+- **Readable text**: Body text no smaller than 16px / 1rem on mobile; reserve 14px for secondary metadata/captions only
 - **No horizontal scroll**: Content fits viewport
 - **Appropriate reflow**: Content adapts logically
 
@@ -194,7 +194,7 @@ Go through systematically:
 - [ ] No layout shift on load
 - [ ] Works in all supported browsers
 - [ ] Respects reduced motion preference
-- [ ] Code is clean (no TODOs, console.logs, commented code)
+- [ ] Code is clean: no console.logs or commented-out code; no new TODOs introduced during polish; any preserved TODOs reference a tracked follow-up issue
 
 **IMPORTANT**: Polish is about details. Zoom in. Squint at it. Use it yourself. The little things add up.
 

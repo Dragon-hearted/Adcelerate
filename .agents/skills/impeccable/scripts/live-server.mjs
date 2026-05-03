@@ -61,6 +61,7 @@ const state = {
   pendingPolls: [],         // agent poll callbacks waiting for browser events
   exitTimer: null,
   sessionDir: null,         // per-session tmp dir for annotation screenshots
+  appOrigin: null,          // optional --app-origin=<url> for cross-origin browser context
 };
 
 // Cap per-annotation upload size. A full 1920×1080 PNG is typically <1 MB;
@@ -662,10 +663,13 @@ Commands:
   stop --keep-inject   Stop the server only (leave the script tag in the HTML entry)
 
 Options:
-  --background  Start detached, print connection JSON to stdout, then exit
-  --port=PORT   Use a specific port (default: auto-detect starting at 8400)
-  --keep-inject Only with stop: skip live-inject.mjs --remove
-  --help        Show this help
+  --background           Start detached, print connection JSON to stdout, then exit
+  --port=PORT            Use a specific port (default: auto-detect starting at 8400)
+  --app-origin=URL       Allow cross-origin requests (SSE/fetch) from this app origin
+                         (e.g. --app-origin=http://localhost:3000). Required when the
+                         live script runs inside a dev server on a different port.
+  --keep-inject          Only with stop: skip live-inject.mjs --remove
+  --help                 Show this help
 
 Endpoints:
   /live.js             Browser script (element picker + variant cycling)
@@ -729,17 +733,22 @@ if (args.includes('--background')) {
   });
   child.unref();
 
-  // Poll for the PID file (the child writes it once the HTTP server is listening).
+  // Poll for the PID file (the child writes it once the HTTP server is
+  // listening). A previous version accepted any PID file whose pid !==
+  // process.pid, which silently returned stale port/token from a prior
+  // crashed run. Match against the spawned child's pid AND verify the
+  // process is still alive before trusting the contents.
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
     try {
       const info = JSON.parse(fs.readFileSync(LIVE_PID_FILE, 'utf-8'));
-      if (info.pid !== process.pid) {
+      if (info.pid === child.pid) {
+        try { process.kill(info.pid, 0); } catch { throw new Error('child not alive'); }
         // Output JSON so the agent can read port + token from stdout.
         console.log(JSON.stringify(info));
         process.exit(0);
       }
-    } catch { /* not ready yet */ }
+    } catch { /* not ready yet, or stale PID file from a previous run */ }
     await new Promise(r => setTimeout(r, 200));
   }
   console.error('Timed out waiting for live server to start.');
@@ -759,6 +768,22 @@ try {
 state.token = randomUUID();
 const portArg = args.find(a => a.startsWith('--port='));
 state.port = portArg ? parseInt(portArg.split('=')[1], 10) : await findOpenPort();
+
+// Browsers DO send Origin for cross-origin EventSource/fetch (e.g. live.js
+// running inside an app at http://localhost:3000 connecting to this server on
+// :8400). Without --app-origin the SSE/POST handlers silently 403 every
+// cross-origin request from the page. Allow callers to declare the trusted
+// app origin explicitly.
+const appOriginArg = args.find(a => a.startsWith('--app-origin='));
+if (appOriginArg) {
+  const raw = appOriginArg.split('=').slice(1).join('=');
+  try {
+    const u = new URL(raw);
+    if (u.protocol === 'http:' || u.protocol === 'https:') {
+      state.appOrigin = u.origin;
+    }
+  } catch { /* ignore malformed --app-origin */ }
+}
 // Annotation screenshots live in the project root so the agent's Read tool
 // doesn't trip a per-file permission prompt. Sessioned by token so concurrent
 // projects (or quick restarts) don't collide.
