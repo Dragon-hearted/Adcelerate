@@ -228,12 +228,21 @@ export async function startTranscriptIngest(opts: IngestOptions = {}): Promise<(
     if (t) { clearTimeout(t); pending.delete(file); }
   });
 
-  // Wait for chokidar to finish the initial scan so we know all files have
-  // been queued via `add`.
-  await new Promise<void>((resolve) => watcher.once('ready', () => resolve()));
+  // Wait for chokidar to finish the initial enumeration. This is FAST even
+  // on large trees — chokidar fires `ready` after the directory walk, before
+  // our per-file ingest handlers run. Bounded with a 30s timeout so a stuck
+  // watcher (e.g. permissions error on a project dir) cannot wedge boot.
+  await Promise.race([
+    new Promise<void>((resolve) => watcher.once('ready', () => resolve())),
+    new Promise<void>((_resolve, reject) =>
+      setTimeout(() => reject(new Error('chokidar ready timeout (30s)')), 30_000),
+    ),
+  ]);
 
-  // Backfill: drain the per-file debounce timers immediately under a
-  // concurrency limit, so startup doesn't fire N parallel reads at once.
+  // Backfill runs in the BACKGROUND so server boot doesn't block on large
+  // ~/.claude/projects histories. /api/tokens/* may return partial data
+  // during the backfill window — this is eventual consistency, not a bug;
+  // every queried row is correct, the set just grows over a few seconds.
   const backfillFiles: string[] = [];
   for (const [file, t] of pending.entries()) {
     clearTimeout(t);
@@ -241,16 +250,26 @@ export async function startTranscriptIngest(opts: IngestOptions = {}): Promise<(
   }
   pending.clear();
 
-  await pLimit(backfillFiles, BACKFILL_CONCURRENCY, (file) => runIngest(file));
+  let backfillDone: Promise<void> = Promise.resolve();
+  if (backfillFiles.length > 0) {
+    backfillDone = pLimit(backfillFiles, BACKFILL_CONCURRENCY, (file) => runIngest(file))
+      .then(() => {
+        console.log(`[ingest] backfill complete (${backfillFiles.length} files)`);
+      })
+      .catch((err) => {
+        console.error('[ingest] backfill error:', err);
+      });
+  }
 
-  console.log(`[ingest] initial scan complete`);
+  console.log(`[ingest] watcher ready (backfill ${backfillFiles.length} files in background)`);
 
   return async () => {
     // Stop accepting new debounced runs.
     for (const t of pending.values()) clearTimeout(t);
     pending.clear();
-    // Drain in-flight ingests before closing the watcher so we don't strand
-    // a half-applied offset advance.
+    // Drain background backfill first, then in-flight per-file runs, before
+    // closing the watcher — otherwise we strand a half-applied offset.
+    await backfillDone;
     await Promise.allSettled([...inflightSet]);
     await watcher.close();
   };

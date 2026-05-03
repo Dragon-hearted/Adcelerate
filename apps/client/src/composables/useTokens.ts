@@ -51,6 +51,9 @@ interface TokensState {
   // async REST fallback resolves.
   costCache: Map<string, { cost_usd: number; tokens: number } | null>;
   costCacheVersion: Ref<number>;
+  // In-flight REST fetches keyed by `${session_id}|${ts}` so multiple rows
+  // rendering the same key concurrently share a single network request.
+  costFetchInflight: Map<string, Promise<{ cost_usd: number; tokens: number } | null>>;
 }
 
 let sharedState: TokensState | null = null;
@@ -76,6 +79,7 @@ function createState(): TokensState {
     controllers: { summary: null, timeseries: null, breakdown: null },
     costCache: new Map(),
     costCacheVersion: ref(0),
+    costFetchInflight: new Map(),
   };
 }
 
@@ -104,6 +108,7 @@ function resetState(s: TokensState): void {
   s.seq.breakdown = 0;
   s.costCache.clear();
   s.costCacheVersion.value = 0;
+  s.costFetchInflight.clear();
 }
 
 // Mutate the cache and bump the reactive version counter in one place so
@@ -323,31 +328,46 @@ async function findCostForEventInternal(
   const cacheKey = `${session_id}|${ts}`;
   if (s.costCache.has(cacheKey)) return s.costCache.get(cacheKey) ?? null;
 
-  try {
-    const url = `${API_BASE_URL}/api/tokens/event?session_id=${encodeURIComponent(session_id)}&ts=${ts}&window=${MATCH_WINDOW_MS}`;
-    const res = await fetch(url);
-    if (res.status === 404 || !res.ok) {
+  // De-duplicate concurrent fetches: when many rows render simultaneously
+  // and each calls findCostForEvent for the same (session_id, ts), share a
+  // single network request instead of firing N parallel ones.
+  const existing = s.costFetchInflight.get(cacheKey);
+  if (existing) return existing;
+
+  const promise = (async (): Promise<{ cost_usd: number; tokens: number } | null> => {
+    try {
+      const url = `${API_BASE_URL}/api/tokens/event?session_id=${encodeURIComponent(session_id)}&ts=${ts}&window=${MATCH_WINDOW_MS}`;
+      const res = await fetch(url);
+      if (res.status === 404 || !res.ok) {
+        setCostCache(s, cacheKey, null);
+        return null;
+      }
+      const row = (await res.json()) as TokenEvent | null;
+      if (!row || row.cost_usd == null) {
+        setCostCache(s, cacheKey, null);
+        return null;
+      }
+      const ev = coerceEvent(row);
+      const result = {
+        cost_usd: ev.cost_usd as number,
+        tokens: ev.input + ev.output + ev.cache_read + ev.cache_write_5m + ev.cache_write_1h,
+      };
+      setCostCache(s, cacheKey, result);
+      return result;
+    } catch {
+      // Network errors should not surface as an exception to UI callers —
+      // a missing cost is a routine "not yet ingested" state, not an error.
       setCostCache(s, cacheKey, null);
       return null;
+    } finally {
+      // Always release the in-flight slot once done so a future re-attempt
+      // (e.g. after a network blip) is allowed to start a fresh request.
+      s.costFetchInflight.delete(cacheKey);
     }
-    const row = (await res.json()) as TokenEvent | null;
-    if (!row || row.cost_usd == null) {
-      setCostCache(s, cacheKey, null);
-      return null;
-    }
-    const ev = coerceEvent(row);
-    const result = {
-      cost_usd: ev.cost_usd as number,
-      tokens: ev.input + ev.output + ev.cache_read + ev.cache_write_5m + ev.cache_write_1h,
-    };
-    setCostCache(s, cacheKey, result);
-    return result;
-  } catch {
-    // Network errors should not surface as an exception to UI callers —
-    // a missing cost is a routine "not yet ingested" state, not an error.
-    setCostCache(s, cacheKey, null);
-    return null;
-  }
+  })();
+
+  s.costFetchInflight.set(cacheKey, promise);
+  return promise;
 }
 
 // -----------------------------------------------------------------------------
