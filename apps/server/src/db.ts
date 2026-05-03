@@ -120,6 +120,226 @@ export function initDatabase(): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_themes_createdAt ON themes(createdAt)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_theme_shares_token ON theme_shares(shareToken)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_theme_ratings_theme ON theme_ratings(themeId)');
+
+  // Token usage tracking — populated by transcript-ingest.ts watching
+  // ~/.claude/projects/**/*.jsonl. One row per assistant turn.
+  //
+  // Path-only dedupe (transcript_file + transcript_line_offset) collides when
+  // a `.jsonl` is truncated and recreated at the same path: a row at offset N
+  // in the new file looks identical to a row at offset N in the previous
+  // incarnation, so SQLite either rejects the new row or — worse — silently
+  // dedupes legitimate new data. We pin file identity with the (dev, ino)
+  // tuple so identical paths with different underlying inodes are treated as
+  // distinct. `inode` is nullable for pre-migration rows; in that case the
+  // dedupe falls back to path-only behaviour (matching the legacy semantics).
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS token_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ts INTEGER NOT NULL,
+      session_id TEXT NOT NULL,
+      cwd TEXT,
+      git_branch TEXT,
+      model TEXT NOT NULL,
+      input INTEGER NOT NULL DEFAULT 0,
+      cache_read INTEGER NOT NULL DEFAULT 0,
+      cache_write_5m INTEGER NOT NULL DEFAULT 0,
+      cache_write_1h INTEGER NOT NULL DEFAULT 0,
+      output INTEGER NOT NULL DEFAULT 0,
+      cost_usd REAL,
+      request_id TEXT,
+      transcript_file TEXT NOT NULL,
+      transcript_line_offset INTEGER NOT NULL,
+      inode INTEGER,
+      UNIQUE(transcript_file, inode, transcript_line_offset)
+    )
+  `);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_ts ON token_events(ts)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_session ON token_events(session_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_model ON token_events(model)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_token_events_cwd ON token_events(cwd)');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS transcript_offsets (
+      file TEXT PRIMARY KEY,
+      offset INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      inode INTEGER
+    )
+  `);
+
+  // Migration mirror for token_events — same pattern as the events table above.
+  // If a future column is added to the CREATE TABLE block, add an ADD COLUMN
+  // here so existing databases pick it up without a rebuild.
+  //
+  // `inode` is nullable INTEGER. Pre-migration rows store NULL. The ingest
+  // layer treats NULL inode as a wildcard — i.e. legacy rows match by path
+  // alone (preserving the old dedupe semantics). New rows written by an
+  // up-to-date ingester carry their inode, so a path that gets rotated to
+  // a different inode no longer collides with the old row at offset N.
+  // (The table-level UNIQUE constraint stays as it was for legacy installs;
+  // rotation is also defended procedurally via inodeMap in transcript-ingest.)
+  try {
+    const tokenEventsCols = db.prepare("PRAGMA table_info(token_events)").all() as any[];
+    const expectedTokenCols: { name: string; ddl: string }[] = [
+      { name: 'ts', ddl: 'ts INTEGER NOT NULL DEFAULT 0' },
+      { name: 'session_id', ddl: 'session_id TEXT NOT NULL DEFAULT \'\'' },
+      { name: 'cwd', ddl: 'cwd TEXT' },
+      { name: 'git_branch', ddl: 'git_branch TEXT' },
+      { name: 'model', ddl: 'model TEXT NOT NULL DEFAULT \'\'' },
+      { name: 'input', ddl: 'input INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cache_read', ddl: 'cache_read INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cache_write_5m', ddl: 'cache_write_5m INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cache_write_1h', ddl: 'cache_write_1h INTEGER NOT NULL DEFAULT 0' },
+      { name: 'output', ddl: 'output INTEGER NOT NULL DEFAULT 0' },
+      { name: 'cost_usd', ddl: 'cost_usd REAL' },
+      { name: 'request_id', ddl: 'request_id TEXT' },
+      { name: 'transcript_file', ddl: 'transcript_file TEXT NOT NULL DEFAULT \'\'' },
+      { name: 'transcript_line_offset', ddl: 'transcript_line_offset INTEGER NOT NULL DEFAULT 0' },
+      { name: 'inode', ddl: 'inode INTEGER' },
+    ];
+    for (const col of expectedTokenCols) {
+      const has = tokenEventsCols.some((c: any) => c.name === col.name);
+      if (!has) {
+        db.exec(`ALTER TABLE token_events ADD COLUMN ${col.ddl}`);
+      }
+    }
+  } catch (error) {
+    // table doesn't exist or pragma failed — CREATE TABLE above handles fresh installs
+  }
+
+  // Migration mirror for transcript_offsets. `inode` is the persisted (dev,
+  // ino) hash for the file at the time the offset was recorded. On startup,
+  // if the on-disk inode doesn't match the stored inode the offset is reset
+  // to 0 so the new file incarnation is re-ingested from the top.
+  try {
+    const offsetsCols = db.prepare("PRAGMA table_info(transcript_offsets)").all() as any[];
+    const expectedOffsetCols: { name: string; ddl: string }[] = [
+      { name: 'file', ddl: 'file TEXT' },
+      { name: 'offset', ddl: 'offset INTEGER NOT NULL DEFAULT 0' },
+      { name: 'updated_at', ddl: 'updated_at INTEGER NOT NULL DEFAULT 0' },
+      { name: 'inode', ddl: 'inode INTEGER' },
+    ];
+    for (const col of expectedOffsetCols) {
+      const has = offsetsCols.some((c: any) => c.name === col.name);
+      if (!has) {
+        db.exec(`ALTER TABLE transcript_offsets ADD COLUMN ${col.ddl}`);
+      }
+    }
+  } catch (error) {
+    // table doesn't exist or pragma failed — CREATE TABLE above handles fresh installs
+  }
+}
+
+export interface TokenEventRow {
+  id?: number;
+  ts: number;
+  session_id: string;
+  cwd: string | null;
+  git_branch: string | null;
+  model: string;
+  input: number;
+  cache_read: number;
+  cache_write_5m: number;
+  cache_write_1h: number;
+  output: number;
+  cost_usd: number | null;
+  request_id: string | null;
+  transcript_file: string;
+  transcript_line_offset: number;
+  // Stable file identity (typically the OS inode number) at the time the
+  // row was ingested. Optional on the type because:
+  //   1. Legacy rows persisted before the inode migration are stored as NULL.
+  //   2. The ingest layer is the only producer that knows the inode; tests
+  //      and ad-hoc inserts may omit it.
+  // When present, two rows with the same (transcript_file, offset) but
+  // different inodes are treated as distinct (file rotation case).
+  inode?: number | null;
+}
+
+export function insertTokenEvent(row: TokenEventRow): TokenEventRow | null {
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO token_events
+      (ts, session_id, cwd, git_branch, model, input, cache_read, cache_write_5m, cache_write_1h, output, cost_usd, request_id, transcript_file, transcript_line_offset, inode)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const result = stmt.run(
+    row.ts,
+    row.session_id,
+    row.cwd,
+    row.git_branch,
+    row.model,
+    row.input,
+    row.cache_read,
+    row.cache_write_5m,
+    row.cache_write_1h,
+    row.output,
+    row.cost_usd,
+    row.request_id,
+    row.transcript_file,
+    row.transcript_line_offset,
+    row.inode ?? null
+  );
+  if (result.changes === 0) return null;
+  return { ...row, id: Number(result.lastInsertRowid) };
+}
+
+export interface TranscriptOffsetRow {
+  offset: number;
+  inode: number | null;
+}
+
+// Returns just the persisted byte offset for `file`. Kept for callers that
+// don't care about inode (e.g. legacy code paths). New callers should prefer
+// `getTranscriptOffsetRow` so they can validate the inode against the
+// current on-disk file and reset on mismatch.
+export function getTranscriptOffset(file: string): number {
+  return getTranscriptOffsetRow(file)?.offset ?? 0;
+}
+
+// Returns the persisted offset row including stored inode. NULL inode means
+// the row was written before the inode migration — callers should treat NULL
+// as a wildcard (path-only match) to preserve legacy behaviour.
+export function getTranscriptOffsetRow(file: string): TranscriptOffsetRow | null {
+  const stmt = db.prepare('SELECT offset, inode FROM transcript_offsets WHERE file = ?');
+  const row = stmt.get(file) as { offset: number; inode: number | null } | undefined;
+  if (!row) return null;
+  return { offset: row.offset, inode: row.inode };
+}
+
+export function setTranscriptOffset(file: string, offset: number, inode?: number | null): void {
+  const stmt = db.prepare(`
+    INSERT INTO transcript_offsets (file, offset, updated_at, inode) VALUES (?, ?, ?, ?)
+    ON CONFLICT(file) DO UPDATE SET
+      offset = excluded.offset,
+      updated_at = excluded.updated_at,
+      inode = excluded.inode
+  `);
+  stmt.run(file, offset, Date.now(), inode ?? null);
+}
+
+// Used by the transcript-ingest unlink handler — drop the row when its
+// underlying file is removed so the offsets table doesn't grow forever.
+export function deleteTranscriptOffset(file: string): void {
+  const stmt = db.prepare('DELETE FROM transcript_offsets WHERE file = ?');
+  stmt.run(file);
+}
+
+// Used by the /api/tokens/event REST fallback in the client's findCostForEvent.
+// Returns the closest token_events row (by |ts - target|) within the window,
+// or null if no row is within window ms.
+export function findTokenEventNear(
+  sessionId: string,
+  ts: number,
+  windowMs: number,
+): TokenEventRow | null {
+  const stmt = db.prepare(`
+    SELECT * FROM token_events
+    WHERE session_id = ? AND ABS(ts - ?) <= ?
+    ORDER BY ABS(ts - ?) ASC
+    LIMIT 1
+  `);
+  const row = stmt.get(sessionId, ts, windowMs, ts) as TokenEventRow | undefined;
+  return row ?? null;
 }
 
 export function insertEvent(event: HookEvent): HookEvent {
@@ -151,7 +371,7 @@ export function insertEvent(event: HookEvent): HookEvent {
 
   return {
     ...event,
-    id: result.lastInsertRowid as number,
+    id: Number(result.lastInsertRowid),
     timestamp,
     humanInTheLoopStatus
   };

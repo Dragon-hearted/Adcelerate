@@ -115,6 +115,9 @@
       @update-time-range="currentTimeRange = $event"
     />
 
+    <!-- Token Usage Panel -->
+    <TokenUsagePanel />
+
     <!-- Agent Swim Lane Container (below pulse chart, full width, hidden when empty) -->
     <div v-if="selectedAgentLanes.length > 0" class="w-full bg-[var(--theme-bg-secondary)] px-3 py-4 mobile:px-2 mobile:py-2 overflow-hidden">
       <AgentSwimLaneContainer
@@ -205,6 +208,7 @@ import EventTimeline from './components/EventTimeline.vue';
 import FilterPanel from './components/FilterPanel.vue';
 import StickScrollButton from './components/StickScrollButton.vue';
 import LivePulseChart from './components/LivePulseChart.vue';
+import TokenUsagePanel from './components/TokenUsagePanel.vue';
 import ThemeManager from './components/ThemeManager.vue';
 import ToastNotification from './components/ToastNotification.vue';
 import AgentSwimLaneContainer from './components/AgentSwimLaneContainer.vue';

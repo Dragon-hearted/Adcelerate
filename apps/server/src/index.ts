@@ -1,21 +1,71 @@
-import { initDatabase, insertEvent, getFilterOptions, getRecentEvents, updateEventHITLResponse } from './db';
+import { initDatabase, insertEvent, getFilterOptions, getRecentEvents, updateEventHITLResponse, db } from './db';
 import type { HookEvent, HumanInTheLoopResponse } from './types';
-import { 
-  createTheme, 
-  updateThemeById, 
-  getThemeById, 
-  searchThemes, 
-  deleteThemeById, 
-  exportThemeById, 
+import {
+  createTheme,
+  updateThemeById,
+  getThemeById,
+  searchThemes,
+  deleteThemeById,
+  exportThemeById,
   importTheme,
-  getThemeStats 
+  getThemeStats
 } from './theme';
+import { handleTokensRequest } from './routes/tokens';
+import { startTranscriptIngest } from './transcript-ingest';
 
 // Initialize database
 initDatabase();
 
 // Store WebSocket clients
 const wsClients = new Set<any>();
+
+// Bun WebSocket readyState constants: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED.
+// send() returns the number of bytes written, 0 on dropped/queued, or -1 on
+// backpressure/closed depending on the runtime. We only feed sockets that are
+// definitely OPEN, and log (don't bubble) on backpressure.
+const WS_OPEN = 1;
+
+function broadcast(message: unknown): void {
+  const payload = JSON.stringify(message);
+  for (const client of wsClients) {
+    if (client.readyState !== WS_OPEN) {
+      wsClients.delete(client);
+      continue;
+    }
+    try {
+      const result = client.send(payload);
+      if (result === -1) {
+        // Backpressure — server is producing faster than the client can drain.
+        console.warn('[ws] backpressure on client; dropping message for slow consumer');
+      }
+    } catch (err) {
+      // send() threw (e.g. socket transitioned mid-loop). Drop the client.
+      wsClients.delete(client);
+    }
+  }
+}
+
+// Capture stop thunk so SIGTERM/SIGINT can flush in-flight ingests cleanly.
+// Awaiting before Bun.serve listens removes the "ingest-not-ready race" where
+// /api/tokens/* could return empty results in the brief window between server
+// boot and watcher backfill completing. If the watcher fails to start, we log
+// and continue with a null stop thunk so signal handlers don't blow up.
+let ingestStop: (() => Promise<void>) | null = null;
+try {
+  ingestStop = await startTranscriptIngest({
+    onTokenEvent: (record) => broadcast({ type: 'token_event', data: record }),
+  });
+} catch (err) {
+  console.error('[ingest] failed to start watcher:', err);
+}
+
+// Helper to coerce query-string ints. SQLite's LIMIT/OFFSET will throw on
+// NaN — anything non-finite or non-positive falls back to defaults.
+function parsePositiveInt(raw: string | null, fallback: number): number {
+  if (raw === null) return fallback;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 // Validate WebSocket URL to prevent SSRF - only allow localhost connections
 function isAllowedWebSocketUrl(wsUrl: string): boolean {
@@ -122,18 +172,24 @@ const server = Bun.serve({
   port: parseInt(process.env.SERVER_PORT || '4000'),
   
   async fetch(req: Request) {
+   try {
     const url = new URL(req.url);
-    
-    // Handle CORS - restrict to known local origins
+
+    // Handle CORS - restrict to known local origins. For unknown origins we
+    // OMIT the Access-Control-Allow-Origin header rather than reflecting an
+    // arbitrary allowlisted value (which would mask CSRF chains in the WS auth
+    // token leak class). The browser will block the response naturally.
     const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
     const requestOrigin = req.headers.get('Origin') || '';
-    const corsOrigin = allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
-    const headers = {
-      'Access-Control-Allow-Origin': corsOrigin,
+    const isAllowedOrigin = allowedOrigins.includes(requestOrigin);
+    const headers: Record<string, string> = {
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     };
-    
+    if (isAllowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = requestOrigin;
+    }
+
     // Handle preflight
     if (req.method === 'OPTIONS') {
       return new Response(null, { headers });
@@ -154,18 +210,10 @@ const server = Bun.serve({
         
         // Insert event into database
         const savedEvent = insertEvent(event);
-        
+
         // Broadcast to all WebSocket clients
-        const message = JSON.stringify({ type: 'event', data: savedEvent });
-        wsClients.forEach(client => {
-          try {
-            client.send(message);
-          } catch (err) {
-            // Client disconnected, remove from set
-            wsClients.delete(client);
-          }
-        });
-        
+        broadcast({ type: 'event', data: savedEvent });
+
         return new Response(JSON.stringify(savedEvent), {
           headers: { ...headers, 'Content-Type': 'application/json' }
         });
@@ -188,7 +236,7 @@ const server = Bun.serve({
     
     // GET /events/recent - Get recent events
     if (url.pathname === '/events/recent' && req.method === 'GET') {
-      const rawLimit = parseInt(url.searchParams.get('limit') || '100');
+      const rawLimit = parsePositiveInt(url.searchParams.get('limit'), 100);
       const limit = Math.max(1, Math.min(rawLimit, 1000));
       const events = getRecentEvents(limit);
       return new Response(JSON.stringify(events), {
@@ -228,14 +276,7 @@ const server = Bun.serve({
         }
 
         // Broadcast updated event to all connected clients
-        const message = JSON.stringify({ type: 'event', data: updatedEvent });
-        wsClients.forEach(client => {
-          try {
-            client.send(message);
-          } catch (err) {
-            wsClients.delete(client);
-          }
-        });
+        broadcast({ type: 'event', data: updatedEvent });
 
         return new Response(JSON.stringify(updatedEvent), {
           headers: { ...headers, 'Content-Type': 'application/json' }
@@ -276,16 +317,24 @@ const server = Bun.serve({
     
     // GET /api/themes - Search themes
     if (url.pathname === '/api/themes' && req.method === 'GET') {
+      const limitParam = url.searchParams.get('limit');
+      const offsetParam = url.searchParams.get('offset');
+      const parsedLimit = limitParam !== null
+        ? (() => { const n = parseInt(limitParam, 10); return Number.isFinite(n) && n > 0 ? n : undefined; })()
+        : undefined;
+      const parsedOffset = offsetParam !== null
+        ? (() => { const n = parseInt(offsetParam, 10); return Number.isFinite(n) && n >= 0 ? n : undefined; })()
+        : undefined;
       const query = {
         query: url.searchParams.get('query') || undefined,
         isPublic: url.searchParams.get('isPublic') ? url.searchParams.get('isPublic') === 'true' : undefined,
         authorId: url.searchParams.get('authorId') || undefined,
         sortBy: url.searchParams.get('sortBy') as any || undefined,
         sortOrder: url.searchParams.get('sortOrder') as any || undefined,
-        limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!) : undefined,
-        offset: url.searchParams.get('offset') ? parseInt(url.searchParams.get('offset')!) : undefined,
+        limit: parsedLimit,
+        offset: parsedOffset,
       };
-      
+
       const result = await searchThemes(query);
       return new Response(JSON.stringify(result), {
         headers: { ...headers, 'Content-Type': 'application/json' }
@@ -435,6 +484,21 @@ const server = Bun.serve({
       });
     }
     
+    // Token usage endpoints (/api/tokens/summary, /timeseries, /breakdown, /event)
+    const tokensResponse = handleTokensRequest(url, req, headers);
+    if (tokensResponse) return tokensResponse;
+
+    // /api/tokens/* fallthrough — anything under this prefix that didn't match
+    // a handler above is either a non-GET method or an unknown subpath. Per
+    // the spec, return 405 Method Not Allowed with `Allow: GET` rather than
+    // dropping into the default banner response (which would mask client bugs).
+    if (url.pathname.startsWith('/api/tokens/')) {
+      return new Response('Method Not Allowed', {
+        status: 405,
+        headers: { ...headers, 'Allow': 'GET', 'Content-Type': 'text/plain' },
+      });
+    }
+
     // WebSocket upgrade
     if (url.pathname === '/stream') {
       const success = server.upgrade(req);
@@ -442,11 +506,18 @@ const server = Bun.serve({
         return undefined;
       }
     }
-    
+
     // Default response
     return new Response('Multi-Agent Observability Server', {
       headers: { ...headers, 'Content-Type': 'text/plain' }
     });
+   } catch (err) {
+     // Catch-all for any handler that throws (JSON parse errors not already
+     // wrapped, SQLite throws on bad input, etc). Never echo err.message to the
+     // client — that's a leak vector. The server log gets the full detail.
+     console.error('[fetch]', err);
+     return new Response('Internal Server Error', { status: 500 });
+   }
   },
   
   websocket: {
@@ -479,3 +550,35 @@ const server = Bun.serve({
 console.log(`🚀 Server running on http://localhost:${server.port}`);
 console.log(`📊 WebSocket endpoint: ws://localhost:${server.port}/stream`);
 console.log(`📮 POST events to: http://localhost:${server.port}/events`);
+
+// Graceful shutdown — order matters:
+//   1. server.stop(true) closes ALL connections (in-flight + new), preventing
+//      late requests from racing against a closing DB.
+//   2. ingestStop drains the watcher's in-flight reads + offset writes.
+//   3. db.close checkpoints the WAL and releases the file lock.
+// Each step is wrapped so a failure in one stage doesn't deadlock the others;
+// the final exit is unconditional.
+let shuttingDown = false;
+async function shutdown(sig: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[shutdown] received ${sig}`);
+  try {
+    server.stop(true);
+  } catch (e) {
+    console.error('[shutdown] server stop error:', e);
+  }
+  try {
+    if (ingestStop) await ingestStop();
+  } catch (e) {
+    console.error('[shutdown] ingest stop error:', e);
+  }
+  try {
+    db.close();
+  } catch (e) {
+    console.error('[shutdown] db close error:', e);
+  }
+  process.exit(0);
+}
+process.on('SIGTERM', () => { void shutdown('SIGTERM'); });
+process.on('SIGINT', () => { void shutdown('SIGINT'); });

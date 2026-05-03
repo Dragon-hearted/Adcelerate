@@ -27,6 +27,11 @@
             <span class="font-semibold text-[var(--theme-text-primary)]">{{ formatGap(eventTimingMetrics.avgGap) }}</span>
             <span class="text-[var(--theme-text-quaternary)] mobile:hidden">avg</span>
           </div>
+          <span class="text-[var(--theme-border-secondary)]">|</span>
+          <div class="flex items-center gap-1 text-xs tabular-nums" :title="`Spend today`">
+            <span class="font-semibold text-[var(--theme-primary)]">{{ formatCost(todayCost) }}</span>
+            <span class="text-[var(--theme-text-quaternary)] mobile:hidden">today</span>
+          </div>
         </div>
       </div>
       <div class="flex gap-0.5 bg-[var(--theme-bg-secondary)] rounded-md p-0.5 border border-[var(--theme-border-primary)]" role="tablist" aria-label="Time range selector">
@@ -86,7 +91,8 @@ import { useChartData } from '../composables/useChartData';
 import { createChartRenderer, type ChartDimensions } from '../utils/chartRenderer';
 import { useEventEmojis } from '../composables/useEventEmojis';
 import { useEventColors } from '../composables/useEventColors';
-import { formatGap } from '../utils/formatters';
+import { formatCost, formatGap } from '../utils/formatters';
+import { useTokens } from '../composables/useTokens';
 
 const props = defineProps<{
   events: HookEvent[];
@@ -157,6 +163,9 @@ const hasData = computed(() => dataPoints.value.some(dp => dp.count > 0));
 const totalEventCount = computed(() => {
   return dataPoints.value.reduce((sum, dp) => sum + dp.count, 0);
 });
+
+const { summary: tokenSummary } = useTokens();
+const todayCost = computed(() => tokenSummary.value?.today.cost_usd ?? 0);
 
 const chartAriaLabel = computed(() => {
   const rangeText = timeRange.value === '1m' ? '1 minute' : timeRange.value === '3m' ? '3 minutes' : timeRange.value === '5m' ? '5 minutes' : '10 minutes';
