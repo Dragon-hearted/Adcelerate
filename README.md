@@ -171,6 +171,7 @@ just install
 
 ```
 adcelerate/
+├── client/                 # Per-client brand, knowledge, characters, storyboards (gitignored; shared across systems)
 ├── systems/                # Independent processing systems
 │   ├── autoCaption/            # Word-highlighted caption renderer for vertical video
 │   ├── SceneBoard/             # Brief-to-storyboard CLI for short-form video

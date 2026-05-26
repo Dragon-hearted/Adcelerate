@@ -248,3 +248,6 @@ app_docs/
 
 # Worktrees
 trees/
+
+# Centralized client data — never commit (backed up at ~/scene-board-clients-backup-*)
+/client/

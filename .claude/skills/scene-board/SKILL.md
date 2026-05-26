@@ -16,7 +16,7 @@ If `.agents/product-marketing-context.md` exists (or `.claude/product-marketing-
 
 1. Greet the user and briefly explain what SceneBoard does.
 2. **Client Selection** -- Ask which client this storyboard is for:
-   - If the user names an existing client, load their brand profile from `systems/scene-board/clients/{client-name}/brand.md` and confirm the brand context. This eliminates most brand-related questions in later stages.
+   - If the user names an existing client, load their brand profile from `client/{client-name}/brand.md` and confirm the brand context. This eliminates most brand-related questions in later stages.
    - If the user names a new client, route to **[NC] New Client** to create their brand profile first.
    - If the user wants to skip client selection (one-off / no client), proceed without loading brand context.
 3. Ask which mode they need:
@@ -33,7 +33,7 @@ If `.agents/product-marketing-context.md` exists (or `.claude/product-marketing-
 Client brand knowledge and storyboard outputs are stored at:
 
 ```
-systems/scene-board/clients/{client-name}/
+client/{client-name}/
   brand.md              # Compiled brand profile (quick-reference)
   knowledge/            # Detailed brand knowledge files
   storyboards/          # Generated storyboard outputs
@@ -47,7 +47,7 @@ When a client is selected, read `brand.md` to pre-load brand voice, visual direc
 
 | Stage | Name | What Happens |
 |-------|------|--------------|
-| 0 | Client Selection | Identify client; load brand knowledge from `systems/scene-board/clients/` |
+| 0 | Client Selection | Identify client; load brand knowledge from `client/` |
 | 1 | Brief Intake | Parse the brief; classify each component as provided or missing |
 | 2 | Context Gathering | Confirm brand, audience, platform, goals; fill gaps (skips brand questions if client loaded) |
 | 3 | Dynamic Generation & Approval | Generate options for every missing component; approval gates |
@@ -118,7 +118,7 @@ See [generate-storyboard.md](generate-storyboard.md) Stage 4.5 for the full work
 
 1. **Detect** ≥2 protagonists in the approved scene breakdown.
 2. **Offer** to generate sheets; collect per-character appearance + existing reference photos.
-3. **Reuse** an existing sheet from `systems/scene-board/clients/{client}/characters/{slug}/` when a name matches (fuzzy).
+3. **Reuse** an existing sheet from `client/{client}/characters/{slug}/` when a name matches (fuzzy).
 4. **Generate** one composite image per character on a clean white studio backdrop, via a single NanoBanana Pro call (`gemini-3-pro-image-preview`, aspect `16:9`, size `2K`). The image shows 6 poses of the same character in one wide frame: large face close-up, face left profile, face right profile, back-of-head view, full-body front, full-body back.
 5. **Gate** approval with `[A]/[M]/[R]`; `[M]` supports regenerating the full sheet, editing a locked description, or swapping the sheet to an existing gallery image.
 6. **Cache** the approved sheet (`sheet.png` + `character.md`) under `clients/{client}/characters/{slug}/` for reuse.

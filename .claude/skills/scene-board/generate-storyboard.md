@@ -15,8 +15,8 @@ Identify the client and load their brand knowledge before any creative work begi
 
 1. **If a client was already selected in SKILL.md activation**, skip to confirmation.
 2. **If not**, ask: "Which client is this storyboard for?"
-   - Show known clients by checking `systems/scene-board/clients/` for existing directories.
-3. **If client exists**: Load `systems/scene-board/clients/{client}/brand.md` and present a brief summary:
+   - Show known clients by checking `client/` for existing directories.
+3. **If client exists**: Load `client/{client}/brand.md` and present a brief summary:
 
 ```
 ## Client Context Loaded: [Client Name]
@@ -42,7 +42,7 @@ This context will be used throughout the storyboard. Brand-related questions in 
    - Style preferences
    - Any visual direction from the knowledge files
 
-6. **Also load detailed knowledge** if available: read files from `systems/scene-board/clients/{client}/knowledge/` for deeper context (visual direction, brand positioning) that can inform the Style Anchor in Stage 5.
+6. **Also load detailed knowledge** if available: read files from `client/{client}/knowledge/` for deeper context (visual direction, brand positioning) that can inform the Style Anchor in Stage 5.
 
 ---
 
@@ -464,7 +464,7 @@ For unnamed characters, generate a kebab-case slug from their descriptor (`the-r
 
 1. **Detect protagonists.** List detected characters with the scene numbers they appear in.
 
-2. **Check for reusable sheets.** Scan `systems/scene-board/clients/{client}/characters/*/character.md`. For each detected character, do fuzzy (case-insensitive) name matching. If a match is found, offer:
+2. **Check for reusable sheets.** Scan `client/{client}/characters/*/character.md`. For each detected character, do fuzzy (case-insensitive) name matching. If a match is found, offer:
 
 ```
 I have an existing character sheet for [Name] from [project-name]
@@ -556,7 +556,7 @@ Do these sheets capture each character accurately?
    After any modify op, re-render the draft and re-present the gate.
 
 8. **Persist on approval.** After `[A]`:
-   - Write each character's composite `sheet.png` to `systems/scene-board/clients/{client}/characters/{slug}/`.
+   - Write each character's composite `sheet.png` to `client/{client}/characters/{slug}/`.
    - Write `character.md` with frontmatter containing `slug`, `name`, `lockedDescription`, `tags`, `createdAt`, `usedInProjects`, and a `sheet` entry with `imageId`, `imageUrl`, and `model`.
    - If the character directory already existed (reused), append the current project name to `usedInProjects` in the existing frontmatter.
 
@@ -857,7 +857,7 @@ Compile everything into a single, professional table-format storyboard document 
 If Stage 4.5 ran:
 - Assert the assembled markdown contains a `## Character Sheet` section with one subsection per character and a composite `sheet.imageId` per character (failed sheets render `_failed — retry at Stage 4.5 [M]_`).
 - Assert each scene block's final `referenceImageIds` (resolved via `resolveReferenceImageIds`) contains each present character's `sheet.imageId`.
-- Assert the per-client cache exists at `systems/scene-board/clients/{client}/characters/{slug}/` with `character.md` frontmatter listing the `sheet` image ID and the current project in `usedInProjects`.
+- Assert the per-client cache exists at `client/{client}/characters/{slug}/` with `character.md` frontmatter listing the `sheet` image ID and the current project in `usedInProjects`.
 
 ### Execution
 
@@ -954,7 +954,7 @@ If Stage 4.5 ran:
 ```
 
 2. **Save the storyboard document.**
-   - **If a client was selected in Stage 0**: Save to `systems/scene-board/clients/{client}/storyboards/{project-name}-v1.md`
+   - **If a client was selected in Stage 0**: Save to `client/{client}/storyboards/{project-name}-v1.md`
    - **If no client context**: Ask the user where they'd like it saved.
 
 3. **Generate PDF version.** After saving the markdown storyboard, generate a professional PDF:
