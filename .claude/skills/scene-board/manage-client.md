@@ -17,7 +17,7 @@
 
 ### Execution
 
-1. **Check for existing clients** by listing `systems/scene-board/clients/` directories.
+1. **Check for existing clients** by listing `client/` directories.
 2. **Ask the user:**
    - "Are you creating a new client or updating an existing one?"
    - If new: "What's the brand name?" (derive the slug: lowercase, hyphenated)
@@ -85,7 +85,7 @@ Anything to adjust?
 
 1. **Create the directory structure** (if new client):
    ```
-   systems/scene-board/clients/{client-slug}/
+   client/{client-slug}/
      knowledge/
      storyboards/
    ```
@@ -136,7 +136,7 @@ Ready to finalize?
 
 ## Stage 4 — Confirmation
 
-1. **Save all files** to `systems/scene-board/clients/{client-slug}/`.
+1. **Save all files** to `client/{client-slug}/`.
 2. **Confirm to the user:**
 
 ```
@@ -144,7 +144,7 @@ Ready to finalize?
 
 Client "{brand-name}" is ready for use in SceneBoard.
 
-Directory: systems/scene-board/clients/{client-slug}/
+Directory: client/{client-slug}/
 Files:
   - brand.md (quick-reference profile)
   - knowledge/brand-positioning.md (detailed positioning)

@@ -13,9 +13,9 @@ This workflow handles surgical revisions to an existing storyboard. Rather than 
 ### Steps
 
 1. Determine which client this storyboard belongs to:
-   - If the storyboard was saved under `systems/scene-board/clients/{client}/storyboards/`, the client is known.
+   - If the storyboard was saved under `client/{client}/storyboards/`, the client is known.
    - If not, ask the user if this is associated with a client.
-2. If a client is identified, load `systems/scene-board/clients/{client}/brand.md` for brand context.
+2. If a client is identified, load `client/{client}/brand.md` for brand context.
 3. This context informs revision decisions — ensuring changes stay on-brand.
 
 ---
@@ -26,7 +26,7 @@ This workflow handles surgical revisions to an existing storyboard. Rather than 
 
 ### Steps
 
-1. Ask the user to provide or reference the existing storyboard document. If a client was identified in Stage 0, check `systems/scene-board/clients/{client}/storyboards/` for existing storyboards.
+1. Ask the user to provide or reference the existing storyboard document. If a client was identified in Stage 0, check `client/{client}/storyboards/` for existing storyboards.
 2. Parse the document and identify all components:
    - Creative brief / concept summary
    - Style Anchor
@@ -231,7 +231,7 @@ AFTER:
    - [ ] Every NanoBanana prompt ends with "No text in image."
 
 3. **Save the updated storyboard** with the new version number:
-   - If client context exists: Save to `systems/scene-board/clients/{client}/storyboards/{project-name}-v{N}.md`
+   - If client context exists: Save to `client/{client}/storyboards/{project-name}-v{N}.md`
    - Also generate an updated PDF version alongside the markdown: `{project-name}-v{N}.pdf`
    - Keep previous versions in place (do not overwrite).
 

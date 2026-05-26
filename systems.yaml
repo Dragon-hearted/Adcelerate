@@ -65,7 +65,7 @@ scene-board:
     - "client-management"
     - "pdf-generation"
   knowledge_path: "systems/scene-board/knowledge"
-  client_directory: "systems/scene-board/clients"
+  client_directory: "client"
   input_types:
     - "video-brief"
     - "script"
