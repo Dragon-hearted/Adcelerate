@@ -4,8 +4,8 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-04-14"
-  systemCount: 7
+  lastUpdated: "2026-05-27"
+  systemCount: 8
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -97,6 +97,20 @@ systems:
       - "pinboard"
     failure_patterns: []
 
+  moodboarder:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "ffmpeg", type: "runtime" }
+      - { system: "playwright", type: "runtime" }
+      - { system: "pinterest", type: "runtime" }
+    shared_models: []
+    related_systems:
+      - "scene-board"
+      - "pinboard"
+      - "instagram-scrapper"
+      - "autocaption"
+    failure_patterns: []
+
 # Cross-system relationships
 # Schema: {from: id, to: id, type: pipeline|shared-dependency|shared-model, description: string}
 relationships:
@@ -140,6 +154,22 @@ relationships:
     to: "image-engine"
     type: "shared-dependency"
     description: "Both systems reference AI generation models — PromptWriter as the knowledge authority, ImageEngine as the execution gateway"
+  - from: "moodboarder"
+    to: "scene-board"
+    type: "pipeline"
+    description: "MoodBoarder feeds visual references that SceneBoard can use as Style Anchor input for storyboard scenes"
+  - from: "moodboarder"
+    to: "pinboard"
+    type: "shared-dependency"
+    description: "Both systems manage per-client visual reference collections in the same client/<c>/<d>/ folder convention"
+  - from: "moodboarder"
+    to: "instagram-scrapper"
+    type: "shared-dependency"
+    description: "Both systems use Playwright + cookies.json browser-login pattern for authenticated scraping"
+  - from: "moodboarder"
+    to: "autocaption"
+    type: "shared-dependency"
+    description: "Both systems use ffmpeg / ffprobe for media processing (autoCaption for audio, MoodBoarder for video keyframe extraction)"
 
 # Known failure patterns for accelerated diagnosis
 # Schema: {id: fp-NNN, description: string, diagnosed: date, resolution: string, affects: [system-id]}

@@ -248,6 +248,51 @@ readme-engine:
       produces: "Complete README.md file(s) written to disk"
   registered_at: "2026-04-13"
 
+moodboarder:
+  name: "MoodBoarder"
+  path: "systems/MoodBoarder"
+  status: "active"
+  description: "Per-client Pinterest moodboard generator. Given an image or video reference (plus optional text description), MoodBoarder analyzes the visual style with Claude vision, generates Pinterest search keywords, scrapes high-resolution images and/or videos, and assembles them into a timestamped per-client / per-deliverable folder."
+  task_types:
+    - "moodboard-generation"
+    - "pinterest-scraping"
+    - "visual-reference-collection"
+    - "mood-analysis"
+  knowledge_path: "systems/MoodBoarder/knowledge"
+  client_directory: "client"
+  input_types:
+    - "image-file"
+    - "video-file"
+    - "text-description"
+    - "client-name"
+    - "deliverable-slug"
+  output_types:
+    - "moodboard-image-collection"
+    - "moodboard-video-collection"
+    - "visual-dna-json"
+    - "search-keywords-json"
+  domain_tags:
+    - "pinterest"
+    - "ai"
+    - "visual"
+    - "scraping"
+    - "moodboard"
+    - "client-deliverable"
+  entry_point: "systems/MoodBoarder/src/cli.ts"
+  justfile: true
+  stages:
+    - name: "input-analysis"
+      produces: "Merged VisualDNA from image (single frame) or video (N ffmpeg-extracted keyframes, mode-merged categorical fields, top-5 deduped color palette)"
+    - name: "keyword-generation"
+      produces: "Exactly N (default 5) Pinterest search phrases synthesized by Claude CLI from MergedDNA + optional description"
+    - name: "pinterest-authentication"
+      produces: "Persisted cookies.json from first-run headed Chromium login; headless reuse on subsequent invocations"
+    - name: "scraping"
+      produces: "Deduplicated PinAsset[] with image (pinimg.com) and/or video (v.pinimg.com) URLs, gated by --media"
+    - name: "assembly"
+      produces: "client/<client>/<deliverable>/moodboard/moodboard_<ts>/ with images/ + videos/ subfolders (empty pruned), analysis/{visual_dna,search_keywords}.json"
+  registered_at: "2026-05-27"
+
 prompt-writer:
   name: "PromptWriter"
   path: "systems/prompt-writer"
