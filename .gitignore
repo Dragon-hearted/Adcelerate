@@ -240,8 +240,8 @@ graphify-out/
 app_docs/
 
 # Claude Code session data
-.claude/data/
-.claude/scheduled_tasks*
+**/.claude/data/
+**/.claude/scheduled_tasks*
 
 # MCP config
 .mcp.json
@@ -251,3 +251,12 @@ trees/
 
 # Centralized client data — never commit (backed up at ~/scene-board-clients-backup-*)
 /client/
+
+# Internal planning & scan artifacts — not for the public repo
+_bmad-output/
+specs/
+docs/project-*.json
+docs/project-overview.md
+docs/source-tree-analysis.md
+docs/component-inventory.md
+docs/integration-architecture.md
