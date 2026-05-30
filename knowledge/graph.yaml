@@ -52,6 +52,8 @@ systems:
   scene-board:
     depends_on:
       - { system: "bun", type: "runtime" }
+      - { system: "higgsfield", type: "runtime" }
+      - { system: "image-engine", type: "runtime" }
       - { system: "fal-ai", type: "optional" }
       - { system: "google-ai", type: "optional" }
       - { system: "remotion", type: "optional" }
@@ -141,15 +143,21 @@ relationships:
   - from: "image-engine"
     to: "scene-board"
     type: "pipeline"
-    description: "ImageEngine provides centralized image generation for SceneBoard storyboard scenes via HTTP API"
+    relationship: "fallback"
+    description: "FALLBACK image transport: SceneBoard uses the Higgsfield CLI (GPT Image 2) as the primary path and automatically falls back to ImageEngine's HTTP API (gpt-image-2 → gpt-image-1.5) when the CLI is unavailable, unauthenticated, times out, or fails. ImageEngine stays active as the fallback transport."
   - from: "image-engine"
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems provide image generation capabilities (ImageEngine via WisGate, Pinboard via fal.ai/Google AI)"
+  - from: "higgsfield"
+    to: "scene-board"
+    type: "pipeline"
+    relationship: "primary"
+    description: "PRIMARY image transport: SceneBoard shells out to the Higgsfield CLI (higgsfield generate create gpt_image_2 … --wait --json) to generate composite storyboard sheets and 4-view reference sheets with GPT Image 2. Environment prerequisite (global install + auth), not a package.json dependency."
   - from: "prompt-writer"
     to: "scene-board"
     type: "pipeline"
-    description: "PromptWriter provides centralized prompt engineering knowledge that SceneBoard references for NanoBanana Pro and Kling prompt generation"
+    description: "PromptWriter provides centralized prompt engineering knowledge that SceneBoard references for GPT Image 2 composite-sheet / reference-sheet prompt generation and the storyboard-prompt-builder methodology"
   - from: "prompt-writer"
     to: "image-engine"
     type: "shared-dependency"

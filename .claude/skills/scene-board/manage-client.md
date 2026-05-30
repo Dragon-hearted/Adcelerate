@@ -37,10 +37,18 @@ Gather the following information through targeted conversation. Batch questions 
 
 | Category | Questions |
 |---|---|
+| **Brand Category** | Is this a **clothing**, **product**, or **service** brand? (drives reference-sheet reusability in SceneBoard — see below) |
 | **Brand Essence** | Style philosophy, target audience (age, demographics), brand promise/tagline |
 | **Brand Voice** | Tone descriptors, vocabulary to use, vocabulary to avoid |
 | **Visual Direction** | Preferred settings/environments, color preferences, photographic style, lighting mood |
 | **Competitive Position** | Who are they NOT (competitors to differentiate from), closest comparisons |
+
+**`brand_category` — why it matters:** SceneBoard's Stage 4.5 generates 4-view reference sheets (character/product) that feed the composite storyboard sheet. Reusability is routed by this field:
+- **clothing** → reference sheets are **per-storyboard** (the model wears each storyboard's selected garments); intake asks which garments and whether to reuse a cached model identity or generate a new model.
+- **product** → reference sheets are **reusable common sheets** shared across storyboards (e.g. a soda can).
+- **service** → treated like `product` for any physical props/talent; often no reference sheet needed.
+
+Ask: *"What kind of brand is this — clothing/apparel, physical product, or service?"* Default to `product` if the user is unsure and the brand sells a physical good.
 
 **Valuable (ask if not provided):**
 
@@ -54,8 +62,8 @@ Gather the following information through targeted conversation. Batch questions 
 
 ### For Existing Clients
 
-1. Present the current brand.md content.
-2. Ask what needs to change.
+1. Present the current brand.md content (including the current `brand_category`).
+2. Ask what needs to change. If `brand_category` is missing from an older profile, prompt for it (clothing | product | service) and add it.
 3. Update only the specified sections.
 
 ### Approval Gate
@@ -65,6 +73,7 @@ Gather the following information through targeted conversation. Batch questions 
 
 Here's what I have so far:
 
+**Brand Category:** [clothing | product | service]
 **Brand Essence:** [summary]
 **Brand Voice:** [summary]
 **Visual Direction:** [summary]
@@ -90,7 +99,16 @@ Anything to adjust?
      storyboards/
    ```
 
-2. **Generate brand.md** — The compiled quick-reference profile:
+2. **Generate brand.md** — The compiled quick-reference profile. Include a frontmatter (or a clearly-labeled field near the top) `brand_category: clothing | product | service` so the Generate Storyboard workflow can read it for reference-sheet routing:
+
+   ```
+   ---
+   brand_category: clothing   # clothing | product | service
+   ---
+   ```
+
+   Body sections:
+   - Brand Category (clothing | product | service) — and one line on what it implies for reference sheets
    - Brand Essence (philosophy, target, archetype, promise)
    - Brand Voice (tone, use/avoid vocabulary)
    - Style Philosophy (key attributes)

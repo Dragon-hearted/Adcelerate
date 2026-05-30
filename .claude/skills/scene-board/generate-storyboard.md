@@ -1,8 +1,9 @@
 # Generate Storyboard — Full Workflow
 
 **Trigger:** User selects `[GS] Generate Storyboard` from SKILL.md
-**Goal:** Take any creative brief and transform it into a complete, production-ready storyboard with NanoBanana Pro prompts for each scene.
+**Goal:** Take any creative brief and transform it into a complete, production-ready two-phase deliverable: **Phase 1** — one composite multi-panel storyboard sheet image per ≤15-second block (generated with GPT Image 2 via the Higgsfield CLI), and **Phase 2** — a cinematic video prompt produced after the sheet is approved.
 **Pipeline:** 8 sequential stages (Stage 0-7), each gated by explicit user approval.
+**Image provider:** Higgsfield CLI (`gpt_image_2`) is primary; ImageEngine HTTP (`gpt-image-2` → `gpt-image-1.5`) is the automatic fallback.
 
 ---
 
@@ -160,17 +161,17 @@ Fill every gap identified in Stage 1 through targeted conversation with the user
    **Product Images (Required Question):**
    - Do you have product images or photos for the items featured in this video? (e.g., product shots, flat-lays, lifestyle photos of the actual garments/items)
 
-   **Why this matters:** Product images are used as NanoBanana Pro reference images during generation. Without them, the AI generates its interpretation of the product, which often misses specific design details (prints, trim colors, logo placement, fabric texture). With actual product photos as references, generation accuracy improves dramatically — the AI matches the real product instead of inventing one.
+   **Why this matters:** Product images are used as **GPT Image 2 reference images** (via Higgsfield `--image`, repeatable up to ~8; ImageEngine fallback caps at 3) during reference-sheet and composite-sheet generation. Without them, the AI generates its interpretation of the product, which often misses specific design details (prints, trim colors, logo placement, fabric texture). With actual product photos as references, generation accuracy improves dramatically — the AI matches the real product instead of inventing one.
 
    **If the user provides product images:**
    - Save/note them as reference assets for this storyboard project
-   - These will be automatically included as reference images in Stage 6 for every scene where the product appears
-   - Product-hero scenes (close-ups, reveals) should use Faithful creative mode with the product image as primary reference
+   - They feed the Stage 4.5 product reference sheet and are attached to the Stage 6 composite-sheet generation as reference images
+   - For clothing brands, the brand's garment photos are also passed as references when rendering the character reference sheet
 
    **If the user cannot provide product images:**
    - Acknowledge and proceed — this is not a blocker
    - Note in the context summary: "Product images: Not available — generation will rely on text descriptions only"
-   - In Stage 6, prompts must be extra-specific about product details (print patterns, colors, fabric, design elements) to compensate for missing visual references
+   - In the Phase 1 prompt, be extra-specific about product details (print patterns, colors, fabric, design elements) to compensate for missing visual references
 
    **Additional:**
    - Are there other existing brand assets to incorporate? (logos, footage, mood boards)
@@ -384,197 +385,185 @@ Anything to adjust, or shall we move on?
 ## Stage 4 — Scene Breakdown (4/7)
 
 ### Purpose
-Break the approved script into individual shots. Each shot change = one scene = one image to generate.
+Break the approved script into **panels**. Each panel becomes one numbered cell in the composite storyboard sheet (and later one shot in the Phase 2 video prompt). Each ≤15-second block of the video maps to **one sheet**; videos longer than 15s are split across multiple sheets.
+
+### Panel & Sheet Rules
+
+- **Variable panel duration.** Drop the legacy "1 panel ≈ 1 second" assumption. A single panel may span more than one second (e.g. an establishing shot might be `00:00-00:03`). The only hard rules are: per-panel timecodes within a sheet **sum to that sheet's ≤15s window**, and a sensible **panel cap (≤ ~15, sized to the grid)**.
+- **Grid mapping** (panels per sheet → grid): 9 → 3×3, 12 → 3×4, 15 → 3×5 (default), 20 → 4×5. Vertical 9:16 flips rows×cols (e.g. 15 → 5×3). Choose the panel count from story complexity; default 15.
+- **Multi-sheet splitting (>15s).** If the target duration exceeds 15s, split into N sheets, one per ≤15s block, with **continuing timecodes** (Sheet 2 starts where Sheet 1 ended). The composer helper `splitIntoSheets(beats, durationSeconds)` in `src/storyboard-sheet-prompt.ts` produces the per-sheet specs.
 
 ### Execution
 
 1. **Analyze the approved script** (and voice script + on-screen text if applicable).
 
-2. **Break into scenes.** Each distinct visual moment gets its own scene. A new scene starts when:
+2. **Break into panels.** Each distinct visual beat gets its own panel. A new panel starts when:
    - The subject changes
    - The location/setting changes
    - The camera angle significantly shifts
    - A new concept or beat in the script begins
    - A transition occurs
 
-3. **Build the scene table.** For each scene:
+   Vary shot types across the sequence (never repeat the same shot type in consecutive panels) and follow a three-act arc (setup → inciting incident → rising tension → climax → denouement).
+
+3. **Build the panel table.** For each panel:
 
 ```
-### Scene [N]
-- **Timestamp:** [start] — [end] ([duration])
-- **Script Line:** "[The portion of the script for this scene]"
-- **Voice Script:** "[The voice-over line for this scene, if applicable]"
-- **On-Screen Text:** "[Text overlay for this scene, if applicable]"
-- **Visual Note:** [Brief description of what happens visually — action, movement, key elements]
+### Panel [N]  (Sheet [S])
+- **Timecode:** [start] — [end] ([duration])
+- **Shot Type:** [Wide / Medium / Close-up / Low Angle / High Angle / Dynamic / OTS / Macro]
+- **Script Line:** "[The portion of the script for this panel]"
+- **Voice Script:** "[The voice-over line for this panel, if applicable]"
+- **On-Screen Text:** "[Text overlay for this panel, if applicable]"
+- **Shot Caption:** [The one-line description that will appear under this panel in the sheet]
+- **Visual Note:** [What happens visually — action, movement, key elements]
 ```
 
-4. **Verify duration arithmetic**: Assert that the sum of all individual scene durations equals the target video duration confirmed in Stage 2. If there is a mismatch, reconcile before presenting to the user. Flag any discrepancy: "Total scene duration is [X]s but target duration is [Y]s — adjusting scene [N] to reconcile."
+4. **Verify duration arithmetic**: Assert that the per-panel timecodes within each sheet sum to that sheet's window (≤15s) and that all sheets together sum to the target video duration confirmed in Stage 2. Reconcile before presenting. Flag any discrepancy: "Sheet [S] panels sum to [X]s but the block is [Y]s — adjusting panel [N] to reconcile."
 
-5. **Present the full breakdown** as a numbered list of all scenes.
+5. **Present the full breakdown** grouped by sheet (Sheet 1: panels 1–N, Sheet 2: …), as a numbered list.
 
-6. **Call out pacing explicitly:** "The total comes to [N] scenes across [duration]. Here's how the pacing breaks down: [fast-paced opening / steady middle / punchy close / etc.]. Does this pacing feel right for [platform]?"
+6. **Call out pacing explicitly:** "The total comes to [N] panels across [M] sheet(s) / [duration]. Here's how the pacing breaks down: [fast-paced opening / steady middle / punchy close]. Does this pacing feel right for [platform]?"
 
 7. **Approval Gate.**
 
 ```
 --- Stage: Scene Breakdown (4/7) ---
 
-[Full scene breakdown above]
+[Full panel breakdown above, grouped by sheet]
 
-Total: [N] scenes | [duration] total
+Total: [N] panels | [M] sheet(s) | [duration] total
 Pacing: [description]
 
 ---
-[A] Approve — Lock in this scene breakdown
-[M] Modify — Adjust scene splits, durations, or content
-[R] Reject — Rethink the scene structure entirely
+[A] Approve — Lock in this panel breakdown
+[M] Modify — Adjust panel splits, timecodes, sheet boundaries, or content
+[R] Reject — Rethink the panel structure entirely
 
-Should I adjust any scene splits or timing, or does this feel right?
+Should I adjust any panel splits or timing, or does this feel right?
 ```
 
 ---
 
-## Stage 4.5 — Character Sheet (optional) (4.5/7)
+## Stage 4.5 — Reference Sheet stage (optional) (4.5/7)
 
 ### Purpose
-When the script has ≥2 protagonists, generate one composite reference sheet per character — a single wide image on a clean white studio backdrop showing all 6 poses of the same character (large face close-up, face left profile, face right profile, back-of-head view, full-body front, full-body back). Every scene downstream can pin each character's identity pixel-for-pixel by injecting this single composite as a reference image. Skip entirely when fewer than 2 protagonists are detected or the user declines.
+Generate **4-view reference sheets** — for **characters and/or products** — on a neutral grey background, so the composite storyboard sheet can pin each subject's identity by receiving these sheets as **reference images**. A single storyboard may use **multiple character AND product sheets together** (e.g. a model holding a soda can), all passed as references up to the provider's reference cap (~8 on Higgsfield; 3 on the ImageEngine fallback). Skip entirely when no subject warrants a sheet or the user declines.
 
 This stage runs **between Stage 4 (Scene Breakdown) and Stage 5 (Visual Direction)** so that:
-- The cast is fully known (scene breakdown is locked).
-- Composite sheet reference IDs exist before Stage 6 composes scene prompts.
-- Style Anchor (Stage 5A) can be written knowing which characters are sheet-locked.
+- The cast and featured products are fully known (panel breakdown is locked).
+- Reference-sheet images exist before Stage 6 composes the Phase 1 composite-sheet prompt.
+- Style Anchor (Stage 5A) can be written knowing which subjects are sheet-locked. (The Style Anchor fills the `[INSERT DESIRED STYLE]` slot of each sheet; for a first pass, use a provisional style and re-render after 5A if needed.)
 
-### Protagonist Detection Heuristic
+### Subject Detection
 
-Scan the approved script and scene breakdown. Count a subject as a **protagonist** when it is:
-- a human or animal character, AND
-- performs dialogue OR visible action in at least one scene, AND
-- is named OR described by a consistent distinctive referent across ≥2 scenes (e.g. "the runner", "the barista", "Alex").
+Scan the approved script and panel breakdown.
 
-Do **NOT** count:
-- Voice-over narrators with no on-screen appearance
-- Crowd/background figures with no individual beat
-- Product-only subjects (unless anthropomorphized)
+**Character subjects** — count a subject as a character when it is a human/animal that performs dialogue or visible action and recurs across ≥2 panels (named or by a consistent referent, e.g. "the runner", "Alex"). Do NOT count voice-over-only narrators or background crowds.
 
-If ≥2 protagonists are detected, proceed. If <2, announce "Only 1 protagonist detected — skipping character sheet" and advance to Stage 5.
+**Product subjects** — count the featured brand product(s) shown as a hero or in-use element across ≥2 panels (e.g. the soda can, the sneaker, the device).
 
-For unnamed characters, generate a kebab-case slug from their descriptor (`the-runner`, `the-barista`) and ask the user to confirm or rename the slug before generating. The slug is the key used in `ScenePrompt.characters` and in the per-client cache.
+For unnamed subjects, generate a kebab-case slug from the descriptor (`the-runner`, `cola-can`) and ask the user to confirm or rename it. The slug keys the reference-sheet entry and the cache path.
+
+### `brand_category` routing (read from `client/{client}/brand.md`)
+
+| brand_category | Reference sheets | Cache path | Clothing intake |
+|---|---|---|---|
+| `clothing` | **Per-storyboard** | `client/{client}/storyboards/{project}/references/{slug}/` | Ask which garments the model wears; ask reuse-vs-new model |
+| `product` | **Reusable common sheets** (shared across storyboards) | `client/{client}/references/{slug}/` | n/a |
+| `service` | Optional; treat like `product` for physical props/talent | `client/{client}/references/{slug}/` | n/a |
+
+If no client is selected (one-off), default to the `product` (reusable) path under a project-local `references/` dir.
 
 ### Execution
 
-1. **Detect protagonists.** List detected characters with the scene numbers they appear in.
+1. **Detect subjects.** List detected characters and products with the panel numbers they appear in, and the sheet **type** (character / product) for each.
 
-2. **Check for reusable sheets.** Scan `client/{client}/characters/*/character.md`. For each detected character, do fuzzy (case-insensitive) name matching. If a match is found, offer:
+2. **Check for reusable sheets.**
+   - **product** brands: scan `client/{client}/references/*/reference.md`; fuzzy-match each product. If a match exists, offer to reuse it as-is or regenerate.
+   - **clothing** brands: scan for a cached **model identity** under `client/{client}/storyboards/*/references/*/reference.md`. Reuse re-renders the cached identity wearing this storyboard's selected garments.
 
-```
-I have an existing character sheet for [Name] from [project-name]
-(dated [date]). Reuse it, or generate a new one?
-
-[R] Reuse — carry over the existing portrait + locked description
-[N] New — generate fresh for this project
-```
-
-On `[R]`, parse the frontmatter and populate the `CharacterRegistry` entry for that character without any new generation.
-
-3. **Offer character sheet generation.** For characters that weren't reused:
+3. **Offer reference-sheet generation.**
 
 ```
-I see [N] characters appearing across the script: [A], [B][, ...].
-Want me to generate a character sheet — one composite reference
-image per character on a clean white studio backdrop, showing 6
-poses of the same character (large face close-up, left/right face
-profiles, back-of-head, full-body front, full-body back) in a
-single wide frame — so the image engine can reuse it across every
-scene and keep the cast visually consistent?
+I see these subjects across the script:
+  • [Character A] (character) — panels 1,3,7
+  • [Product X] (product) — panels 2,5,9
 
-[Y] Yes — generate a character sheet
-[N] No — skip it, I'll rely on text descriptions only
+Want me to generate 4-view reference sheets (neutral grey background)
+so the storyboard sheet stays visually consistent?
+
+[Y] Yes — generate reference sheets
+[N] No — skip; I'll rely on text DNA + Style Anchor only
 ```
 
-On `[N]`, record the decision in the pipeline log and advance to Stage 5. `CharacterRegistry` stays empty.
+On `[N]`, record the decision and advance to Stage 5. No reference sheets are produced.
 
-4. **Intake (on `[Y]`).** For each character needing generation, collect:
-   - **Appearance** (age, build, hair, skin, expression range, signature clothing). The more locked-down the description, the more consistent the sheet.
-   - **Existing reference photos** (optional) — gallery image IDs or file paths. If provided, they are passed as `sourceRefImageIds` to the sheet generation.
+4. **Intake (on `[Y]`).**
 
-   Use this block per character:
+   **For each character subject**, collect:
+   - **Appearance** (age, build, hair, skin, expression range, signature features).
+   - **Existing reference photos** (optional) — file paths / gallery IDs, passed as additional references to sheet generation.
+
+   **For clothing brands**, additionally:
+   - **Which garments does the model wear in this storyboard?** (select from the brand's catalog; pass the brand's product photos as additional references where available.)
+   - **Reuse vs. new model:**
 
 ```
-Character: [Character A]
-  Appearance: ?
-  Existing refs (optional): ?
+This is a clothing brand. For [Character / model]:
 
-Character: [Character B]
-  Appearance: ?
-  Existing refs (optional): ?
+[R] Reuse cached model identity — re-render the saved model wearing the new outfit
+[N] New model this storyboard — generate a fresh model identity
 ```
 
-   For any character where the user doesn't provide appearance details, generate a best-guess description from the script and present it for confirmation before moving to generation.
+   **For each product subject**, collect product details (form factor, colour, materials, finish, hardware, distinctive surface detail) to fill the product template slots.
 
-5. **Generate the composite sheet.** For each character, call `generateCharacterSheet()` (from `systems/scene-board/src/character-sheet-generator.ts`). The helper emits exactly one image per character.
+   For any subject where appearance/details are missing, draft a best-guess description from the script and confirm before generating.
 
-   Sheet generation uses one `generateSingle()` call per character with these parameters:
+5. **Generate the 4-view sheet(s).** For each subject, the reference-sheet generator `generateReferenceSheets()` in `src/reference-sheet-generator.ts` calls `image-provider.generateImage()` (**Higgsfield `gpt_image_2` primary → ImageEngine `gpt-image-2`/`gpt-image-1.5` fallback**). Prompts are built per subject type by `composeCharacterSheetPrompt()` / `composeProductSheetPrompt()`; `readBrandCategory()` + `resolveSheetDir()` route the cache path. Parameters:
 
 | Parameter | Value |
 |---|---|
-| Model | `gemini-3-pro-image-preview` (NanoBanana Pro) |
+| Provider | Higgsfield CLI (primary) → ImageEngine (fallback) |
+| Model | `gpt_image_2` (Higgsfield) / `gpt-image-2` (fallback) |
 | Aspect ratio | `16:9` |
-| Image size | `2K` |
-| forceImage | `true` |
-| referenceImageIds | `character.sourceRefImageIds` if the user supplied reference photos, else omitted |
-| systemInstruction | the Character Reference Sheet system instruction (see character-sheet-generator.ts) |
-| prompt | Style Anchor preamble + locked description + the six-panel layout description |
+| Quality / Resolution | `high` / `2k` |
+| Reference images (`--image`) | the user's supplied photos (+ brand garment photos for clothing) — repeatable, up to ~8 |
+| Prompt | the 4-view template for the subject type, with `[INSERT DESIRED STYLE]` filled from the Style Anchor and the bracketed subject/garment slots filled from the locked description |
 
-   Budget warning is raised before the call if ≥80% of the token ceiling is used. If the call hits a 429 (WisGate rate limit on Gemini 3 Pro — see `knowledge/reference_wisgate_provider_behavior.md`), the helper should retry with `gemini-2.5-flash-image` and record the fallback in the registry's `model` field.
+   **Character template** (four views): `[VIEW 1 — FULL BODY, FRONT]`, `[VIEW 2 — FULL BODY, REAR]`, `[VIEW 3 — FRONT CLOSE-UP]`, `[VIEW 4 — PROFILE CLOSE-UP]`, on a neutral grey background, clean studio lighting (soft key upper-left, gentle fill from the right), consistent identity across views, **no text, no watermarks, no extra figures, no background environment**.
 
-6. **Render the draft.** Assemble a partial storyboard containing only:
-   - `## Project Overview`
-   - `## Style Anchor` (if Stage 5A has already run for a retry — otherwise a placeholder)
-   - `## Character Sheet` (with one composite sheet per character)
+   **Product template** (four views): `[VIEW 1 — FRONT, THREE-QUARTER]`, `[VIEW 2 — REAR, STRAIGHT-ON]`, `[VIEW 3 — FRONT CLOSE-UP]`, `[VIEW 4 — PROFILE, LEFT SIDE]`, photorealistic product-photography style, same lighting/no-text rules.
 
-   Use `assembleCharacterSheetDraft()` from `storyboard-assembler.ts`. Present the draft to the user with the approval gate.
+   Generation runs per subject in parallel with per-subject error handling. If both providers fail for a subject, its sheet stays undefined and the error surfaces in the gate as `_failed — retry at Stage 4.5 [M]_`.
+
+6. **Render the draft.** Assemble a partial storyboard containing only `## Project Overview`, `## Style Anchor` (placeholder if 5A hasn't run), and `## Reference Sheets` (one 4-view sheet per subject, grouped by type). Present to the user with the approval gate.
 
 7. **Approval Gate.**
 
 ```
---- Stage: Character Sheet (4.5/7) ---
+--- Stage: Reference Sheets (4.5/7) ---
 
-[Draft storyboard with one composite sheet per character]
+[Draft with one 4-view sheet per subject]
 
-[A] Approve — Lock in the character sheet and continue to Visual Direction
-[M] Modify — Regenerate the full sheet, edit a locked description, or swap the sheet to a gallery image
-[R] Reject — Discard all sheets and redo the character sheet from scratch
+[A] Approve — Lock in the reference sheets and continue to Visual Direction
+[M] Modify — Regenerate a sheet, edit a locked description/garments, swap to an existing image, or toggle reuse/new model
+[R] Reject — Discard all sheets and redo from scratch
 
-Do these sheets capture each character accurately?
+Do these sheets capture each subject accurately?
 ```
 
-   **`[M] Modify` sub-operations:**
-   - `Regenerate full sheet for [name]` → re-run the single `generateCharacterSheet()` call.
-   - `Edit locked description for [name]` → update text only; sheet stays.
-   - `Swap sheet for [name] to gallery image [id]` → set `character.sheet.imageId` directly, skipping generation.
+   **`[M] Modify` sub-operations:** regenerate a subject's sheet; edit a locked description or garment selection; swap a sheet to an existing cached/gallery image; for clothing, toggle `[R] Reuse` ↔ `[N] New` model. Re-render and re-present after each op.
 
-   After any modify op, re-render the draft and re-present the gate.
+8. **Persist on approval.** After `[A]`, write each subject's `sheet.png` + `reference.md` to its `brand_category`-routed cache path (frontmatter: `slug`, `name`, `type` (character|product), `lockedDescription`, `garments` (clothing), `createdAt`, `usedInProjects`, `sheet` with `imagePath`/`imageUrl`/`provider`/`model`). For reused product sheets, append the project to `usedInProjects`.
 
-8. **Persist on approval.** After `[A]`:
-   - Write each character's composite `sheet.png` to `client/{client}/characters/{slug}/`.
-   - Write `character.md` with frontmatter containing `slug`, `name`, `lockedDescription`, `tags`, `createdAt`, `usedInProjects`, and a `sheet` entry with `imageId`, `imageUrl`, and `model`.
-   - If the character directory already existed (reused), append the current project name to `usedInProjects` in the existing frontmatter.
+9. **Set `appearsInPanels`.** Populate each subject's panel list from the breakdown. This drives the "Appears in Panels" line and the reference-image resolution into the composite sheet.
 
-9. **Set `appearsInScenes`.** Populate each `Character.appearsInScenes` from the scene breakdown (which scenes' visual notes mention the character). This drives the "Appears in Scenes" line in the final storyboard section.
-
-10. **Advance to Stage 5.** The populated `CharacterRegistry` is handed forward.
+10. **Advance to Stage 5.** All approved reference sheets are handed forward; `resolveSheetReferences()` in `src/reference-sheet-generator.ts` collects them (capped at the provider limit — 8 Higgsfield / 3 ImageEngine) as the reference-image list for Stage 6's composite-sheet generation. The end-to-end flow is wired by `orchestrateStoryboard()` in `src/orchestrate.ts`.
 
 ### Skip Conditions (no-op path)
 
-Stage 4.5 is skipped silently when:
-- Fewer than 2 protagonists are detected, OR
-- The user answers `[N]` at the offer prompt.
-
-In both cases:
-- `CharacterRegistry` stays empty.
-- `ScenePrompt.characters` stays undefined throughout Stages 5 and 6.
-- `resolveReferenceImageIds()` returns `scene.referenceImageIds` unchanged → the Scene-1 anchor chaining works exactly as today.
-- The final storyboard template's `## Character Sheet` section renders as empty and is omitted.
+Stage 4.5 is skipped silently when no subject warrants a sheet or the user answers `[N]`. In that case the composite sheet (Stage 6) is generated from text DNA + Style Anchor alone, and the `## Reference Sheets` section is omitted from the final storyboard.
 
 ---
 
@@ -591,7 +580,7 @@ Establish the visual identity for the entire storyboard, then define per-scene v
 
 The Style Anchor is the visual DNA of the storyboard. Every scene inherits from it. It MUST be locked in before any per-scene work begins.
 
-**If Stage 4.5 ran and the Character Sheet is populated:** each character's `lockedDescription` is already authoritative. The Style Anchor MUST NOT redefine physical appearance for those characters — it may only constrain their stylistic treatment (lighting, palette, mood, camera framing). The "Character Consistency Protocol" subsection below still gets written, but for sheet characters it should reference the registry rather than restate physical details ("see Character Sheet entry for [Name]" with a short 1-line summary for readability).
+**If Stage 4.5 ran and reference sheets are populated:** each subject's `lockedDescription` is already authoritative. The Style Anchor MUST NOT redefine physical appearance for those subjects — it may only constrain their stylistic treatment (lighting, palette, mood, camera framing). The "Character Consistency Protocol" subsection below still gets written, but for sheet subjects it should reference the sheet entry rather than restate physical details ("see Reference Sheet entry for [Name]" with a short 1-line summary for readability).
 
 #### Execution
 
@@ -641,8 +630,8 @@ The Style Anchor is the visual DNA of the storyboard. Every scene inherits from 
 - **Lighting Progression:** [How lighting changes across scenes, if at all — e.g., "golden hour throughout" or "morning to midday progression"]
 - **Background Anchors:** [Specific background elements that must recur to maintain spatial continuity — e.g., "basketball hoop visible in wide shots", "gallery track lighting overhead"]
 
-### NanoBanana Preamble
-- **NanoBanana Preamble** (200-400 chars): A condensed text encoding of the above constraints, to be included verbatim at the start of every NanoBanana Pro prompt for this project.
+### Sheet Style Block
+- **Sheet Style Block** (200-400 chars): A condensed text encoding of the above constraints (style genre, palette, lighting, camera conventions). It is woven into the Phase 1 composite-sheet prompt (sections B + D) and fills the `[INSERT DESIRED STYLE]` slot of every reference sheet.
 ```
 
 2. **Approval Gate.**
@@ -664,177 +653,193 @@ Does this visual direction match your vision?
 
 ---
 
-### 5B — Per-Scene Visual Direction
+### 5B — Per-Panel Visual Direction
 
 #### Execution
 
-4. **For each scene from the locked-in breakdown**, write detailed visual direction:
+4. **For each panel from the locked-in breakdown**, write detailed visual direction. These feed the per-panel descriptions (section F) of the Phase 1 composite-sheet prompt:
 
 ```
-### Scene [N] — Visual Direction
+### Panel [N] (Sheet [S]) — Visual Direction
 - **Subject:** [Who or what is in the frame — specific and detailed]
-- **Characters Present:** [List of character slugs from the Character Sheet that appear in this scene, or "none" if no sheet characters are present. Drives tier-0 reference injection in Stage 6.]
+- **Subjects Present:** [List of subject slugs (character/product) from the Reference Sheets that appear in this panel, or "none". All approved reference sheets feed the sheet's reference-image list; this field tells the composer which subject DNA to weave into this panel's description.]
 - **Environment:** [Setting, location, background elements]
 - **Camera:** [Angle, framing, movement — inherits from Style Anchor unless overridden]
-- **Lighting:** [Scene-specific lighting — inherits from Style Anchor unless overridden]
+- **Lighting:** [Panel-specific lighting — inherits from Style Anchor unless overridden]
 - **Composition:** [Key elements, focal points, rule-of-thirds placement, negative space]
-- **Mood:** [Emotional tone of THIS specific scene]
-- **Key Detail:** [The one thing that MUST be right for this scene to work]
+- **Mood:** [Emotional tone of THIS specific panel]
+- **Key Detail:** [The one thing that MUST be right for this panel to work]
 - **Consistency Anchors:** [Which elements from the Character Consistency Protocol and Environment Consistency Rules apply here. Flag any intentional deviations from the Style Anchor]
-- **Reference Chain:** [If this scene should use a previous scene's generated image as a reference for consistency, note it: e.g., "Reference Scene 1 output for character face/body continuity." Scene 1 typically has no reference chain — it establishes the visual baseline. When the Character Sheet is active, character view references are handled automatically via the Characters Present field; only declare Reference Chain entries for environment/prop continuity.]
 ```
 
-5. **Present all scene visual directions** together as a single document for review.
+> **Note:** There is no per-scene `dependsOn`/reference-chain anymore — the whole block renders as **one composite sheet image**, so panel-to-panel continuity is handled within a single generation. The reference sheets (character + product) are attached once to the sheet generation via `resolveSheetReferences()`; do not list them per panel.
+
+5. **Present all panel visual directions** together as a single document for review.
 
 6. **Approval Gate.**
 
 ```
---- Stage: Per-Scene Visual Direction (5/7 — Sub-stage B) ---
+--- Stage: Per-Panel Visual Direction (5/7 — Sub-stage B) ---
 
-[All scene visual directions above]
+[All panel visual directions above]
 
 ---
 [A] Approve — Lock in all visual directions
-[M] Modify — Tell me which scenes to adjust and how
-[R] Reject — Rethink the visual approach for all scenes
+[M] Modify — Tell me which panels to adjust and how
+[R] Reject — Rethink the visual approach for all panels
 
-Any scenes need a different visual treatment, or are we good?
+Any panels need a different visual treatment, or are we good?
 ```
 
 ---
 
-## Stage 6 — NanoBanana Pro Prompt Generation (6/7)
+## Stage 6 — Composite Sheet + Cinematic Video Prompt (6/7)
 
-### Purpose
-Compose production-ready image generation prompts for each scene, formatted for NanoBanana Pro.
-
-### NanoBanana Pro Prompt Structure
-
-Each prompt consists of:
-- **System Instruction** (max 512 characters): A creative mode preamble that sets the generation context
-- **Prompt** (max 8192 characters): The full scene description
-- **Creative Mode**: One of four modes
-- **Reference Images**: Up to 3 references with guidance
-- **Aspect Ratio**: Matching the target platform
-
-### Creative Mode Selection Guide
-
-| Mode | Use When |
-|------|----------|
-| **Faithful** | Product shots, brand assets, anything requiring accuracy to a reference |
-| **Expressive** | Creative campaigns, lifestyle imagery, emotional scenes |
-| **Vision** | Abstract concepts, mood imagery, artistic/conceptual scenes |
-| **Image Asset** | Isolated graphics, icons, elements on transparent/solid backgrounds |
-
-### Execution
-
-1. **For each scene**, compose the image prompt:
-
-```
-### Scene [N] — NanoBanana Pro Prompt
-
-**Creative Mode:** [Faithful / Expressive / Vision / Image Asset]
-**Aspect Ratio:** [9:16 / 16:9 / 1:1 / 4:5]
-**Render Method:** [nanobanana-pro / remotion]
-
-**System Instruction:**
-[Max 512 characters. Set the creative context for this scene type. Example: "You are generating a cinematic product lifestyle photograph for a premium skincare brand. Focus on warm, golden-hour lighting with shallow depth of field."]
-
-**Prompt:**
-[Style Anchor preamble — 1-2 sentences summarizing the locked-in visual identity]
-[Scene context — what moment in the story this captures]
-[Subject — detailed description of who/what is in the frame]
-[Environment — setting, background, spatial context]
-[Camera — angle, framing, lens feel, movement suggestion]
-[Lighting — scene-specific lighting description]
-[Composition — focal points, element placement, depth]
-[Brand elements — any logo, color, or identity elements in frame]
-[Mood — emotional quality of the image]
-No text in image.
-
-**Reference Guidance:**
-- Reference 1: [What to look for / what aspect to match]
-- Reference 2: [What to look for / what aspect to match]
-- Reference 3: [What to look for / what aspect to match]
-(Or: No references needed for this scene)
-```
-
-1b. **Consistency Check** — Before finalizing each scene's prompt, verify:
-   - [ ] Character physical description matches the Character Consistency Protocol from the Style Anchor EXACTLY (same skin tone, hair, build descriptors)
-   - [ ] Clothing continuity maintained — base outfit elements present unless the script explicitly changes them
-   - [ ] Environment details match Environment Consistency Rules (same location identifiers, consistent background anchors)
-   - [ ] Style Anchor preamble included verbatim at the start of the prompt
-   - [ ] Reference images assigned per the four-tier model:
-     - **Tier 0 — Character Sheet** (when Stage 4.5 ran): for each character in the scene's `Characters Present` list, the character's composite `sheet.imageId` is auto-injected by `resolveReferenceImageIds()` in `batch-generator.ts`. One image per character. Do NOT manually list these in the scene's Reference Chain — the TypeScript helper handles it.
-     - **Tier 3 — Scene-1 environment anchor** (always on when Stage 4.5 did NOT run; dropped when tier-0 fills the 3-ref cap):
-       - **Scene 1** (establishing shot): Product images only (no previous scene output to reference)
-       - **Scenes 2-N**: Include Scene 1's generated image ID as a `referenceImageId` via `dependsOn` for environment continuity, IF tier-0 character sheets don't already fill all 3 slots
-   - [ ] Any intentional deviations from the Style Anchor are explicitly noted in the prompt
-
-   **Reference Resolution Implementation (Tier 0 + Tier 3 merging):**
-   The TypeScript helper `resolveReferenceImageIds(scene, registry)` in `batch-generator.ts` produces the final per-scene `referenceImageIds` list:
-   1. Map each slug in `scene.characters` → look up `character.sheet.imageId` in the registry.
-   2. Take up to 3 character sheet IDs in script order.
-   3. Fill any remaining slots from `scene.referenceImageIds` (explicit refs you declared in Reference Chain).
-   4. Cap at 3 — satisfies `acceptance-criteria.md:45`.
-
-   So at Stage 6, your job is to populate `ScenePrompt.characters` (slugs present in the scene). The helper does the rest.
-
-   When submitting to ImageEngine batch endpoint, scenes referencing earlier outputs must use the `dependsOn` field so they generate sequentially. The dependency scene's output ID becomes available as a `referenceImageId` for the dependent scene.
-
-   See `systems/prompt-writer/knowledge/models/image/nanobanana-pro.md` (Reference Image Best Practices section) for reference image strategies. PromptWriter is the authoritative source for all prompt engineering knowledge.
-
-2. **Text-heavy scenes.** For scenes that are primarily text (title cards, end cards, CTA screens, lower thirds, disclaimer screens), do NOT generate a NanoBanana prompt. Instead:
-
-```
-### Scene [N] — Remotion Render
-
-**Render Method:** remotion
-**Rationale:** This scene is text-heavy and requires precise typographic control.
-
-**Text Content:**
-[The exact text to render]
-
-**Style Notes:**
-- Font style: [matching brand/style anchor]
-- Color: [from palette]
-- Animation: [fade in / type on / slide / etc.]
-- Background: [solid color / gradient / from previous scene blur]
-```
-
-3. **Critical rule:** Every NanoBanana Pro prompt MUST end with `No text in image.` — NanoBanana cannot reliably render text, so all text is handled by Remotion in post-production.
-
-4. **Present all prompts** together.
-
-5. **Validate constraints** before presenting to user:
-   - [ ] Each system instruction ≤ 512 characters
-   - [ ] Each prompt ≤ 8,192 characters
-   - [ ] Each scene has ≤ 3 reference images
-   - [ ] Each prompt specifies a creative mode (Faithful/Expressive/Vision/Image Asset)
-   - [ ] Style Anchor preamble is included in every NanoBanana prompt
-   - [ ] Every prompt ends with "No text in image."
-   - [ ] Text-heavy scenes are marked `render: remotion`, not `render: nanobanana-pro`
-   - [ ] Aspect ratio in each prompt matches the target platform
-   - [ ] Character physical descriptions are identical across all scene prompts (verified against Character Consistency Protocol)
-   - [ ] Reference chains configured: scenes sharing a character or location reference the appropriate earlier scene's output via `referenceImageIds`/`dependsOn`
-
-   If any constraint is violated, fix it before presenting.
-
-6. **Approval Gate.**
-
-```
---- Stage: NanoBanana Pro Prompt Generation (6/7) ---
-
-[All prompts above]
-
-Total: [N] NanoBanana Pro prompts | [N] Remotion renders
+This stage has two phases. **Phase 1** builds and generates the composite storyboard sheet(s). **Phase 2 is produced only after the Phase 1 sheet is explicitly approved** — it expands the approved panels into a timed cinematic video prompt.
 
 ---
-[A] Approve — Lock in all prompts
-[M] Modify — Tell me which scene prompts to adjust
-[R] Reject — Rethink the prompt approach entirely
 
-Any prompts need refinement, or are these ready for generation?
+### Phase 1 — Composite Storyboard Sheet
+
+#### Purpose
+For each ≤15-second block, assemble **one continuous Phase 1 prompt** (the full block, all panels), generate **one composite sheet image** via GPT Image 2 (Higgsfield primary → ImageEngine fallback), and embed it. This replaces the legacy "one image per scene" model.
+
+#### Composer & generation
+
+- The Phase 1 prompt is assembled by `composeStoryboardSheetPrompt()` (per sheet) / `composeStoryboardSheets()` (all sheets) in `systems/scene-board/src/storyboard-sheet-prompt.ts`. `splitIntoSheets(beats, durationSeconds)` already produced the per-sheet specs in Stage 4.
+- Generation goes through `image-provider.generateImage()`: **Higgsfield `higgsfield generate create gpt_image_2 --aspect_ratio 16:9 --quality high --resolution 2k [--image <ref>]… --wait --json`**, falling back to ImageEngine `gpt-image-2` (→ `gpt-image-1.5`) on any failure. The provider logs which path served the request.
+- All approved reference sheets from Stage 4.5 are attached as reference images (`--image`, repeatable, up to ~8; the ImageEngine fallback caps at 3) via `resolveSheetReferences()`.
+
+#### Phase 1 prompt structure (sections A–H, single continuous block)
+
+The prompt is one flowing block of natural language (NOT bullet points), inside a fenced code block:
+
+| Section | Content |
+|---|---|
+| **A) Title & Format Header** | Duration, title, panel count, **grid layout** (e.g. "clean 3×5 grid"), style genre. |
+| **B) Style Declaration** | Rich style block from the locked Style Anchor (Sheet Style Block). Adapts fully to the style (3D / live-action / anime / 2D). |
+| **C) Character/Product Descriptions** | Flowing-prose DNA of each subject, drawn from the locked reference-sheet descriptions. |
+| **D) Visual Tone** | Colour grading, atmosphere, lighting quality, rendering approach. |
+| **E) Storyboard Layout Details** | The sheet's physical look: header (brand + "15-SECOND STORYBOARD" or block label), numbered frames, **per-panel timecodes**, one-line shot captions under each frame, clean typography, studio-quality presentation. |
+| **F) Scene Breakdown** | One line per panel: *"Panel [N] (timecode): [shot type] shot. [description with action, environment, emotional beat]."* Distribute subject DNA across panels (don't front-load). |
+| **G) Art Direction Footer** | Expression quality, camera-angle variety, texture/environment detail, composition principles — tailored to the style. |
+| **H) Rendering & Format Footer** | Render-quality cues, aspect ratio, "professional storyboard sheet", quality tier. |
+
+**Prompt length guidance:** ~9 panels 800–1,200 words; 12 panels 1,000–1,500; 15 panels 1,200–1,800; 20 panels 1,500–2,000. Don't pad; don't compress at the expense of panel clarity.
+
+#### Execution
+
+1. **For each sheet (≤15s block)**, present the assembled Phase 1 prompt and the generated sheet:
+
+```
+### Sheet [S] — [block label, e.g. 00:00–00:15]
+
+**Provider:** [higgsfield | image-engine (fallback)]
+**Model:** `gpt_image_2`
+**Aspect Ratio:** [16:9 / 9:16]   **Grid:** [3×5 / 5×3 / …]   **Quality:** high   **Resolution:** 2k
+**Reference Sheets Attached:** [list of subject slugs, or "none — text DNA only"]
+
+**Phase 1 Prompt** (~[word count] words):
+\`\`\`
+[The full continuous A–H prompt]
+\`\`\`
+
+**Generated Sheet:**
+![sheet-[S]]([local path or gallery URL])
+
+**Panel / Timecode Table:**
+| Panel | Timecode | Shot Type | Caption |
+|---|---|---|---|
+| 1 | 00:00–00:02 | Wide | [caption] |
+| … | … | … | … |
+```
+
+2. **Text in the sheet is intentional.** GPT Image 2 renders the header, panel numbers, timecodes, and captions accurately. Brand wordmarks / polished end cards still prefer **Remotion** for pixel-perfect type — note any such panel as a Remotion render in Production Notes rather than relying on the sheet.
+
+3. **Validate before presenting:**
+   - [ ] Per-panel timecodes within each sheet sum to that sheet's ≤15s window; all sheets sum to the target duration
+   - [ ] Grid matches the panel count (and is flipped for 9:16 vertical)
+   - [ ] Panel count ≤ the cap (≤ ~15 for the default grid; ≤20 max)
+   - [ ] Phase 1 prompt is a single continuous block with sections A–H present
+   - [ ] Style Anchor is woven into sections B + D
+   - [ ] All approved reference sheets are attached as reference images (capped at the provider limit)
+   - [ ] Aspect ratio matches the target platform
+
+4. **Approval Gate (Phase 1).**
+
+```
+--- Stage 6 · Phase 1 — Composite Storyboard Sheet (6/7) ---
+
+[Sheet(s), prompt(s), and panel/timecode table(s) above]
+
+Total: [M] sheet(s) | [N] panels | [duration]
+
+---
+[A] Approve — Lock in the sheet(s); proceed to Phase 2 (cinematic video prompt)
+[M] Modify — Change a panel (re-runs the sheet with the approved sheet as a reference), adjust the prompt, or re-run a full sheet
+[R] Reject — Rethink the sheet approach entirely
+
+Do these sheets land, or should I adjust anything before the video prompt?
+```
+
+   On `[M] Modify` for a **single panel**, follow the reference-based edit path: pass the just-generated sheet back to Higgsfield via `--image` with an instruction to *reproduce the sheet exactly, changing only Panel [N]*, then regenerate the full sheet (best-effort; same path on the ImageEngine fallback). See [iterate-storyboard.md](iterate-storyboard.md). **Do not advance to Phase 2 until the sheet is approved.**
+
+---
+
+### Phase 2 — Cinematic Video Prompt
+
+> Only produce Phase 2 **after the Phase 1 sheet is approved.** This honours the storyboard-prompt-builder methodology (Phase 2 is delivered only on confirmation).
+
+#### Purpose
+Expand the approved panels into a single timed cinematic video prompt for an AI video tool, composed by `composeVideoPrompt()` in `systems/scene-board/src/video-prompt.ts`.
+
+#### Structure
+
+1. **Production header** (before the shots):
+   - Reference to the approved storyboard sheet (and reference sheets) as the visual keyframe reference.
+   - Instruction to follow the exact beat progression, framing, and emotional pacing from the sheet.
+   - **Character/product consistency mandate** — list each subject's identifying features; demand they stay identical across every shot.
+   - **Style block** — expanded from the Style Anchor into cinematic motion terms (style-adaptive: 3D / live-action / anime / 2D).
+   - Focus block — emotional readability, motion quality, continuity.
+
+2. **One timed shot per panel:**
+   - **Timecode** `[Xs – Ys]` (sums to the target duration; establishing/emotional beats get more time, quick beats less — variable, matching the panel timecodes).
+   - **Shot label** `SHOT N — [SCENE NAME]` (caps).
+   - **Shot type + camera** (size, angle, movement in cinematic language).
+   - **Scene direction** (blocking, staging, acting beats).
+   - **Dialogue** `Character: "Line"` (or none).
+   - **SFX** per shot.
+   - **Camera movement** verb phrase (dolly-in, tracking, orbit, push-in, static…).
+
+3. **Fixed closing line** (non-negotiable, after the final shot, after a blank line):
+
+```
+Audio: Diegetic sound only — natural ambience, environmental foley, and subject-driven sound.
+```
+
+**Length guidance:** 9 shots/15s 800–1,200 words; 15 shots/15s 1,200–2,000; 15 shots/30s 1,500–2,500; 20 shots/60s 2,000–3,500.
+
+#### Execution
+
+1. Confirm intent: *"Happy with the storyboard? I'll build the cinematic video prompt next."*
+2. Compose and present the video prompt in a **single fenced code block** (header → shots → fixed Audio line). For multi-sheet videos, produce one continuous video prompt spanning all blocks (shots numbered across sheets) or one per block — match the user's preference; default to one continuous prompt.
+3. Add a brief companion note (3–5 sentences): pacing choices, any shots likely to need a second pass, optional audio/music pairing.
+
+4. **Approval Gate (Phase 2).**
+
+```
+--- Stage 6 · Phase 2 — Cinematic Video Prompt (6/7) ---
+
+[Video prompt code block + companion note above]
+
+Shots: [N] | Duration: [duration] | Closing Audio line: present
+
+---
+[A] Approve — Lock in the video prompt and proceed to Final Assembly
+[M] Modify — Tell me which shots to adjust
+[R] Reject — Rethink the video prompt approach
+
+Any shots need refinement, or is this ready?
 ```
 
 ---
@@ -842,31 +847,30 @@ Any prompts need refinement, or are these ready for generation?
 ## Stage 7 — Final Storyboard Assembly (7/7)
 
 ### Purpose
-Compile everything into a single, professional table-format storyboard document ready for production.
+Compile everything into a single, professional storyboard document (and PDF) ready for production: the composite sheet(s) + the cinematic video prompt.
 
 ### Key Principles
-- The **scene table is the PRIMARY view** — it must contain all essential information at a glance
-- **NanoBanana Pro prompts are separated BELOW the table** (not inline with scenes) for cleaner reading
-- The **Visuals column** contains "[Visual placeholder]" — space for generated/inserted images
-- **Production Notes** use the concise table format
-- **B-Roll shots** are optional and only included when identified during the pipeline
-- **Character Sheet** (when Stage 4.5 ran) appears between Style Anchor and Full Script, rendered by `assembleCharacterSheet()` from the `CharacterRegistry`. When Stage 4.5 was skipped, the section is omitted entirely.
+- The **composite storyboard sheet image is the PRIMARY view** — one embedded sheet per ≤15s block, each with the Phase 1 prompt that generated it and a panel/timecode table beneath it.
+- **Reference Sheets** (when Stage 4.5 ran) appear between Style Anchor and Full Script — one 4-view sheet per subject (character/product). Omitted entirely when Stage 4.5 was skipped.
+- The **Phase 2 Cinematic Video Prompt** is its own section after the sheet(s).
+- **Production Notes** use the concise table format. **B-Roll shots** are optional.
+- There are **no per-scene "NanoBanana Pro Prompt / Generated Image / Kling Video Prompt" blocks** — those are removed. Continuity lives inside the single composite render.
 
-### Validation (Character Sheet)
+### Validation
 
-If Stage 4.5 ran:
-- Assert the assembled markdown contains a `## Character Sheet` section with one subsection per character and a composite `sheet.imageId` per character (failed sheets render `_failed — retry at Stage 4.5 [M]_`).
-- Assert each scene block's final `referenceImageIds` (resolved via `resolveReferenceImageIds`) contains each present character's `sheet.imageId`.
-- Assert the per-client cache exists at `client/{client}/characters/{slug}/` with `character.md` frontmatter listing the `sheet` image ID and the current project in `usedInProjects`.
+- Assert the markdown embeds **one composite sheet image per ≤15s block**, each followed by its Phase 1 prompt and a panel/timecode table.
+- Assert per-panel timecodes within each sheet sum to the block's window and all sheets sum to the target duration.
+- Assert the **Phase 2 video prompt** is present, has one shot per panel, and ends with the fixed Audio line.
+- If Stage 4.5 ran: assert a `## Reference Sheets` section with one 4-view sheet per subject (failed sheets render `_failed — retry at Stage 4.5 [M]_`), and that the cache exists at the `brand_category`-routed path with `reference.md` frontmatter listing the project in `usedInProjects`.
 
 ### Execution
 
-1. **Compile the complete storyboard** using the professional table format. Load the template from `assets/storyboard-template.md` and populate it with all approved content from prior stages:
+1. **Compile the complete storyboard.** Load the template from `assets/storyboard-template.md` (kept in sync with the system-side `systems/scene-board/templates/storyboard-template.md`) and populate it with all approved content. Structure:
 
 ```markdown
 # [Project Name]
 
-[Subtitle — e.g., "UGC Video Ad - Storyboard & Nano Banana Pro Prompts"]
+[Subtitle — e.g., "15s Product Ad — Composite Storyboard Sheet + Cinematic Video Prompt"]
 
 ---
 
@@ -874,79 +878,111 @@ If Stage 4.5 ran:
 
 | | |
 |---|---|
-| **Duration** | [total duration, e.g., ~60 sec] |
-| **Format** | [aspect ratio, e.g., 9:16 Vertical] |
-| **Style** | [video style, e.g., Aesthetic UGC] |
+| **Duration** | [total duration] |
+| **Format** | [aspect ratio, e.g., 16:9 Landscape] |
+| **Sheets** | [N sheets @ ≤15s each] |
+| **Panels** | [total panel count] |
+| **Style** | [video style] |
 | **Product** | [product name] |
-| **Model/Talent** | [model description from context] |
-| **Setting** | [setting/location from visual direction] |
-| **Audio** | [audio description — music, VO, SFX summary] |
+| **Model/Talent** | [model description] |
+| **Setting** | [setting/location] |
+| **Audio** | [audio summary] |
+| **Image Provider** | Higgsfield (GPT Image 2) — ImageEngine fallback |
 
 ---
 
-## STORYBOARD
+## STYLE ANCHOR
 
-*On-Screen Text (Hook): [hook text from approved on-screen text]*
-
-| Seq | Scene | Visual Action & Composition | Audience Sees | Audio / Text | Visuals |
-|-----|-------|----------------------------|---------------|--------------|---------|
-| 01 | [Scene Name] ([start]-[end]) | [Visual direction from Stage 5B: subject, environment, composition, mood, key detail. Include movement and action.] Camera: [camera angle, framing, movement from Stage 5B] | [What the audience perceives/feels — the emotional or cognitive takeaway of this scene] | [Voice script line if applicable] [On-screen text if applicable] [SFX/music cues] [ALT HOOKS if Scene 01] | [Visual placeholder] |
-| ... | ... | ... | ... | ... | ... |
-
-[Repeat for all scenes from the locked-in scene breakdown]
+[Locked Style Anchor — palette, visual style, lighting, camera, character/product rules, Sheet Style Block]
 
 ---
 
-## NanoBanana Pro Prompts
+## REFERENCE SHEETS
 
-[For each scene, include the full NanoBanana Pro prompt from Stage 6:]
+[Omit entirely if Stage 4.5 was skipped. For each subject:]
 
-### Scene 01 — [Scene Name]
+### [Subject Name] — [character | product] (4-view)
 
-**Render Method**: [nanobanana-pro / remotion]
-**Creative Mode**: [Faithful / Expressive / Vision / Image Asset]
+![[slug]-reference-sheet]([local path or gallery URL])
 
-**System Instruction** ([char count] chars):
-\`\`\`
-[System instruction from Stage 6]
-\`\`\`
-
-**Prompt** ([char count] chars):
-\`\`\`
-[Full prompt from Stage 6]
-\`\`\`
-
-> Remember: All NanoBanana Pro prompts must end with "No text in image." to prevent garbled text artifacts.
-
-**Reference Images**:
-1. [Reference 1 from Stage 6]
-2. [Reference 2 from Stage 6]
-3. [Reference 3 from Stage 6]
+- **Type**: [character | product]
+- **Locked Description**: [DNA]
+- **Garments** (clothing only): [selected garments]
+- **Appears in Panels**: [panel list]
+- **Provider / Model**: [higgsfield | image-engine] / gpt_image_2
 
 ---
 
-[Repeat for all scenes]
+## FULL SCRIPT
+
+[Locked full script]
+
+---
+
+## VOICE SCRIPT
+
+[Locked voice script, or N/A]
+
+---
+
+## STORYBOARD SHEET(S)
+
+[For each ≤15s block:]
+
+### Sheet [S] — [block label, e.g. 00:00–00:15]
+
+![storyboard-sheet-[S]]([local path or gallery URL])
+
+**Phase 1 Prompt** (the exact prompt used to generate this sheet):
+\`\`\`
+[The full continuous A–H Phase 1 prompt]
+\`\`\`
+
+| Panel | Timecode | Shot Type | Caption |
+|---|---|---|---|
+| 1 | 00:00–00:02 | Wide | [caption] |
+| … | … | … | … |
+
+---
+
+## PHASE 2 — CINEMATIC VIDEO PROMPT
+
+\`\`\`
+[Production header — sheet reference, consistency mandate, style block, focus block]
+
+SHOT 1 — [SCENE NAME]  [0s – 2s]
+[shot type + camera, scene direction, dialogue, SFX, camera movement]
+
+SHOT 2 — …
+
+…
+
+Audio: Diegetic sound only — natural ambience, environmental foley, and subject-driven sound.
+\`\`\`
+
+*Companion note: [pacing choices, shots to watch, optional audio pairing]*
+
+---
 
 ## PRODUCTION NOTES
 
 | Category | Details |
 |----------|---------|
-| **Color Palette** | [From Style Anchor — primary, secondary, accent colors and mood] |
-| **Lighting** | [From Style Anchor — overall mood, key light style, time of day feel] |
-| **Camera** | [From Style Anchor — primary framing, movement style, perspective] |
-| **Text Style** | [Font/typography direction, color, animation approach for on-screen text] |
-| **Music** | [Music style, tempo, mood, any specific track references] |
+| **Color Palette** | [From Style Anchor] |
+| **Lighting** | [From Style Anchor] |
+| **Camera** | [From Style Anchor] |
+| **Text / Type** | [Sheet text is GPT-Image-rendered; brand wordmarks/end cards via Remotion] |
+| **Music** | [Music style, tempo, mood] |
 
 ---
 
-## B-ROLL SHOTS (can be used if needed)
+## B-ROLL SHOTS (optional)
 
-[Only include this section if B-roll shots were identified during the pipeline]
+[Only include if B-roll was identified during the pipeline]
 
-| Seq | B-Roll Name | Use During | Audio / Text | Visuals |
-|-----|------------|------------|--------------|---------|
-| B1 | **[B-roll name]** | [Which scene this supplements] "[contextual quote or description]" Duration: [duration] | [Audio/text during B-roll] | [Visual placeholder] |
-| ... | ... | ... | ... | ... |
+| # | B-Roll Name | Use During | Audio / Text |
+|---|------------|------------|--------------|
+| B1 | **[name]** | [which panel/block] | [audio/text] |
 
 ---
 
@@ -954,19 +990,17 @@ If Stage 4.5 ran:
 ```
 
 2. **Save the storyboard document.**
-   - **If a client was selected in Stage 0**: Save to `client/{client}/storyboards/{project-name}-v1.md`
+   - **If a client was selected in Stage 0**: Save to `client/{client}/storyboards/{project-name}/{project-name}-v1.md` (sheet images saved alongside under the same folder).
    - **If no client context**: Ask the user where they'd like it saved.
 
-3. **Generate PDF version.** After saving the markdown storyboard, generate a professional PDF:
-   - Use markdown-pdf tooling (or equivalent) to convert the storyboard to a PDF.
-   - Save the PDF alongside the markdown file as `{project-name}-v1.pdf`.
-   - The PDF should follow the professional table layout matching the markdown structure:
-     - **Title page**: Product name prominently displayed, subtitle, then PROJECT SPECIFICATIONS table (Duration, Format, Style, Product, Model/Talent, Setting, Audio)
-     - **Storyboard section**: On-screen text hook displayed above the main scene table. The scene table uses columns: Seq, Scene, Visual Action & Composition, Audience Sees, Audio/Text, Visuals (placeholder space for images)
-     - **NanoBanana Pro Prompts**: Separated below the scene table in their own section, one sub-section per scene with Render Method, Creative Mode, System Instruction, Prompt, and Reference Images
-     - **Production Notes**: Table format with rows for Color Palette, Lighting, Camera, Text Style, Music
-     - **B-Roll Shots**: Optional section — only include when B-roll was identified during the pipeline. Uses its own table with columns: Seq, B-Roll Name, Use During, Audio/Text, Visuals
-     - **Footer**: Product name | Tagline | Website
+3. **Generate PDF version.** After saving the markdown, generate a professional PDF (md-to-pdf tooling) saved alongside as `{project-name}-v1.pdf`, following the structure above:
+   - **Title page**: Project name, subtitle, then PROJECT SPECIFICATIONS table.
+   - **Style Anchor** + **Reference Sheets** (4-view images, omit if skipped).
+   - **Full Script** + **Voice Script**.
+   - **Storyboard Sheet(s)**: each embedded composite sheet image, its Phase 1 prompt, and the panel/timecode table.
+   - **Phase 2 Cinematic Video Prompt**: the full prompt block.
+   - **Production Notes** + optional **B-Roll**.
+   - **Footer**: Product name | Tagline | Website.
 
 4. **Present the final storyboard** in full.
 
@@ -975,13 +1009,13 @@ If Stage 4.5 ran:
 ```
 --- Stage: Final Storyboard Assembly (7/7) ---
 
-Storyboard compiled: [N] scenes | [duration] total
+Storyboard compiled: [M] sheet(s) | [N] panels | [duration] total
 Saved to: [file path]
 PDF version: [pdf file path]
 
 ---
 [A] Approve — Storyboard complete! Ready for production.
-[M] Modify — Tell me what needs adjustment
+[M] Modify — Tell me what needs adjustment (routes to iterate mode)
 [R] Reject — Major rework needed
 
 Is this storyboard ready for production, or should I adjust anything?
@@ -1033,10 +1067,11 @@ When the brief contains contradictions (e.g., "minimal and bold" or "30-second e
 ## Handoff to Iterate Mode
 
 If at any point during the pipeline the user wants to:
-- Re-run only specific scenes (e.g., "regenerate scenes 3-5")
+- Change one or more panels in an approved sheet (reference-based panel edit)
+- Re-run a full sheet or regenerate the Phase 2 video prompt
 - Revise a previously approved component without restarting
 - Make surgical changes to the storyboard
 
-Route them to **iterate-storyboard.md** which handles partial re-runs, cascade logic, and surgical revisions. The generate pipeline is designed for full initial creation; iterate mode handles all post-approval modifications.
+Route them to **iterate-storyboard.md** which handles single-image-sheet panel edits, full-sheet re-runs, Phase 2 regeneration, cascade logic, and surgical revisions. The generate pipeline is designed for full initial creation; iterate mode handles all post-approval modifications.
 
 The final approval gate in Stage 7 also offers [M] Modify, which routes to iterate mode for targeted changes.
