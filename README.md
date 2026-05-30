@@ -12,7 +12,7 @@
 
 ---
 
-Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles seven independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
+Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles eight independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
 
 ---
 
@@ -39,6 +39,7 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 | [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram post, reel, and profile extractor. Authenticates against the Instagram Private API via a browser-driven login and downloads media to disk. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ImageEngine**](systems/image-engine) | Centralized NanoBanana image-generation gateway over WisGate. Rate-limited, budget-tracked, batch-capable HTTP service with retries and a built-in generation gallery. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ReadmeEngine**](systems/readme-engine) | Drift-aware README generator for the monorepo. Pulls from systems.yaml, library.yaml, package manifests, and live git state to produce consistent docs for the root, every system, and every app. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**MoodBoarder**](systems/MoodBoarder) | Per-client Pinterest moodboard generator. Given an image or video reference (plus optional text description), MoodBoarder analyzes the visual style with Claude vision, generates Pinterest search keywords, scrapes high-resolution images and/or videos, and assembles them into a timestamped per-client / per-deliverable folder. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**PromptWriter**](systems/prompt-writer) | Single source of prompt-engineering knowledge. Per-model writing guides, style anchors, and a registry of image, video, and voice generation models referenced by every other system. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 
 ---
@@ -79,6 +80,12 @@ graph TD
     readme_engine --> bun
     prompt_writer[prompt-writer]
     prompt_writer --> bun
+    mood_boarder[mood_boarder]
+    mood_boarder --> bun
+    mood_boarder --> ffmpeg
+    mood_boarder --> playwright
+    mood_boarder --> pinterest
+    mood_boarder --> claude_ai
 ```
 
 ---
@@ -113,7 +120,7 @@ graph TD
 |----------|-------|
 | Skills | 36 |
 | Agents | 10 |
-| Commands | 11 |
+| Commands | 12 |
 
 ### Top Skills
 
@@ -171,7 +178,6 @@ just install
 
 ```
 adcelerate/
-├── client/                 # Per-client brand, knowledge, characters, storyboards (gitignored; shared across systems)
 ├── systems/                # Independent processing systems
 │   ├── autoCaption/            # Word-highlighted caption renderer for vertical video
 │   ├── SceneBoard/             # Brief-to-storyboard CLI for short-form video
@@ -179,6 +185,7 @@ adcelerate/
 │   ├── Instagram Scrapper/     # Instagram post, reel, and profile extractor
 │   ├── ImageEngine/            # Centralized NanoBanana image-generation gateway over WisGate
 │   ├── ReadmeEngine/           # Drift-aware README generator for the monorepo
+│   ├── MoodBoarder/            # Per-client Pinterest moodboard generator
 │   └── PromptWriter/           # Single source of prompt-engineering knowledge
 ├── apps/                   # Deployable applications
 ├── knowledge/              # Shared knowledge base

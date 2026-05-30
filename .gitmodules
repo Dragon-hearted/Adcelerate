@@ -19,3 +19,6 @@
 [submodule "systems/prompt-writer"]
 	path = systems/prompt-writer
 	url = https://github.com/Dragon-hearted/prompt-writer.git
+[submodule "systems/MoodBoarder"]
+	path = systems/MoodBoarder
+	url = https://github.com/Dragon-hearted/MoodBoarder.git
