@@ -86,6 +86,9 @@ scene-board:
     - "marketing"
     - "ai"
     - "storyboard"
+  # Skill-driven system: invoked via the scene-board skill (see SKILL.md), not a standalone CLI.
+  # The real runnable modules are src/cli.ts and src/composite-storyboard.ts; the package.json
+  # "storyboard" script and justfile storyboard/sheet recipes are intentionally guidance-only.
   entry_point: "systems/scene-board/src/index.ts"
   justfile: true
   stages:
