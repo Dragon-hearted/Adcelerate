@@ -12,7 +12,7 @@
 
 ---
 
-Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles seven independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
+Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles eight independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
 
 ---
 
@@ -80,11 +80,12 @@ graph TD
     readme_engine --> bun
     prompt_writer[prompt-writer]
     prompt_writer --> bun
-    moodboarder[moodboarder]
-    moodboarder --> bun
-    moodboarder --> ffmpeg
-    moodboarder --> playwright
-    moodboarder --> pinterest
+    mood_boarder[mood_boarder]
+    mood_boarder --> bun
+    mood_boarder --> ffmpeg
+    mood_boarder --> playwright
+    mood_boarder --> pinterest
+    mood_boarder --> claude_ai
 ```
 
 ---
