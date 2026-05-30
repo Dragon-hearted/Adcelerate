@@ -1,0 +1,82 @@
+# knowledge/usage.yaml — ROOT usage source for ReadmeEngine
+# Consumed by readme-engine's usage-collector for `generate --target root`.
+# Drives the root README's platform-level Features matrix, Getting Started,
+# Configuration, and Usage / Step-by-Step sections.
+# Schema: spec Appendix A (features, prerequisites, configVars, install, usageSteps, commandsReference).
+# All keys optional → the engine renders only the sections that have data.
+
+features:                     # → "## ✨ Features" — the 8 registered systems as platform capabilities
+  - name: "autoCaption"
+    description: "Word-highlighted caption renderer for vertical video — Whisper.cpp transcribes, Remotion paints TikTok-style overlays, all driven from a CLI."
+  - name: "SceneBoard"
+    description: "Brief-to-storyboard CLI for short-form video — composite multi-panel storyboard sheets (GPT Image 2 via Higgsfield, ImageEngine fallback) plus a Phase 2 cinematic video prompt."
+  - name: "Pinboard"
+    description: "Terminal-first reference board with built-in AI image generation — Pinterest-style import, ImageEngine generations, and Claude vision tagging in an Ink TUI."
+  - name: "Instagram Scrapper"
+    description: "Instagram post, reel, and profile extractor — authenticates via a browser-driven Private API login and downloads media to disk."
+  - name: "ImageEngine"
+    description: "Centralized NanoBanana image-generation gateway over WisGate — rate-limited, budget-tracked, batch-capable HTTP service with retries and a generation gallery."
+  - name: "ReadmeEngine"
+    description: "Drift-aware README generator for the monorepo — pulls from systems.yaml, library.yaml, package manifests, and live git state to produce consistent docs."
+  - name: "MoodBoarder"
+    description: "Per-client Pinterest moodboard generator — analyzes a reference with Claude vision, derives search keywords, scrapes high-res images/videos into per-deliverable folders."
+  - name: "PromptWriter"
+    description: "Single source of prompt-engineering knowledge — per-model writing guides, style anchors, and a registry of image/video/voice models referenced by every other system."
+
+prerequisites:               # → "### Prerequisites" — platform-wide tools + per-system native deps note
+  - "Bun v1.0+ (JavaScript runtime & package manager) — curl -fsSL https://bun.sh/install | bash"
+  - "git (with submodule support) — required to clone the monorepo and its system submodules"
+  - "just (command runner) — brew install just  (drives the monorepo recipes in justfile)"
+  - "Per-system native dependencies (install only for the systems you run): ffmpeg (autoCaption, MoodBoarder), whisper.cpp (autoCaption transcription), Playwright + Chromium (Instagram Scrapper, MoodBoarder browser login), the Higgsfield CLI (SceneBoard primary image transport), and the Claude CLI (MoodBoarder, SceneBoard)."
+
+configVars:                  # → "## ⚙️ Configuration" — key env vars across systems (high level; each is per-system optional)
+  - name: "WISGATE_API_KEY"
+    required: false
+    description: "Auth token for the WisGate gateway — powers ImageEngine (NanoBanana) generation and the SceneBoard ImageEngine fallback."
+  - name: "ANTHROPIC_API_KEY"
+    required: false
+    description: "Anthropic API key for Claude vision/text — used by MoodBoarder analysis and SceneBoard; the Claude CLI may supply this implicitly."
+  - name: "GOOGLE_AI_API_KEY"
+    required: false
+    description: "Google AI (Gemini) key — used by Pinboard and SceneBoard image generation paths."
+  - name: "FAL_KEY"
+    required: false
+    description: "fal.ai API key — optional image-generation transport for Pinboard and SceneBoard (NanoBanana Pro)."
+  - name: "HIGGSFIELD_API_KEY"
+    required: false
+    description: "Higgsfield credentials for the global Higgsfield CLI — SceneBoard's primary GPT Image 2 composite-sheet / reference-sheet transport (set up via the CLI's own auth)."
+  - name: "IG_USERNAME / IG_PASSWORD"
+    required: false
+    description: "Instagram account credentials for Instagram Scrapper's browser-driven Private API login (session cookies are persisted after first login)."
+
+install:                     # → "### Install" — clone + submodules + per-system deps
+  - "git clone --recursive https://github.com/adcelerate/adcelerate.git"
+  - "cd adcelerate"
+  - "git submodule update --init --recursive   # if you cloned without --recursive (or: just sub-init)"
+  - "cd systems/readme-engine && bun install   # each system manages its own deps — repeat `cd systems/<system> && bun install` for each one you run (no monorepo-wide install)"
+
+usageSteps:                  # → "## 🚀 Usage" — bootstrap → observability → run a system → browse the library
+  - title: "Bootstrap the monorepo (each system is a git submodule)"
+    command: "git submodule update --init --recursive   # or: just sub-init\ncd systems/readme-engine && bun install     # install deps per system you run (no monorepo-wide install)"
+    expected: "All eight systems under systems/ are checked out; the chosen system's dependencies are installed. Run `just sub-update` later to pull submodules to their latest remote."
+  - title: "Start the observability dashboard in the background"
+    command: "just obs-install     # first run only: install dashboard deps\njust obs-bg"
+    expected: "Dashboard at http://localhost:5173 and event server at http://localhost:4000; stop later with `just obs-stop`."
+  - title: "Run a representative system (ReadmeEngine — no credentials required)"
+    command: "cd systems/readme-engine && bun run src/cli.ts generate --target root"
+    expected: "Regenerates the root README.md from the registry and knowledge sources. Each system runs standalone from its own directory; some also expose a justfile (`just sub <system> <recipe>`)."
+  - title: "Browse skills, agents, and commands from the library catalog"
+    command: "/library"
+    expected: "Inside a Claude Code session, lists the curated skills/agents/commands from library.yaml so you can route a task to the right system."
+
+commandsReference:           # optional → "### Command Reference" — top-level just recipes
+  - command: "just --list"
+    description: "List every available monorepo recipe."
+  - command: "just sub <system-path> <recipe>"
+    description: "Run a recipe inside a system submodule that has its own justfile (e.g. `just sub systems/readme-engine check`)."
+  - command: "just systems-list"
+    description: "List all registered systems and their status from systems.yaml."
+  - command: "just systems-health"
+    description: "Quick health check across all registered systems (knowledge + justfile presence)."
+  - command: "just obs-bg / just obs-stop"
+    description: "Start the observability dashboard in the background / stop it."
