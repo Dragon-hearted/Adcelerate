@@ -34,7 +34,7 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 | System | Description | Status |
 |--------|-------------|--------|
 | [**autoCaption**](systems/autoCaption) | Word-highlighted caption renderer for vertical video. Whisper.cpp transcribes the audio, Remotion paints TikTok-style overlays back on top, and a CLI ties it all together. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
-| [**SceneBoard**](systems/scene-board) | Brief-to-storyboard CLI for short-form video. Turns rough scripts and references into scene breakdowns with timestamps, voice script, and NanoBanana Pro prompts ready to render. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**SceneBoard**](systems/scene-board) | Brief-to-storyboard CLI for short-form video. Turns rough scripts and references into a composite multi-panel storyboard SHEET image (≤15s per sheet, GPT Image 2 via the Higgsfield CLI with ImageEngine fallback) plus a Phase 2 cinematic video prompt — with 4-view character/product reference sheets and timecoded panels. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**Pinboard**](systems/pinboard) | Terminal-first reference board with built-in AI image generation. Pinterest-style import, ImageEngine generations, PromptWriter formatting, and Claude Code vision tagging — all in an Ink TUI. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram post, reel, and profile extractor. Authenticates against the Instagram Private API via a browser-driven login and downloads media to disk. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ImageEngine**](systems/image-engine) | Centralized NanoBanana image-generation gateway over WisGate. Rate-limited, budget-tracked, batch-capable HTTP service with retries and a built-in generation gallery. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
@@ -69,6 +69,8 @@ graph TD
     instagram_scrapper --> instagram_private_api
     scene_board[scene-board]
     scene_board --> bun
+    scene_board --> higgsfield
+    scene_board --> image_engine
     scene_board --> fal_ai
     scene_board --> google_ai
     scene_board --> remotion
@@ -80,12 +82,12 @@ graph TD
     readme_engine --> bun
     prompt_writer[prompt-writer]
     prompt_writer --> bun
-    mood_boarder[mood_boarder]
-    mood_boarder --> bun
-    mood_boarder --> ffmpeg
-    mood_boarder --> playwright
-    mood_boarder --> pinterest
-    mood_boarder --> claude_ai
+    moodboarder[moodboarder]
+    moodboarder --> bun
+    moodboarder --> ffmpeg
+    moodboarder --> playwright
+    moodboarder --> pinterest
+    moodboarder --> claude_ai
 ```
 
 ---
