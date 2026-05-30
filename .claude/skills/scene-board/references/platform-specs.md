@@ -1,5 +1,22 @@
 # Platform Specifications Reference
 
+## Composite Sheet Grid & Orientation
+
+The platform's aspect ratio determines the **storyboard sheet's** aspect ratio and therefore the panel **grid orientation** (the sheet is one composite image per ≤15s block):
+
+| Panels | Landscape 16:9 grid | Vertical 9:16 grid (rows × cols flipped) |
+|---|---|---|
+| 9 | 3×3 | 3×3 |
+| 12 | 3×4 | 4×3 |
+| 15 (default) | 3×5 | 5×3 |
+| 20 | 4×5 | 5×4 |
+
+- **16:9 platforms** (YouTube, LinkedIn, Twitter/X, Facebook 16:9) → landscape sheet, wide grid.
+- **9:16 platforms** (Reels, TikTok, Shorts, Stories) → vertical sheet, flipped grid.
+- **1:1 / 4:5** → square-ish sheet; use the closest grid that keeps panels roughly square (e.g. 15 → 4×4 with one blank, or drop to 12 → 3×4).
+
+Each sheet covers **≤15 seconds**; longer videos split into N sheets (one per ≤15s block) with continuing timecodes. Panels are **variable duration** — timecodes within a sheet must sum to that sheet's ≤15s window. See SKILL.md "Composite Storyboard Sheet Model".
+
 ## Video Platforms
 
 | Platform | Aspect Ratio | Min Duration | Max Duration | Recommended | Pacing |

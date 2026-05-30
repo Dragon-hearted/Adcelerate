@@ -29,12 +29,12 @@
 - **Brand elements**: {{logo visible / brand colors present / product packaging shown}}
 
 ## Consistency Rules
-- All scenes MUST use this palette and lighting mood unless an explicit override is approved
-- Product must be represented consistently across all scenes
+- All panels MUST use this palette and lighting mood unless an explicit override is approved
+- Product must be represented consistently across all panels and reference sheets
 - Background complexity should be consistent (don't mix minimal and busy)
 
-## NanoBanana Preamble
-(Include this text at the start of EVERY NanoBanana Pro prompt for this project)
+## Sheet Style Block
+(Woven into the Phase 1 composite-sheet prompt — sections B + D — and used to fill the `[INSERT DESIRED STYLE]` slot of every 4-view reference sheet)
 ```
-{{Generated preamble text that encodes the above constraints in NanoBanana-friendly language — typically 200-400 chars describing the visual style, color palette, lighting, and camera conventions}}
+{{Generated style block (200-400 chars) encoding the visual style, color palette, lighting, and camera conventions in GPT-Image-2-friendly language}}
 ```
