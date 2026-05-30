@@ -105,6 +105,7 @@ systems:
       - { system: "ffmpeg", type: "runtime" }
       - { system: "playwright", type: "runtime" }
       - { system: "pinterest", type: "runtime" }
+      - { system: "claude-ai", type: "runtime" }
     shared_models: []
     related_systems:
       - "scene-board"
