@@ -1,5 +1,6 @@
 # Adcelerate
 set dotenv-load := true
+set positional-arguments := true
 
 # List all recipes
 default:
@@ -116,6 +117,27 @@ run task:
 diagnose name:
   @echo "Launching Adcelerate Diagnose Mode for {{name}}..."
   @echo "Use: /adcelerate-diagnose {{name}} in your Claude Code session"
+
+# ─── Agent Sandboxes ──────────────────────────────────────
+
+# Build the disposable agent-sandbox image (with_media=1 adds ffmpeg etc.)
+sandbox-build with_media="0":
+  docker build {{ if with_media == "1" { "--build-arg WITH_MEDIA=1" } else { "" } }} -t adcelerate-sandbox:latest sandbox
+
+# Run a task in disposable, network-locked containers → one PR per sandbox.
+# Flags pass straight through to the orchestrator (just lacks named args):
+#   just sandbox-run "add a comment to README" --target pinboard --parallel 3
+#   just sandbox-run "noop" --dry-run
+sandbox-run *args:
+  @bun run sandbox/orchestrator.ts "$@"
+
+# Verify firewall allow/deny + every threat-model row (non-zero exit on a leak)
+sandbox-doctor:
+  bun run sandbox/orchestrator.ts --doctor
+
+# Remove any leftover sandbox containers, volumes, and run dirs
+sandbox-clean:
+  bun run sandbox/orchestrator.ts --clean
 
 # ─── Cleanup ──────────────────────────────────────────────
 
