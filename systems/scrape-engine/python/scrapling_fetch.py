@@ -108,8 +108,11 @@ def build_kwargs(req: "dict[str, object]") -> "dict[str, object]":
 
 	timeout_ms = req.get("timeoutMs")
 	if isinstance(timeout_ms, (int, float)):
-		# Scrapling fetchers take a timeout in seconds.
-		kwargs["timeout"] = float(timeout_ms) / 1000.0
+		# Browser fetchers (Stealthy/Dynamic) take timeout in MILLISECONDS
+		# (Playwright convention; default 30000). The http Fetcher wants seconds —
+		# call_fetcher() converts for that path. (Verified against scrapling 0.4.8:
+		# fetchers/stealth_chrome.py docstring "timeout in milliseconds".)
+		kwargs["timeout"] = int(round(timeout_ms))
 
 	user_agent = req.get("userAgent")
 	if isinstance(user_agent, str) and user_agent:
@@ -123,10 +126,10 @@ def build_kwargs(req: "dict[str, object]") -> "dict[str, object]":
 	if isinstance(network_idle, bool):
 		kwargs["network_idle"] = network_idle
 
-	# TODO(verify): exact Scrapling cookie kwarg. The Playwright-shaped cookie
-	# list is passed through best-effort; the precise keyword (`cookies=` vs a
-	# browser-context option) needs confirmation against the installed Scrapling
-	# build before relying on authenticated scrapes.
+	# Scrapling's browser fetchers accept a Playwright-shaped cookie list via the
+	# `cookies` kwarg (Sequence[SetCookieParam]) → ctx.add_cookies(). MoodBoarder's
+	# cookies.json is already that shape, so it passes straight through. Verified
+	# against scrapling 0.4.8 (engines/_browsers/_base.py: ctx.add_cookies(config.cookies)).
 	cookies = req.get("cookies")
 	if isinstance(cookies, list) and cookies:
 		kwargs["cookies"] = cookies
@@ -149,7 +152,8 @@ def call_fetcher(req: "dict[str, object]"):
 		# Plain HTTP — no browser, so prune browser-only kwargs.
 		http_kwargs: "dict[str, object]" = {}
 		if "timeout" in kwargs:
-			http_kwargs["timeout"] = kwargs["timeout"]
+			# Fetcher.get expects SECONDS (default 30), not milliseconds.
+			http_kwargs["timeout"] = float(kwargs["timeout"]) / 1000.0
 		if "useragent" in kwargs:
 			http_kwargs["headers"] = {"User-Agent": kwargs["useragent"]}
 		if "cookies" in kwargs:
