@@ -18,14 +18,32 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 
 ## 📑 Table of Contents
 
-- [📦 Systems](#systems)
-- [🏗 Architecture](#architecture)
-- [🛠 Tech Stack](#tech-stack)
-- [📚 Library](#library)
-- [🚀 Getting Started](#getting-started)
-- [📂 Project Structure](#project-structure)
-- [🤝 Contributing](#contributing)
-- [📄 License](#license)
+- [✨ Features](#-features)
+- [📦 Systems](#-systems)
+- [🏗 Architecture](#-architecture)
+- [🛠 Tech Stack](#-tech-stack)
+- [📚 Library](#-library)
+- [🚀 Getting Started](#-getting-started)
+- [🚀 Usage](#-usage)
+- [⚙️ Configuration](#️-configuration)
+- [📂 Project Structure](#-project-structure)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **autoCaption** | Word-highlighted caption renderer for vertical video — Whisper.cpp transcribes, Remotion paints TikTok-style overlays, all driven from a CLI. |
+| **SceneBoard** | Brief-to-storyboard CLI for short-form video — composite multi-panel storyboard sheets (GPT Image 2 via Higgsfield, ImageEngine fallback) plus a Phase 2 cinematic video prompt. |
+| **Pinboard** | Terminal-first reference board with built-in AI image generation — Pinterest-style import, ImageEngine generations, and Claude vision tagging in an Ink TUI. |
+| **Instagram Scrapper** | Instagram post, reel, and profile extractor — authenticates via a browser-driven Private API login and downloads media to disk. |
+| **ImageEngine** | Centralized NanoBanana image-generation gateway over WisGate — rate-limited, budget-tracked, batch-capable HTTP service with retries and a generation gallery. |
+| **ReadmeEngine** | Drift-aware README generator for the monorepo — pulls from systems.yaml, library.yaml, package manifests, and live git state to produce consistent docs. |
+| **MoodBoarder** | Per-client Pinterest moodboard generator — analyzes a reference with Claude vision, derives search keywords, scrapes high-res images/videos into per-deliverable folders. |
+| **PromptWriter** | Single source of prompt-engineering knowledge — per-model writing guides, style anchors, and a registry of image/video/voice models referenced by every other system. |
 
 ---
 
@@ -98,10 +116,12 @@ graph TD
 
 | Technology | Purpose |
 |------------|---------|
-| **@remotion/cli 4** | Remotion CLI |
+| **Remotion CLI 4** | Remotion CLI |
+| **Remotion Renderer 4** | Remotion server-side renderer |
 | **React 19** | UI framework |
 | **React-dom 19** | React DOM renderer |
 | **Remotion 4** | Programmatic video rendering |
+| **Remotion Bundler 4** | Remotion bundler |
 
 ### Backend
 
@@ -110,9 +130,9 @@ graph TD
 | **TypeScript 5.9** | Type safety |
 | **Bun** | JavaScript runtime & package manager |
 | **Zod 4** | Schema validation |
-| **Playwright 1** | Browser automation & testing |
+| **Playwright 1** | Browser automation & scraping |
 | **Hono 4** | Lightweight web framework |
-| **Js-yaml 4** | YAML parsing |
+| **js-yaml 4** | YAML parsing |
 
 ---
 
@@ -120,7 +140,7 @@ graph TD
 
 | Category | Count |
 |----------|-------|
-| Skills | 36 |
+| Skills | 40 |
 | Agents | 10 |
 | Commands | 12 |
 
@@ -160,19 +180,80 @@ graph TD
 
 ### Prerequisites
 
-- [**Bun**](https://bun.sh/) v1.0+ — `curl -fsSL https://bun.sh/install | bash`
-- [**just**](https://github.com/casey/just) — command runner
+- Bun v1.0+ (JavaScript runtime & package manager) — curl -fsSL https://bun.sh/install | bash
+- git (with submodule support) — required to clone the monorepo and its system submodules
+- just (command runner) — brew install just  (drives the monorepo recipes in justfile)
+- Per-system native dependencies (install only for the systems you run): ffmpeg (autoCaption, MoodBoarder), whisper.cpp (autoCaption transcription), Playwright + Chromium (Instagram Scrapper, MoodBoarder browser login), the Higgsfield CLI (SceneBoard primary image transport), and the Claude CLI (MoodBoarder, SceneBoard).
 
 ### Install
 
 ```bash
-# Clone the repository
 git clone --recursive https://github.com/adcelerate/adcelerate.git
 cd adcelerate
-
-# Run setup
-just install
+git submodule update --init --recursive   # if you cloned without --recursive (or: just sub-init)
+cd systems/readme-engine && bun install   # each system manages its own deps — repeat `cd systems/<system> && bun install` for each one you run (no monorepo-wide install)
 ```
+
+---
+
+## 🚀 Usage
+
+### 1. Bootstrap the monorepo (each system is a git submodule)
+
+```bash
+git submodule update --init --recursive   # or: just sub-init
+cd systems/readme-engine && bun install     # install deps per system you run (no monorepo-wide install)
+```
+
+> **Expected:** All eight systems under systems/ are checked out; the chosen system's dependencies are installed. Run `just sub-update` later to pull submodules to their latest remote.
+
+### 2. Start the observability dashboard in the background
+
+```bash
+just obs-install     # first run only: install dashboard deps
+just obs-bg
+```
+
+> **Expected:** Dashboard at http://localhost:5173 and event server at http://localhost:4000; stop later with `just obs-stop`.
+
+### 3. Run a representative system (ReadmeEngine — no credentials required)
+
+```bash
+cd systems/readme-engine && bun run src/cli.ts generate --target root
+```
+
+> **Expected:** Regenerates the root README.md from the registry and knowledge sources. Each system runs standalone from its own directory; some also expose a justfile (`just sub <system> <recipe>`).
+
+### 4. Browse skills, agents, and commands from the library catalog
+
+```bash
+/library
+```
+
+> **Expected:** Inside a Claude Code session, lists the curated skills/agents/commands from library.yaml so you can route a task to the right system.
+
+### Command Reference
+
+| Command | Description |
+|---------|-------------|
+| `just --list` | List every available monorepo recipe. |
+| `just sub <system-path> <recipe>` | Run a recipe inside a system submodule that has its own justfile (e.g. `just sub systems/readme-engine check`). |
+| `just systems-list` | List all registered systems and their status from systems.yaml. |
+| `just systems-health` | Quick health check across all registered systems (knowledge + justfile presence). |
+| `just obs-bg / just obs-stop` | Start the observability dashboard in the background / stop it. |
+
+---
+
+## ⚙️ Configuration
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `WISGATE_API_KEY` | No | Auth token for the WisGate gateway — powers ImageEngine (NanoBanana) generation and the SceneBoard ImageEngine fallback. |
+| `ANTHROPIC_API_KEY` | No | Anthropic API key for Claude vision/text — used by MoodBoarder analysis and SceneBoard; the Claude CLI may supply this implicitly. |
+| `GOOGLE_AI_API_KEY` | No | Google AI (Gemini) key — used by Pinboard and SceneBoard image generation paths. |
+| `FAL_KEY` | No | fal.ai API key — optional image-generation transport for Pinboard and SceneBoard (NanoBanana Pro). |
+| `HIGGSFIELD_API_KEY` | No | Higgsfield credentials for the global Higgsfield CLI — SceneBoard's primary GPT Image 2 composite-sheet / reference-sheet transport (set up via the CLI's own auth). |
+| `IG_USERNAME / IG_PASSWORD` | No | Instagram account credentials for Instagram Scrapper's browser-driven Private API login (session cookies are persisted after first login). |
 
 ---
 
