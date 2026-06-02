@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+logs/
+
+# Python bytecode cache (from py_compile / sidecar runs)
+__pycache__/
+*.pyc
+
+# Scrapling adaptive-state / cached selectors
+.scrapling/
+*.db

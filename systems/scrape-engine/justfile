@@ -1,0 +1,35 @@
+# scrape-engine — adaptive scraping gateway (Scrapling-backed)
+set dotenv-load := true
+
+# List all recipes
+default:
+  @just --list
+
+# Run in development mode (watch)
+dev:
+  bun run dev
+
+# Run tests
+test:
+  bun test
+
+# Build for production
+build:
+  bun run build
+
+# Lint code
+lint:
+  bun run lint
+
+# Check and fix formatting
+check:
+  bun run check
+
+# Install the Python sidecar deps: probe scrapling, then install its browsers.
+install:
+  uv run python/scrapling_fetch.py --selfcheck || true
+  uv run --with "scrapling[all]==0.4.8" -- scrapling install
+
+# Run the CLI: `just fetch fetch <url> [flags]`
+fetch *args:
+  bun run src/cli.ts {{args}}

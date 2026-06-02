@@ -4,8 +4,8 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-05-27"
-  systemCount: 8
+  lastUpdated: "2026-06-02"
+  systemCount: 9
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -106,12 +106,26 @@ systems:
       - { system: "playwright", type: "runtime" }
       - { system: "pinterest", type: "runtime" }
       - { system: "claude-ai", type: "runtime" }
+      - { system: "scrape-engine", type: "optional" }
     shared_models: []
     related_systems:
       - "scene-board"
       - "pinboard"
       - "instagram-scrapper"
       - "autocaption"
+    failure_patterns: []
+
+  scrape-engine:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "uv", type: "runtime" }
+      - { system: "scrapling", type: "runtime" }
+      - { system: "camoufox", type: "runtime" }
+    shared_models: []
+    related_systems:
+      - "moodboarder"
+      - "instagram-scrapper"
+      - "image-engine"
     failure_patterns: []
 
 # Cross-system relationships
@@ -179,6 +193,15 @@ relationships:
     to: "autocaption"
     type: "shared-dependency"
     description: "Both systems use ffmpeg / ffprobe for media processing (autoCaption for audio, MoodBoarder for video keyframe extraction)"
+  - from: "scrape-engine"
+    to: "moodboarder"
+    type: "pipeline"
+    relationship: "optional"
+    description: "OPT-IN scrape transport: MoodBoarder can route Pinterest harvesting through ScrapeEngine (StealthyFetcher + adaptive=True CSS) behind a flag; the existing Playwright cookies.json path remains the default and automatic fallback when ScrapeEngine throws ScrapingBlockedError/ScrapingDependencyError. Targets the documented video-markup-drift and cookie-rotation pain."
+  - from: "scrape-engine"
+    to: "instagram-scrapper"
+    type: "shared-dependency"
+    description: "Both perform authenticated scraping with cookies.json; instagram-scrapper is a future candidate to route through ScrapeEngine."
 
 # Known failure patterns for accelerated diagnosis
 # Schema: {id: fp-NNN, description: string, diagnosed: date, resolution: string, affects: [system-id]}

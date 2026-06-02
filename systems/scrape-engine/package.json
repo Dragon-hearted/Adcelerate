@@ -1,0 +1,21 @@
+{
+	"name": "adcelerate-scrape-engine",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Centralized adaptive scraping gateway wrapping the Python Scrapling framework behind a thin TypeScript client.",
+	"scripts": {
+		"dev": "bun run --watch src/index.ts",
+		"build": "bun build src/index.ts --outdir dist --target bun",
+		"test": "bun test",
+		"lint": "bunx @biomejs/biome check .",
+		"check": "bunx @biomejs/biome check --write ."
+	},
+	"dependencies": {
+		"zod": "^3.23.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.0",
+		"@types/bun": "latest",
+		"typescript": "^5.7.0"
+	}
+}
