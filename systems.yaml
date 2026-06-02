@@ -346,3 +346,37 @@ prompt-writer:
     - name: "prompt-validation"
       produces: "Validation report checking constraints, required elements, character limits"
   registered_at: "2026-04-14"
+
+scrape-engine:
+  name: "ScrapeEngine"
+  path: "systems/scrape-engine"
+  status: "active"
+  description: "Centralized adaptive web-scraping gateway over the Scrapling framework. Spawns a uv-run Python sidecar (StealthyFetcher / DynamicFetcher / Fetcher) with anti-bot + Cloudflare bypass and adaptive CSS element tracking, exposing a generic TypeScript client + CLI that other systems call to fetch and extract from markup-drifting sites."
+  task_types:
+    - "web-scraping"
+    - "adaptive-extraction"
+    - "anti-bot-fetch"
+  knowledge_path: "systems/scrape-engine/knowledge"
+  input_types:
+    - "url"
+    - "css-selectors"
+    - "fetch-config"
+    - "session-cookies"
+  output_types:
+    - "extracted-elements-json"
+    - "page-html"
+    - "fetch-metadata"
+  domain_tags:
+    - "scraping"
+    - "anti-bot"
+    - "api-gateway"
+    - "browser-automation"
+  entry_point: "systems/scrape-engine/src/cli.ts"
+  justfile: true
+  stages:
+    - name: "fetch"
+      produces: "Settled page via StealthyFetcher/DynamicFetcher/Fetcher with anti-bot + cookie injection"
+    - name: "extraction"
+      produces: "Per-selector matched elements (text + attributes) using adaptive=True element relocation"
+  registered_at: "2026-06-02"
+  last_validated: "2026-06-02"

@@ -1,0 +1,46 @@
+{
+	"ok": true,
+	"url": "https://www.pinterest.com/search/pins/?q=neon%20noir%20cinematography",
+	"status": 200,
+	"fetcher": "stealthy",
+	"adaptive": true,
+	"extracted": {
+		"images": [
+			{
+				"text": "",
+				"attributes": {
+					"src": "https://i.pinimg.com/236x/aa/bb/cc/aabbcc1122334455.jpg",
+					"alt": "neon noir street, rain-slicked"
+				}
+			},
+			{
+				"text": "",
+				"attributes": {
+					"src": "https://i.pinimg.com/236x/dd/ee/ff/ddeeff6677889900.jpg",
+					"alt": "cyberpunk alley signage"
+				}
+			},
+			{
+				"text": "",
+				"attributes": {
+					"src": "https://i.pinimg.com/236x/11/22/33/112233445566aabb.jpg",
+					"alt": null
+				}
+			}
+		],
+		"videos": [
+			{
+				"text": "",
+				"attributes": {
+					"src": "https://v.pinimg.com/videos/mc/720p/00/11/22/001122deadbeef.mp4",
+					"poster": "https://i.pinimg.com/videos/thumbnails/00112233.jpg"
+				}
+			}
+		]
+	},
+	"meta": {
+		"scraplingVersion": "0.4.8",
+		"elapsedMs": 4821.37,
+		"relocations": 1
+	}
+}
