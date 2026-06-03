@@ -142,6 +142,9 @@ fi
 # ---------------------------------------------------------------------------
 # 3. Run the headless Claude Code agent on the subscription (NO API key).
 # ---------------------------------------------------------------------------
+# $HOME points at the /work bind mount (empty at runtime) so config writes work
+# under an arbitrary host UID; create it before Claude touches ~/.claude.
+mkdir -p "$HOME" || { ERROR="cannot create HOME ($HOME)"; exit 1; }
 cd "$REPO" || { ERROR="cannot cd to $REPO"; exit 1; }
 log "running agent (model=$MODEL): $TASK"
 env -u ANTHROPIC_API_KEY claude -p "$TASK" \

@@ -71,7 +71,12 @@ WORKDIR /work
 # Drop to the unprivileged agent user. No sudo, no setuid path.
 USER node
 
-# Claude Code stores config under $HOME; OAuth token arrives via env at runtime.
-ENV HOME=/home/node
+# Claude Code stores config under $HOME. Containers run as the host UID:GID
+# (see buildDockerArgs in orchestrator.ts), so $HOME must be writable by an
+# arbitrary uid — point it at the host-owned /work bind mount rather than the
+# node-owned home dir (which only uid 1000 can write). It sits beside /work/repo,
+# so it never lands in the agent's `git add -A`. task-runner.sh creates it.
+# OAuth token arrives via env at runtime.
+ENV HOME=/work/.home
 
 ENTRYPOINT ["/usr/local/bin/task-runner.sh"]
