@@ -50,7 +50,15 @@ emit_result() {
   # Scrub the OAuth token from any captured logs before they can leave the box.
   if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
     for f in "$AGENT_LOG" "$AGENT_ERR" "$TEST_LOG"; do
-      [ -f "$f" ] && sed -i "s#${CLAUDE_CODE_OAUTH_TOKEN}#***REDACTED***#g" "$f" 2>/dev/null || true
+      [ -f "$f" ] || continue
+      # Literal (fixed-string) replacement — `sed` would treat the token as a
+      # regex/replacement and could miss tokens containing #, &, \, / or newlines.
+      python3 - "$CLAUDE_CODE_OAUTH_TOKEN" "$f" <<'PY' || true
+import pathlib, sys
+token = sys.argv[1]
+path = pathlib.Path(sys.argv[2])
+path.write_text(path.read_text().replace(token, "***REDACTED***"))
+PY
     done
   fi
 
@@ -178,7 +186,11 @@ if [ -f .gitmodules ]; then
       log "submodule changed: $sp"
       git -C "$sp" checkout -B "$BRANCH" >/dev/null 2>&1
       git -C "$sp" add -A
-      git -C "$sp" commit -m "$COMMIT_MSG" >/dev/null 2>&1 || true
+      if ! git -C "$sp" commit -m "$COMMIT_MSG" >/dev/null 2>&1; then
+        ERROR="failed to commit submodule changes in $sp"
+        log "FATAL: $ERROR"
+        exit 1
+      fi
       CHANGED_SUBMODULES+=("$sp")
     fi
   done < <(git config --file .gitmodules --get-regexp '\.path$' 2>/dev/null | awk '{print $2}')
@@ -191,7 +203,11 @@ if git diff --cached --quiet; then
   log "no changes produced by the agent"
 else
   HAS_CHANGES=true
-  git commit -m "$COMMIT_MSG" >/dev/null 2>&1 || true
+  if ! git commit -m "$COMMIT_MSG" >/dev/null 2>&1; then
+    ERROR="failed to commit sandbox changes"
+    log "FATAL: $ERROR"
+    exit 1
+  fi
   COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo "")"
   CHANGED_FILES="$(git show --pretty=format: --name-only HEAD 2>/dev/null | sed '/^$/d')"
   log "committed $COMMIT_SHA on $BRANCH"

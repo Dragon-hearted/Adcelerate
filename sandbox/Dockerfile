@@ -44,6 +44,10 @@ RUN curl -fsSL https://bun.sh/install | bash && bun --version
 # uv (Python runtime + package manager for python sidecars / hooks).
 RUN curl -fsSL https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && uv --version
 
+# just (command runner) — task-runner.sh prefers `just test` when a justfile is
+# present, so without this repos that expose tests only via justfile never run them.
+RUN curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin && just --version
+
 # Grant cap_net_admin to the firewall binaries so the non-root `node` user can
 # program iptables/ipset using the container's NET_ADMIN cap — without sudo.
 RUN set -eux; \

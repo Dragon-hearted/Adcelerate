@@ -20,7 +20,7 @@ on a throwaway clone of a repo, commit the result, and hand it back to you as a
 
 ## How it works
 
-```
+```text
 You → host Claude Code:  "implement <task>"
   └─ just sandbox-run "<task>" --target pinboard --parallel 3
         │  HOST  (holds GitHub creds + gh auth — the container never does)
@@ -109,7 +109,7 @@ just sandbox-run "try a refactor" --no-pr --keep
 `just` has no working named-argument syntax (`target=…` binds positionally and
 misroutes), so `sandbox-run` is a clean flag-passthrough recipe:
 
-```
+```text
 sandbox-run *args:
   @bun run sandbox/orchestrator.ts "$@"
 ```
@@ -117,7 +117,7 @@ sandbox-run *args:
 The first bare quoted positional is the **task** (the orchestrator picks it up); every
 `--flag` after it goes straight to the orchestrator. So:
 
-```
+```bash
 just sandbox-run "<task>" --target pinboard --parallel 3
 ```
 

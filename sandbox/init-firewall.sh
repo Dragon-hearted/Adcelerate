@@ -5,9 +5,11 @@
 # Mirrors Anthropic's devcontainer firewall pattern: while egress is still open,
 # resolve every IP we are allowed to reach (Anthropic, GitHub ranges, npm/PyPI),
 # load them into an ipset, THEN lock OUTPUT down to default-DROP — permitting only
-# loopback, DNS, established/related, and the allowlisted public IPs. RFC-1918,
-# link-local, and the host gateway are explicitly dropped (anti DNS-rebind / LAN
-# pivot), and the obs server on the host is therefore unreachable from the sandbox.
+# loopback, DNS (scoped to the configured resolver), established/related, and the
+# allowlisted public IPs. RFC-1918, link-local, and the host gateway are explicitly
+# dropped (anti DNS-rebind / LAN pivot), and the obs server on the host is therefore
+# unreachable from the sandbox. The allowlist is IPv4-only, so IPv6 egress is denied
+# wholesale (ip6tables default-DROP) to keep the deny-all guarantee on dual-stack nets.
 #
 # Runs as the non-root `node` user: cap_net_admin is granted to the iptables/ipset
 # binaries via setcap in the Dockerfile, so no sudo / setuid is required.
@@ -147,13 +149,41 @@ for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16; do
   iptables -A OUTPUT -d "$net" -j DROP
 done
 
-# DNS to non-LAN resolvers only (any LAN resolver was already dropped above).
-iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
-iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+# DNS to the configured resolver(s) ONLY — never to arbitrary public IPs, which
+# would reopen a deny-all-defeating exfiltration channel. Docker's embedded
+# resolver is 127.0.0.11 (already allowed above); if /etc/resolv.conf points
+# elsewhere we scope to exactly those nameservers. Any LAN resolver is dropped
+# by the RFC-1918 rules above (intentional — no LAN DNS-tunnel pivot).
+dns_servers="$(grep -E '^[[:space:]]*nameserver' /etc/resolv.conf 2>/dev/null \
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' || true)"
+[ -z "$dns_servers" ] && dns_servers="127.0.0.11"
+for ns in $dns_servers; do
+  iptables -A OUTPUT -d "$ns" -p udp --dport 53 -j ACCEPT
+  iptables -A OUTPUT -d "$ns" -p tcp --dport 53 -j ACCEPT
+done
 
 # Allowlisted public destinations over HTTPS/HTTP.
 iptables -A OUTPUT -p tcp -m set --match-set "$IPSET_NAME" dst --dport 443 -j ACCEPT
 iptables -A OUTPUT -p tcp -m set --match-set "$IPSET_NAME" dst --dport 80  -j ACCEPT
 
+# IPv6: the allowlist above is IPv4-only, so on IPv6-enabled Docker networks
+# outbound IPv6 would bypass everything. Enforce the same deny-all posture on
+# IPv6 (default-DROP, loopback + established/related only). Guarded and
+# best-effort: hosts without ip6tables or the ip6 NET_ADMIN path simply skip it.
+if command -v ip6tables >/dev/null 2>&1; then
+  ip6tables -F 2>/dev/null || true
+  ip6tables -X 2>/dev/null || true
+  ip6tables -P INPUT   DROP 2>/dev/null || true
+  ip6tables -P FORWARD DROP 2>/dev/null || true
+  ip6tables -A INPUT  -i lo -j ACCEPT 2>/dev/null || true
+  ip6tables -A OUTPUT -o lo -j ACCEPT 2>/dev/null || true
+  ip6tables -A INPUT  -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+  ip6tables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+  ip6tables -P OUTPUT DROP 2>/dev/null || true
+  log "IPv6 egress denied (deny-all)"
+else
+  log "ip6tables unavailable — skipping IPv6 lockdown"
+fi
+
 # Everything else falls through to the default OUTPUT DROP policy.
-log "firewall active — egress restricted to the allowlist"
+log "firewall active — egress restricted to the allowlist (IPv4 allowlist + IPv6 deny-all)"

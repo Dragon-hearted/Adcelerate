@@ -23,7 +23,7 @@
 // `just sandbox-run "<task>" target=… parallel=…` is the friendly entry point.
 
 import { spawn } from "bun";
-import { mkdir, rm, readFile, chmod } from "node:fs/promises";
+import { mkdir, rm, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -138,20 +138,27 @@ function parseArgs(argv: string[]): Args {
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    const next = () => argv[++i];
+    // Consume the next arg as `flag`'s value. Fail fast (rather than silently
+    // launching a billed run against the wrong target/model/timeout) when the
+    // value is missing or is itself another flag.
+    const next = (flag: string): string => {
+      const v = argv[++i];
+      if (v === undefined || v.startsWith("--")) throw new Error(`missing value for ${flag}`);
+      return v;
+    };
     switch (arg) {
-      case "--task": a.task = next(); break;
-      case "--target": a.target = next() ?? a.target; break;
-      case "--parallel": a.parallel = Math.max(1, parseInt(next() ?? "1", 10) || 1); break;
-      case "--model": a.model = next() ?? a.model; break;
-      case "--timeout-ms": a.timeoutMs = parseInt(next() ?? `${RUN_TIMEOUT_MS}`, 10) || RUN_TIMEOUT_MS; break;
+      case "--task": a.task = next("--task"); break;
+      case "--target": a.target = next("--target"); break;
+      case "--parallel": a.parallel = Math.max(1, parseInt(next("--parallel"), 10) || 1); break;
+      case "--model": a.model = next("--model"); break;
+      case "--timeout-ms": a.timeoutMs = parseInt(next("--timeout-ms"), 10) || RUN_TIMEOUT_MS; break;
       case "--dry-run": a.dryRun = true; break;
       case "--no-pr": a.noPr = true; break;
       case "--keep": a.keep = true; break;
       case "--doctor": a.doctor = true; break;
       case "--clean": a.clean = true; break;
       default:
-        if (arg.startsWith("--")) console.error(`[orchestrator] unknown flag: ${arg}`);
+        if (arg.startsWith("--")) throw new Error(`unknown flag: ${arg}`);
         else if (!a.task) a.task = arg; // bare positional = task
     }
   }
@@ -201,10 +208,27 @@ async function defaultBranch(repoDir: string): Promise<string> {
   return "main";
 }
 
+/**
+ * Normalize a git remote URL to canonical HTTPS so a credential-less clone works
+ * even when the host's `origin` is SSH (no SSH keys exist inside, and we clone on
+ * the host without them too). Handles `git@host:owner/repo(.git)` and
+ * `ssh://git@host/owner/repo(.git)`; leaves http(s) URLs unchanged and preserves
+ * any trailing `.git` to match the standalone URLs in config.ts.
+ */
+function normalizeRemoteUrl(url: string): string {
+  // ssh://[user@]host[:port]/owner/repo(.git)
+  const sshProto = url.match(/^ssh:\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+)$/);
+  if (sshProto) return `https://${sshProto[1]}/${sshProto[2]}`;
+  // scp-like: [user@]host:owner/repo(.git)
+  const scpLike = url.match(/^(?:[^@/]+@)?([^/:]+):(.+)$/);
+  if (scpLike && !url.includes("://")) return `https://${scpLike[1]}/${scpLike[2]}`;
+  return url;
+}
+
 /** Resolve the parent monorepo's origin URL (host cwd is the parent repo). */
 async function parentOrigin(): Promise<string> {
   const r = await sh(["git", "remote", "get-url", "origin"]);
-  return r.stdout.trim();
+  return normalizeRemoteUrl(r.stdout.trim());
 }
 
 // ───────────────────────────── docker run argv ───────────────────────────────
@@ -223,13 +247,19 @@ interface RunSpec {
 
 /** Build the EXACT `docker run` argv. Shared by dry-run printing and real exec. */
 function buildDockerArgs(s: RunSpec): string[] {
+  // Run as the host UID:GID (not the image's hardcoded `node`) so the bind-mounted
+  // clone — which keeps host ownership — stays writable inside the container. On
+  // hosts where node's uid/gid != host uid/gid, `--user node` causes EACCES on
+  // installs/edits under /work/repo.
+  const uid = typeof process.getuid === "function" ? String(process.getuid()) : "1000";
+  const gid = typeof process.getgid === "function" ? String(process.getgid()) : "1000";
   return [
     "run",
     "--name", s.id,
     "--network", NETWORK_NAME,
     "--cap-drop", "ALL",
     "--cap-add", "NET_ADMIN",
-    "--user", "node",
+    "--user", `${uid}:${gid}`,
     "--cpus", LIMITS.cpus,
     "--memory", LIMITS.memory,
     "--pids-limit", LIMITS.pidsLimit,
@@ -368,8 +398,8 @@ async function runOne(args: Args, idx: number, parentUrl: string): Promise<RunSu
       summary.error = `clone failed: ${clone.stderr.trim()}`;
       return summary;
     }
-    // Ensure the unprivileged container user can write into the bind mount.
-    await chmod(stage, 0o777).catch(() => {});
+    // No chmod 0o777 workaround needed: the container runs as the host UID:GID
+    // (see buildDockerArgs), so the host-owned clone is already writable.
 
     // 2. run the agent container (trap-guaranteed teardown below).
     console.log(`${tag} starting container`);
@@ -413,6 +443,7 @@ async function runOne(args: Args, idx: number, parentUrl: string): Promise<RunSu
     // 5. submodule auto-sync (parent/subpath targets only).
     const subPrUrls: string[] = [];
     const changedSubs = res.changed_submodules ?? [];
+    let submoduleSyncFailed = false;
     if (changedSubs.length > 0) {
       for (const sp of changedSubs) {
         const subDir = join(repoDir, sp);
@@ -420,6 +451,7 @@ async function runOne(args: Args, idx: number, parentUrl: string): Promise<RunSu
         const push = await sh(["git", "-C", subDir, "push", "origin", branch]);
         if (push.code !== 0) {
           console.error(`${tag} submodule push failed (${sp}): ${push.stderr.trim()}`);
+          submoduleSyncFailed = true;
           continue;
         }
         const pr = await openPr(subDir, branch, title, prBody(res, `Submodule \`${sp}\` change.`), draft);
@@ -428,9 +460,18 @@ async function runOne(args: Args, idx: number, parentUrl: string): Promise<RunSu
           console.log(`${tag} submodule PR: ${pr.url}`);
         } else {
           console.error(`${tag} submodule PR failed (${sp}): ${pr.error}`);
+          submoduleSyncFailed = true;
         }
       }
       summary.submodulePrUrls = subPrUrls;
+    }
+
+    // If any submodule push/PR failed, do NOT push the parent branch or open the
+    // parent PR — a parent-pointer PR referencing an unpushed submodule SHA breaks
+    // the "submodule PR first, then parent draft PR" choreography.
+    if (submoduleSyncFailed) {
+      summary.error = "submodule sync failed";
+      return summary;
     }
 
     // 6. push parent/standalone branch + open PR.
@@ -521,7 +562,7 @@ async function doctor(): Promise<number> {
   const argv = buildDockerArgs(sample);
   const argStr = argv.join(" ");
   push("Caps: drop ALL + add NET_ADMIN only", argStr.includes("--cap-drop ALL") && argStr.includes("--cap-add NET_ADMIN") && (argStr.match(/--cap-add/g)?.length === 1));
-  push("Runs as non-root (--user node)", argv.includes("node") && argStr.includes("--user node"));
+  push("Runs as non-root (--user <uid>:<gid>)", /--user \d+:\d+/.test(argStr));
   push("Resource limits set (cpus/memory/pids)", argStr.includes("--cpus") && argStr.includes("--memory") && argStr.includes("--pids-limit"));
   push("No docker.sock mount", !argStr.includes("docker.sock"));
   push("No host working-tree bind-mount", !argv.some((a) => a.includes(process.cwd())));
@@ -656,10 +697,11 @@ async function main(): Promise<number> {
 
   const prCount = summaries.filter((s) => s.prUrl).length;
   console.log(`\n${prCount}/${summaries.length} PR(s) opened.`);
-  // Non-zero only if a real (non-dry) run produced no PR and no graceful "no changes".
-  if (!args.dryRun && !args.noPr && prCount === 0 && summaries.every((s) => s.error && s.error !== "no changes")) {
-    return 1;
-  }
+  // Fail the exit code if ANY real run hard-failed — a partial fan-out failure
+  // must not be reported as success (it would hide real errors from CI).
+  // "no changes" is a graceful non-failure and does not count.
+  const hardFailures = summaries.some((s) => s.error && s.error !== "no changes");
+  if (!args.dryRun && hardFailures) return 1;
   return 0;
 }
 

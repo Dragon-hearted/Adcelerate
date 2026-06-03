@@ -79,8 +79,10 @@ export interface TargetConfig {
    */
   kind: TargetKind;
   /**
-   * Upstream for `standalone` targets (mirrors `.gitmodules`). For `parent` /
-   * `subpath`, omitted → resolved from the parent repo's `origin` at runtime.
+   * Upstream for `standalone` targets (mirrors `.gitmodules`); must be HTTPS so
+   * the sandbox clone works without SSH keys. For `parent` / `subpath`, omitted →
+   * resolved from the parent repo's `origin` at runtime and normalized SSH→HTTPS
+   * (see `normalizeRemoteUrl` in orchestrator.ts).
    */
   url?: string;
   /** Path the agent is scoped to + the dir a scoped install runs in (repo-relative). */
