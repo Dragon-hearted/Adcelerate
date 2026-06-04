@@ -4,7 +4,7 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-06-02"
+  lastUpdated: "2026-06-04"
   systemCount: 9
 
 # Per-system entries added during Build Mode registration or migration
@@ -52,7 +52,6 @@ systems:
   scene-board:
     depends_on:
       - { system: "bun", type: "runtime" }
-      - { system: "higgsfield", type: "runtime" }
       - { system: "image-engine", type: "runtime" }
       - { system: "fal-ai", type: "optional" }
       - { system: "google-ai", type: "optional" }
@@ -69,6 +68,7 @@ systems:
     depends_on:
       - { system: "bun", type: "runtime" }
       - { system: "wisgate-api", type: "runtime" }
+      - { system: "higgsfield", type: "runtime" }
       - { system: "sqlite", type: "runtime" }
     shared_models: []
     related_systems:
@@ -158,17 +158,17 @@ relationships:
   - from: "image-engine"
     to: "scene-board"
     type: "pipeline"
-    relationship: "fallback"
-    description: "FALLBACK image transport: SceneBoard uses the Higgsfield CLI (GPT Image 2) as the primary path and automatically falls back to ImageEngine's HTTP API (gpt-image-2 → gpt-image-1.5) when the CLI is unavailable, unauthenticated, times out, or fails. ImageEngine stays active as the fallback transport."
+    relationship: "primary"
+    description: "SOLE image transport: SceneBoard talks only to ImageEngine's HTTP API and omits the model so ImageEngine serves its default provider (Higgsfield GPT Image 2, with an internal gemini-2.5-flash-image fallback). The generated sheet is persisted to ImageEngine's gallery and downloaded to SceneBoard's outPath; reference sheets chain via gallery imageIds."
   - from: "image-engine"
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems provide image generation capabilities (ImageEngine via WisGate, Pinboard via fal.ai/Google AI)"
   - from: "higgsfield"
-    to: "scene-board"
+    to: "image-engine"
     type: "pipeline"
     relationship: "primary"
-    description: "PRIMARY image transport: SceneBoard shells out to the Higgsfield CLI (higgsfield generate create gpt_image_2 … --wait --json) to generate composite storyboard sheets and 4-view reference sheets with GPT Image 2. Environment prerequisite (global install + auth), not a package.json dependency."
+    description: "DEFAULT generation provider: ImageEngine shells out to the Higgsfield CLI (higgsfield generate create gpt_image_2 … --wait --json) as its default model (higgsfield-gpt-image-2), downloading the result into the standard provider pipeline and falling back to gemini-2.5-flash-image on failure. Environment prerequisite (global install + auth), not a package.json dependency. Centralized here so every system calling ImageEngine gets Higgsfield by default."
   - from: "prompt-writer"
     to: "scene-board"
     type: "pipeline"
