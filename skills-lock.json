@@ -1,6 +1,13 @@
 {
   "version": 1,
   "skills": {
+    "claude-video": {
+      "source": "bradautomates/claude-video",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "sourceCommit": "c333c2289e57bf040b32846f18d669e3f8edad9b",
+      "computedHash": "4ec9d13c13fe3d8d67df61f67402a77111d3aaaf1615e283cbc69ac6b8418a78"
+    },
     "higgsfield-generate": {
       "source": "higgsfield-ai/skills",
       "sourceType": "github",

@@ -53,6 +53,14 @@ library:
     path: .agents/skills/churn-prevention/SKILL.md
     version: 1.1.0
     see_also: [email-sequence, paywall-upgrade-cro]
+  - name: watch
+    description: Watch a video (URL or local path). Downloads with yt-dlp, extracts auto-scaled frames with ffmpeg, pulls the transcript from captions (or Whisper API fallback), and hands the result to
+      Claude so it can answer questions about what's in the video.
+    trigger: ''
+    source: https://github.com/bradautomates/claude-video
+    path: .agents/skills/claude-video/SKILL.md
+    version: ~
+    see_also: []
   - name: cold-email
     description: Write B2B cold emails and follow-up sequences that get replies.
     trigger: cold outreach, prospecting email, outbound email, email to leads, reach out to prospects, sales email, follow-up email sequence, nobody's replying to my emails
