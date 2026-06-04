@@ -252,6 +252,9 @@ trees/
 # Centralized client data — never commit (backed up at ~/scene-board-clients-backup-*)
 /client/
 
+# Obsidian vault (personal notes — not part of the repo)
+adcelerate/
+
 # Internal planning & scan artifacts — not for the public repo
 _bmad-output/
 specs/
