@@ -19,6 +19,7 @@ lastUpdatedBy: build-mode
 
 ## Knowledge Files
 - [Domain Knowledge](domain.md) — Domain expertise and tacit knowledge
+- [Execution](execution.md) — How Execute Mode runs this system
 - [Acceptance Criteria](acceptance-criteria.md) — Hard gates and soft quality criteria
 - [Dependencies](dependencies.md) — Runtime, build, and optional dependencies
 - [History](history.md) — Build, fix, and diagnosis history
