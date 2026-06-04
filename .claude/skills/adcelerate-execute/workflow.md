@@ -53,28 +53,56 @@ Compare the parsed task against each active system's metadata. Score each system
 
 ## 3. Routing
 
-Once a system is matched:
+Once a system is matched, read **only** the system's execution manifest:
 
-1. **Load system knowledge** — read `[system]/knowledge/index.md` to understand the system's context, conventions, and capabilities.
-2. **Read stage definitions** — extract the `stages` field from the matched system's entry in `systems.yaml`. Each stage defines a named step in the system's pipeline.
-3. **Prepare execution context** — assemble:
-   - System knowledge (from index.md)
-   - Task input (parsed intent + attached files)
-   - Stage pipeline (ordered list of stages to execute)
-   - Any system-specific configuration
+1. **Load the execution manifest** — read `[system]/knowledge/execution.md`. This single how-to-run manifest is the authoritative source for running the system. Do NOT read `index.md` for routing, and do NOT reconstruct stages from the `stages:` array in `systems.yaml` — the manifest tells the executor everything it needs.
+2. **Read the manifest's frontmatter** to determine the execution strategy:
+   - `driver` — `skill` or `cli`
+   - `skill` — the skill to invoke (skill driver)
+   - `entry` — the command template (cli driver)
+   - `mode` — `delegate` or `orchestrate`
+   - `gates` — `native` or `executor`
+3. **Read the manifest body** — `## Invocation`, `## Natural flow`, and `## Where the agent must check / supply input` — to learn how to invoke the system and which checkpoints require engineer input.
 
 Report to the engineer:
 ```
 System: {{system.name}}
-Pipeline: {{stage1}} -> {{stage2}} -> ... -> {{stageN}}
+Driver: {{driver}} ({{mode}}, gates: {{gates}})
 Starting execution...
 ```
+
+Then proceed to the **Driver Branch**.
+
+---
+
+## 3.5 Driver Branch
+
+Branch on the manifest's `driver`:
+
+### `driver: skill` (mode: delegate, gates: native)
+
+The system drives its own flow. The executor delegates and relays — it does NOT reconstruct or perform stages.
+
+1. **Invoke the named skill** (`skill:` from the manifest frontmatter) via the **Skill tool**, passing the engineer's task input.
+2. **Let the skill run its own natural flow and its own [A]/[M]/[R] approval gates.** The skill owns its pipeline and its gates end-to-end.
+3. The executor's only job is to **relay engineer input at the checkpoints** listed in the manifest's "Where the agent must check / supply input" section (e.g. client selection, missing brand/platform/audience, the skill's generation/visual-direction/sheet approval gates).
+4. **Skip section 4 (Staged Delivery)** entirely. Do NOT reconstruct or re-run the stages — the skill already did.
+5. When the skill completes, proceed to **section 5 (Validation)**.
+
+### `driver: cli` (mode: orchestrate, gates: executor)
+
+The executor orchestrates staged delivery, running the command(s) from `execution.md`.
+
+1. Use the per-stage command(s) from the manifest's `## Invocation` section and the stage list from `## Natural flow`.
+2. Proceed to **section 4 (Staged Delivery)**, running each stage's command and gating after each.
 
 ---
 
 ## 4. Staged Delivery (Decision 4a, FR19-FR20)
 
-Execute the system's pipeline **one stage at a time**, with an approval gate after each stage.
+> **Applies to the `cli` / `orchestrate` path only.** Skill-driven systems run their own flow and gates (see section 3.5) and skip this section entirely.
+
+Execute the system's pipeline **one stage at a time**, with an approval gate after each stage. Run each stage using the command(s) from the manifest's `## Invocation` section.
 
 ### For each stage in the pipeline:
 
@@ -114,7 +142,7 @@ On approval, add the stage output to the execution context so subsequent stages 
 
 ## 5. Validation (Decision 4b, FR21-FR23)
 
-After all stages are approved, validate the final output before delivery.
+**This section applies to BOTH drivers.** Once the work is complete — after the skill finishes (skill path) or after all stages are approved (cli path) — validate the final output before delivery.
 
 ### 5a. Hard Gate Check (inline)
 

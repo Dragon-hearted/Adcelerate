@@ -18,6 +18,7 @@ You are a scaffolding specialist that creates new Adcelerate system sub-projects
 - Customize `package.json`: replace `{{system-name}}` with actual name, `{{system-description}}` with description
 - Customize `justfile`: replace `{{system-name}}` placeholder
 - Customize all `knowledge/*.md` files: replace `{{system-id}}`, `{{system-name}}`, `{{date}}` placeholders
+- Emit `knowledge/execution.md` from `templates/system/knowledge/execution.md`: set `driver` (`skill` or `cli`), `skill`/`entry`, `mode`, `gates`, and fill the Invocation / Natural flow / checkpoint sections from the execution driver captured in Step 3. A `skill` driver must name an existing skill under `.claude/skills/`; a `cli` driver must have a non-empty `entry`.
 - Create `src/index.ts` as the system entry point with appropriate boilerplate
 - Create `src/pipeline.ts` or equivalent system-specific pipeline files based on the knowledge context
 - Run `bun install` in the new directory to install dependencies

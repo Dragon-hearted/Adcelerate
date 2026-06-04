@@ -17,10 +17,15 @@ You are a knowledge formalization specialist. After Build Mode captures domain k
 - Read ALL knowledge files in `[system]/knowledge/`
 - **Frontmatter compliance:** Verify every file has the required frontmatter fields:
   - `system`: kebab-case system identifier
-  - `type`: one of `index`, `domain`, `acceptance-criteria`, `dependencies`, `history`
+  - `type`: one of `index`, `domain`, `execution`, `acceptance-criteria`, `dependencies`, `history`
   - `version`: integer
   - `lastUpdated`: ISO date
   - `lastUpdatedBy`: one of `build-mode`, `engineer`, `diagnosis`
+- **Execution manifest validation:** Verify `knowledge/execution.md` exists and its frontmatter is valid:
+  - `driver` is one of `skill` | `cli`
+  - a `skill` driver names a `skill:` that exists as a real skill under `.claude/skills/<name>/`
+  - a `cli` driver has a non-empty `entry:` command template
+  - `mode` (`delegate`/`orchestrate`) and `gates` (`native`/`executor`) are consistent with the driver (skill→delegate/native, cli→orchestrate/executor)
 - **Acceptance criteria structure:**
   - Hard gates must be markdown checklist format (`- [ ] Criterion`)
   - Soft criteria must be prose paragraphs with **bold** key quality signals

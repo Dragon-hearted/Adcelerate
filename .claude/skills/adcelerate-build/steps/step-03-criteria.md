@@ -89,6 +89,20 @@ Write the approved criteria to `[system]/knowledge/acceptance-criteria.md`:
 [Any special instructions for how to validate these criteria]
 ```
 
+## 5. Elicit the Execution Driver
+
+Acceptance criteria describe *what good output looks like*; the execution manifest describes *how Execute Mode runs the system*. Capture it now so the system is born runnable. Ask the engineer:
+
+1. **Driver** — how does Execute Mode run this system?
+   - **`skill`** — the system has (or will have) its own skill under `.claude/skills/<name>/`. Execute Mode delegates to it and lets it run its own natural flow and its own [A]/[M]/[R] approval gates (`mode: delegate`, `gates: native`).
+   - **`cli`** — the system runs via commands (justfile recipes / `bun run`). Execute Mode orchestrates staged delivery itself (`mode: orchestrate`, `gates: executor`).
+2. **Invocation**:
+   - skill driver → the **skill name** to invoke (must match a real skill under `.claude/skills/`).
+   - cli driver → the **command template** (`entry`), with the exact run command(s) per stage.
+3. **Input / approval checkpoints** — where Execute Mode must collect or relay engineer input: required arguments/paths/selections, and (skill path) the points at which to relay the skill's approval gates.
+
+Record these so Step 4 can scaffold `knowledge/execution.md` from `templates/system/knowledge/execution.md`. The driver MUST be `skill` or `cli`; a `skill` driver MUST name an existing skill; a `cli` driver MUST have a non-empty `entry`.
+
 ## Engineer Review Gate
 
 Present the formalized criteria to the engineer:

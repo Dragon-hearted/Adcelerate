@@ -6,6 +6,17 @@ Register the validated system into the Adcelerate platform so it is discoverable
 
 ## Registration Process
 
+### 0. Precondition — Execution Manifest Must Exist
+
+Before registering, verify the system has a valid execution manifest. **Do NOT register a system without one** — Execute Mode reads `knowledge/execution.md` to decide how to run it.
+
+- [ ] `systems/[system-name]/knowledge/execution.md` exists
+- [ ] Its `driver` is `skill` or `cli`
+- [ ] A `skill` driver names a skill that exists under `.claude/skills/`
+- [ ] A `cli` driver has a non-empty `entry`
+
+If the manifest is missing or invalid, return to Step 4 (scaffold) / Step 3 (driver elicitation) before continuing.
+
 ### 1. Add Entry to systems.yaml
 
 Add a new entry under the `systems` key in `systems.yaml`:
@@ -113,6 +124,7 @@ Event payload:
 ## Registration Verification
 
 After writing, verify:
+- [ ] `systems/[system-name]/knowledge/execution.md` exists with a valid driver (precondition above)
 - [ ] `systems.yaml` is valid YAML (parse it)
 - [ ] The new entry has all required fields
 - [ ] `knowledge/graph.yaml` is valid YAML

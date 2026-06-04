@@ -42,6 +42,7 @@ The scaffolder will:
    - Update `package.json` with system name, description, dependencies
    - Create initial source files based on domain knowledge
    - Set up the `knowledge/` directory (already populated from Steps 1-3)
+   - Scaffold `knowledge/execution.md` from `templates/system/knowledge/execution.md`, filling `driver`, `skill`/`entry`, `mode`, `gates`, and the Invocation / Natural flow / checkpoint sections from the execution driver captured in Step 3
 3. Create system-specific files as needed based on the domain
 
 ### 3. Verify Scaffolded Project
@@ -53,7 +54,8 @@ Verification Checklist:
 - [ ] Directory exists at systems/[system-name]/
 - [ ] package.json exists and is valid JSON
 - [ ] package.json has correct name and description
-- [ ] knowledge/ directory exists with scope.md, domain.md, acceptance-criteria.md
+- [ ] knowledge/ directory exists with scope.md, domain.md, acceptance-criteria.md, execution.md
+- [ ] knowledge/execution.md has a valid driver (skill or cli); skill drivers name a real skill; cli drivers have a non-empty entry
 - [ ] Entry point file exists (e.g., src/index.ts)
 - [ ] bun install succeeds without errors
 - [ ] justfile exists with standard targets
@@ -76,6 +78,7 @@ Show the scaffolded structure:
 > ├── knowledge/
 > │   ├── scope.md
 > │   ├── domain.md
+> │   ├── execution.md
 > │   └── acceptance-criteria.md
 > └── ...
 > ```
