@@ -175,8 +175,13 @@ fi
 #    then the parent stages the bumped gitlink + remaining changes.
 # ---------------------------------------------------------------------------
 cd "$REPO" || exit 1
-git config user.email "sandbox@adcelerate.local"
-git config user.name  "Adcelerate Sandbox"
+# Use --global (writes to $HOME/.gitconfig in the ephemeral container) so the
+# identity also applies to commits made INSIDE submodules — a repo-local
+# `git config` only covers the parent repo, so submodule commits would otherwise
+# fail with "unable to auto-detect email address" and abort the whole run.
+git config --global user.email "sandbox@adcelerate.local"
+git config --global user.name  "Adcelerate Sandbox"
+git config --global init.defaultBranch main
 
 COMMIT_MSG="sandbox(${ID}): ${TASK}"
 

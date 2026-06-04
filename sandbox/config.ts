@@ -44,6 +44,17 @@ export const LIMITS = {
 } as const;
 
 /**
+ * Linux capabilities added back after `--cap-drop ALL`. The egress firewall needs
+ * BOTH: NET_ADMIN (program netfilter + create the ipset) and NET_RAW (the
+ * `iptables -m set --match-set` / xt_set extension opens a socket to ipset; without
+ * NET_RAW it fails with "Can't open socket to ipset" and the allowlist is never
+ * installed). This MUST stay in lockstep with the `setcap` set in the Dockerfile —
+ * a file-cap binary whose effective set contains a cap outside this bounding set
+ * fails execve with EPERM and silently breaks the firewall.
+ */
+export const CAP_ADD: readonly string[] = ["NET_ADMIN", "NET_RAW"];
+
+/**
  * Egress allowlist. The in-container firewall denies everything else
  * (including RFC-1918, link-local, and the host gateway). Kept here so the
  * orchestrator, `sandbox-doctor`, and the firewall all agree on one set.

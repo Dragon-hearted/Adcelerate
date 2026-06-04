@@ -37,6 +37,7 @@ import {
   CONCURRENCY_CAP,
   RUN_TIMEOUT_MS,
   LIMITS,
+  CAP_ADD,
   ALLOWLIST_DOMAINS,
   resolveTarget,
   targetNames,
@@ -258,7 +259,7 @@ function buildDockerArgs(s: RunSpec): string[] {
     "--name", s.id,
     "--network", NETWORK_NAME,
     "--cap-drop", "ALL",
-    "--cap-add", "NET_ADMIN",
+    ...CAP_ADD.flatMap((c) => ["--cap-add", c]),
     "--user", `${uid}:${gid}`,
     "--cpus", LIMITS.cpus,
     "--memory", LIMITS.memory,
@@ -382,7 +383,7 @@ async function runOne(args: Args, idx: number, parentUrl: string): Promise<RunSu
     console.log(`\n${tag} DRY RUN`);
     console.log(`${tag} clone: git clone ${recurse ? "--recurse-submodules " : ""}${cloneUrl} ${repoDir}`);
     console.log(`${tag} docker ${printableDockerArgs(spec)}`);
-    console.log(`${tag} (no API key forwarded · caps: drop ALL, add NET_ADMIN · limits: cpus=${LIMITS.cpus} mem=${LIMITS.memory} pids=${LIMITS.pidsLimit})`);
+    console.log(`${tag} (no API key forwarded · caps: drop ALL, add ${CAP_ADD.join("+")} · limits: cpus=${LIMITS.cpus} mem=${LIMITS.memory} pids=${LIMITS.pidsLimit})`);
     console.log(`${tag} push: git -C ${repoDir} push origin ${branch}  →  gh pr create (base=<default>)`);
     return summary;
   }
@@ -561,7 +562,12 @@ async function doctor(): Promise<number> {
   };
   const argv = buildDockerArgs(sample);
   const argStr = argv.join(" ");
-  push("Caps: drop ALL + add NET_ADMIN only", argStr.includes("--cap-drop ALL") && argStr.includes("--cap-add NET_ADMIN") && (argStr.match(/--cap-add/g)?.length === 1));
+  push(
+    `Caps: drop ALL + add ${CAP_ADD.join("+")} only`,
+    argStr.includes("--cap-drop ALL") &&
+      CAP_ADD.every((c) => argStr.includes(`--cap-add ${c}`)) &&
+      argStr.match(/--cap-add/g)?.length === CAP_ADD.length,
+  );
   push("Runs as non-root (--user <uid>:<gid>)", /--user \d+:\d+/.test(argStr));
   push("Resource limits set (cpus/memory/pids)", argStr.includes("--cpus") && argStr.includes("--memory") && argStr.includes("--pids-limit"));
   push("No docker.sock mount", !argStr.includes("docker.sock"));
@@ -578,7 +584,7 @@ async function doctor(): Promise<number> {
     const fw = await sh([
       "docker", "run", "--rm",
       "--network", NETWORK_NAME,
-      "--cap-drop", "ALL", "--cap-add", "NET_ADMIN",
+      "--cap-drop", "ALL", ...CAP_ADD.flatMap((c) => ["--cap-add", c]),
       "--user", "node",
       "--entrypoint", "bash",
       IMAGE_TAG,
