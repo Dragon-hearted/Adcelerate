@@ -48,8 +48,20 @@ RUN curl -fsSL https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/b
 # present, so without this repos that expose tests only via justfile never run them.
 RUN curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin && just --version
 
-# Grant cap_net_admin to the firewall binaries so the non-root `node` user can
-# program iptables/ipset using the container's NET_ADMIN cap — without sudo.
+# Grant the firewall binaries the caps they need so the non-root `node` user can
+# program iptables/ipset without sudo.
+#
+# BOTH cap_net_admin AND cap_net_raw are required (effective):
+#   - cap_net_admin — program netfilter / create the ipset.
+#   - cap_net_raw   — the `iptables -m set --match-set` (xt_set) extension opens a
+#     socket to ipset; without NET_RAW it fails with "Can't open socket to ipset",
+#     so the allowlist ACCEPT rules are never installed and the firewall is broken.
+#
+# CRITICAL: the container's cap bounding set (see CAP_ADD in config.ts → the
+# `--cap-add` flags in orchestrator.ts) MUST include BOTH NET_ADMIN and NET_RAW.
+# A file-capability binary whose EFFECTIVE set contains a cap outside the bounding
+# set fails execve with EPERM ("Operation not permitted") — silently breaking the
+# firewall. Keep the setcap set and CAP_ADD in lockstep.
 RUN set -eux; \
     for b in iptables ip6tables ipset; do \
       p="$(command -v "$b" || true)"; \
