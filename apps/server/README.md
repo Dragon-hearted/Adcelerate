@@ -1,3 +1,12 @@
+> [!WARNING]
+> **DEPRECATED — superseded by the Claude Command Center (`apps/command-center`).**
+> This Hono/Bun observability server has been replaced by the Command Center
+> orchestrator (Fastify + Socket.IO + Drizzle) at
+> [`apps/command-center`](../command-center). Run it with `just cc-dev`
+> (orchestrator → http://localhost:4100). Its event schema + token-ingest
+> pipeline were ported to the new app; the legacy `events.db` is retained as the
+> one-time data-migration source (`just cc-migrate`). No longer maintained.
+
 <div align="center">
 
 ![multi-agent-observability-server](images/hero.svg)
