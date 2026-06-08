@@ -35,10 +35,14 @@ If `.agents/product-marketing-context.md` exists (or `.claude/product-marketing-
 
 ## Client Directory Structure
 
-Client brand knowledge and storyboard outputs are stored at:
+> **⚠️ LOCATION — read before creating anything.** The `client/` directory lives at the **Adcelerate repository root** — the same level as `systems/`, `apps/`, and `justfile` — **NOT** inside `systems/scene-board/`. Every `client/...` path in this skill is relative to the repo root.
+>
+> **Always resolve `client/{client}/...` against the repo root.** If your shell's current directory is inside a system (e.g. you `cd systems/scene-board` to run a `bun` driver), a bare `client/` will wrongly create `systems/scene-board/client/`. Guard against it: pass an **absolute path** (`<repo-root>/client/{client}/…`), or `cd` back to the repo root before writing any client file. Before creating a new client, confirm the target resolves to the repo-root `client/` (sibling clients like the existing ones should be visible there).
+
+Client brand knowledge and storyboard outputs are stored at (paths relative to the **repo root**):
 
 ```
-client/{client-name}/
+<repo-root>/client/{client-name}/
   brand.md              # Compiled brand profile (quick-reference, includes brand_category)
   knowledge/            # Detailed brand knowledge files
   references/           # Reusable reference sheets (product brands — shared across storyboards)
