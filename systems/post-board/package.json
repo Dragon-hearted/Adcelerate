@@ -1,0 +1,29 @@
+{
+	"name": "adcelerate-post-board",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Brand-aware social post & carousel studio — brief → editable DOM/CSS slide editor → PNG/PDF export",
+	"scripts": {
+		"dev": "bun run --watch src/index.ts",
+		"build": "bun build src/index.ts --outdir dist --target bun && bun run build:editor",
+		"build:editor": "test -f editor/src/main.ts && bun build editor/src/main.ts --outdir editor/dist || echo 'editor/src/main.ts not found — skipping editor bundle'",
+		"test": "bun test",
+		"lint": "bunx @biomejs/biome check .",
+		"check": "bunx @biomejs/biome check --write .",
+		"serve": "bun run src/cli.ts serve",
+		"export": "bun run src/cli.ts export"
+	},
+	"dependencies": {
+		"hono": "^4.12.25",
+		"moveable": "^0.53.0",
+		"pdf-lib": "^1.17.1",
+		"playwright": "^1.60.0",
+		"selecto": "^1.26.3",
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.0",
+		"@types/bun": "latest",
+		"typescript": "^5.7.0"
+	}
+}
