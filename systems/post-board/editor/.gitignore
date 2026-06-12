@@ -1,0 +1,7 @@
+# The bundled editor is the served artifact — the server prefers editor/dist
+# over the TS source. Track the bundle so a fresh checkout serves a working
+# editor without requiring a build step first. Rebuild with:
+#   bun build editor/src/main.ts --outdir editor/dist
+!dist/
+!dist/main.js
+!dist/main.js.map

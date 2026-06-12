@@ -380,3 +380,46 @@ scrape-engine:
       produces: "Per-selector matched elements (text + attributes) using adaptive=True element relocation"
   registered_at: "2026-06-02"
   last_validated: "2026-06-02"
+
+post-board:
+  name: "PostBoard"
+  path: "systems/post-board"
+  status: "active"
+  description: "Brand-aware social post & carousel studio. Turns a short brief into on-brand Instagram/Facebook/LinkedIn posts and carousels for Dragonhearted Labs — generating copy via the best copy skills and a catchy cover (CSS riso default, optional Higgsfield background), then opening an editable DOM/CSS slide editor (move/resize/rotate layers, brand-only fonts & colors, riso/ink-bleed treatments) served by a local Bun + Hono server, and exporting one PNG per slide plus a combined PDF."
+  task_types:
+    - "social-post-generation"
+    - "carousel-generation"
+    - "brand-creative-editing"
+    - "copy-to-creative"
+  knowledge_path: "systems/post-board/knowledge"
+  client_directory: "client"
+  input_types:
+    - "brief"
+    - "copy-doc"
+    - "reference-images"
+    - "brand-package"
+  output_types:
+    - "editable-project-json"
+    - "slide-png"
+    - "carousel-pdf"
+  domain_tags:
+    - "social-media"
+    - "creative"
+    - "marketing"
+    - "ai"
+    - "editor"
+  entry_point: "systems/post-board/src/cli.ts"
+  justfile: true
+  stages:
+    - name: "copy-generation"
+      produces: "On-brand post/carousel copy (cover hook, body slides, CTA) via copywriting/ad-creative/social-content/marketing-psychology, mapped to the brand voice + positioning banners"
+    - name: "project-seeding"
+      produces: "A populated draft Project document (format preset, style mode, slides with layers) persisted to client/dragonhearted_labs/post-board/<id>/project.json"
+    - name: "cover-generation"
+      produces: "A catchy cover slide — CSS riso composition by default, or an optional Higgsfield/ImageEngine-generated background with editable text on top"
+    - name: "interactive-editing"
+      produces: "Operator-edited slides via the served DOM/CSS editor (move/resize/rotate, brand-only fonts & colors, treatments, add/reorder/delete slides), autosaved to project.json"
+    - name: "export"
+      produces: "One PNG per slide at exact preset pixel dimensions + a combined carousel.pdf in the project dir"
+  registered_at: "2026-06-12"
+  last_validated: "2026-06-12"

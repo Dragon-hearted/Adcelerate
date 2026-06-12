@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PostBoard — Brand Fidelity Demo</title>
+
+<!--
+  Visual acceptance artifact for Task #4 (riso/ink-bleed CSS system).
+  Proves: display headline w/ ink-bleed + misregistration, clean Inter body,
+  IBM Plex Mono system-tag kicker, Neon-Lime marker-block accent, barcode
+  element, logo in a Graphite container, always-on paper grain + halftone.
+
+  Fonts: self-sufficient for a standalone screenshot —
+    • Neue Machina (display) is loaded from the on-disk brand .otf files.
+    • Inter + IBM Plex Mono come from Google Fonts (OFL).
+  Progressive enhancement: when served by the PostBoard server, the inline
+  script swaps in the canonical @font-face CSS from /api/brand.
+-->
+
+<!-- Google Fonts fallback for the two OFL families (Inter, IBM Plex Mono). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+	href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+	rel="stylesheet"
+/>
+
+<!-- Neue Machina from the on-disk brand fonts (repo-relative). -->
+<style id="local-fonts">
+	@font-face {
+		font-family: "PP Neue Machina";
+		font-weight: 300;
+		font-style: normal;
+		font-display: swap;
+		src: url("../../../client/dragonhearted_labs/brand-identity/fonts/neue-machina/Neue%20Machina%20-%20Free%20for%20Personal%20Use/NeueMachina-Light.otf") format("opentype");
+	}
+	@font-face {
+		font-family: "PP Neue Machina";
+		font-weight: 400;
+		font-style: normal;
+		font-display: swap;
+		src: url("../../../client/dragonhearted_labs/brand-identity/fonts/neue-machina/Neue%20Machina%20-%20Free%20for%20Personal%20Use/NeueMachina-Regular.otf") format("opentype");
+	}
+	@font-face {
+		font-family: "PP Neue Machina";
+		font-weight: 800;
+		font-style: normal;
+		font-display: swap;
+		src: url("../../../client/dragonhearted_labs/brand-identity/fonts/neue-machina/Neue%20Machina%20-%20Free%20for%20Personal%20Use/NeueMachina-Ultrabold.otf") format("opentype");
+	}
+</style>
+
+<link rel="stylesheet" href="./styles/brand.css" />
+
+<style>
+	/* Demo chrome only — not part of the brand system. */
+	body {
+		margin: 0;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 18px;
+		padding: 32px 16px 48px;
+		background: #1b1d22;
+		font-family: "IBM Plex Mono", monospace;
+		color: #c7ccd6;
+	}
+	.demo-caption {
+		font-size: 12px;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		opacity: 0.7;
+		text-align: center;
+	}
+	/* Scale the 1080×1350 stage down to fit the viewport for preview. */
+	.stage-frame {
+		width: 540px;   /* 1080 × 0.5 */
+		height: 675px;  /* 1350 × 0.5 */
+		box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+	}
+	.stage-frame .slide-stage {
+		transform: scale(0.5);
+		transform-origin: top left;
+	}
+
+	/* ── Demo slide composition (a cover) ── */
+	.cover-pad {
+		position: absolute;
+		inset: 72px 72px 64px;
+		display: flex;
+		flex-direction: column;
+		height: calc(100% - 136px);
+	}
+	.cover-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.cover-headline {
+		font-size: 150px;
+		margin: 0;
+		margin-top: auto;
+	}
+	.cover-sub {
+		font-size: 26px;
+		max-width: 760px;
+		margin-top: 28px;
+	}
+	.cover-foot {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		margin-top: 40px;
+	}
+	.cover-foot .logo-container {
+		width: 300px;
+	}
+	.bc {
+		width: 220px;
+		height: 56px;
+	}
+	.halftone-field {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+	}
+	.stat-row {
+		display: flex;
+		gap: 28px;
+		margin-top: 30px;
+	}
+	.stat {
+		font-family: var(--font-display);
+		font-weight: 800;
+	}
+	.stat .v {
+		font-size: 64px;
+		line-height: 1;
+	}
+	.stat .l {
+		font-family: var(--font-mono);
+		font-weight: 500;
+		font-size: 18px;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--ink-2);
+	}
+</style>
+</head>
+<body>
+
+<!-- ── SVG filter defs — the ink-bleed / riso plate system (PB_FILTER_DEFS).
+     Inlined once per document; brand.css references these by id. ── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+	<defs>
+		<!-- #ink-bleed: feathered ink edges + subtle ink-soak on display type. -->
+		<filter id="ink-bleed" x="-6%" y="-6%" width="112%" height="112%">
+			<feTurbulence type="fractalNoise" baseFrequency="0.014 0.019" numOctaves="2" seed="7" result="noise" />
+			<feDisplacementMap in="SourceGraphic" in2="noise" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
+		</filter>
+
+		<!-- #ink-bleed-heavy: stronger soak for solid color blocks / banners. -->
+		<filter id="ink-bleed-heavy" x="-12%" y="-12%" width="124%" height="124%">
+			<feTurbulence type="fractalNoise" baseFrequency="0.02 0.028" numOctaves="3" seed="11" result="noise" />
+			<feDisplacementMap in="SourceGraphic" in2="noise" scale="5.5" xChannelSelector="R" yChannelSelector="G" />
+		</filter>
+
+		<!-- #misregister: 1–3px chromatic plate offset (Electric Blue + Dragon
+		     Red ghosts behind the source ink). -->
+		<filter id="misregister" x="-10%" y="-10%" width="120%" height="120%">
+			<feOffset in="SourceGraphic" dx="-2" dy="-1.4" result="rplate" />
+			<feColorMatrix in="rplate" type="matrix"
+				values="0 0 0 0 1   0 0 0 0 0.16   0 0 0 0 0.16   0 0 0 0.5 0" result="red" />
+			<feOffset in="SourceGraphic" dx="2" dy="1.4" result="bplate" />
+			<feColorMatrix in="bplate" type="matrix"
+				values="0 0 0 0 0.04   0 0 0 0 0.37   0 0 0 0 1   0 0 0 0.5 0" result="blue" />
+			<feMerge>
+				<feMergeNode in="red" />
+				<feMergeNode in="blue" />
+				<feMergeNode in="SourceGraphic" />
+			</feMerge>
+		</filter>
+	</defs>
+</svg>
+
+<div class="demo-caption">PostBoard · Dragonhearted Labs · IG 4:5 (1080×1350) · 08-popart-screenprint</div>
+
+<div class="stage-frame">
+	<!-- Pop-art screenprint mode leans hardest into the ink bleed. -->
+	<div class="slide-stage mode-08-popart">
+
+		<!-- Halftone dot-matrix texture field (≤15% opacity). -->
+		<div class="halftone-field tex-halftone"></div>
+
+		<div class="cover-pad">
+			<!-- Top strip: system-tag kicker + barcode authenticity stamp. -->
+			<div class="cover-top">
+				<span class="system-tag">[SYS.01//POST]</span>
+				<div class="bc element-barcode treat-ink-bleed"></div>
+			</div>
+
+			<!-- Display headline: ink-bleed + plate misregistration. -->
+			<h1 class="type-display treat-ink-bleed cover-headline">
+				BUILD<br />DIFFERENT.
+			</h1>
+
+			<!-- Body: clean Inter, with a Neon-Lime marker-block accent phrase. -->
+			<p class="type-body cover-sub">
+				Engineered AI systems that ship
+				<span class="accent-marker">real&nbsp;world</span>
+				results — built to win, not to demo.
+			</p>
+
+			<!-- Proof stats. -->
+			<div class="stat-row">
+				<div class="stat"><div class="v">+300%</div><div class="l">output</div></div>
+				<div class="stat"><div class="v">−80%</div><div class="l">manual work</div></div>
+			</div>
+
+			<!-- Footer: logo inside its mandatory Graphite container + index. -->
+			<div class="cover-foot">
+				<div class="logo-container">
+					<img
+						src="../../../client/dragonhearted_labs/brand-identity/assets/logo-dragonhearted.png"
+						alt="Dragonhearted Labs"
+					/>
+				</div>
+				<span class="system-tag silver">01 / 06</span>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="demo-caption">display=Neue Machina · body=Inter (clean) · tags=IBM Plex Mono</div>
+
+<script>
+	// Progressive enhancement: when served by the PostBoard server, replace the
+	// local @font-face with the canonical base64-embedded CSS from /api/brand.
+	(async () => {
+		try {
+			const res = await fetch("/api/brand", { headers: { accept: "application/json" } });
+			if (!res.ok) return;
+			const brand = await res.json();
+			const css = brand.fontFaceCss || (brand.brand && brand.brand.fontFaceCss);
+			if (typeof css === "string" && css.length > 0) {
+				const style = document.createElement("style");
+				style.id = "runtime-fonts";
+				style.textContent = css;
+				document.head.appendChild(style);
+				const local = document.getElementById("local-fonts");
+				if (local) local.remove();
+			}
+		} catch {
+			/* offline / file:// — keep the self-sufficient local fonts. */
+		}
+	})();
+</script>
+</body>
+</html>

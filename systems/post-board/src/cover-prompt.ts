@@ -1,0 +1,109 @@
+/**
+ * Cover-background prompt builder.
+ *
+ * Composes a single, continuous GPT-Image-2 prompt body for a slide's
+ * background image from the brand's style mode + ink-bleed/riso background
+ * system + palette + the project brief. The generated image is a BACKGROUND
+ * ONLY — all copy and the logo stay editable HTML overlays in the editor, so
+ * the prompt hard-forbids any text/lettering and any logo in the frame.
+ *
+ * HARD RULES (enforced here):
+ *  - ≤ 4000 characters.
+ *  - Explicitly instructs NO text / words / lettering / typography in the image.
+ *  - Explicitly instructs NO logo / wordmark / brand mark in the image.
+ *  - A single continuous prompt body (no separate system instruction).
+ */
+
+import type { BrandBundle, StyleMode } from "./brand-loader";
+import type { Project, SlideRole } from "./project";
+
+/** Max prompt length accepted by the transport. */
+export const MAX_COVER_PROMPT_CHARS = 4000;
+
+/** The flagship dark-first style mode id (cosmic-black canvas exception). */
+const HERO_STYLE_ID = "01-chrome-hero";
+
+/** Retro-white light-first canvas (the base system). */
+const RETRO_WHITE_HEX = "#F4F6F8";
+/** Cosmic-black Hero Mode canvas (the one full-dark exception). */
+const VOID_HEX = "#05070D";
+
+export interface BuildCoverPromptOptions {
+	/** Style-mode id to compose for (defaults to the project's styleMode). */
+	styleMode?: string;
+	/** Slide role being generated (affects emphasis; defaults to "cover"). */
+	slideRole?: SlideRole;
+	/** Explicit subject override (defaults to the project brief). */
+	subject?: string;
+}
+
+/** Resolve the style mode object for an id, falling back to the first mode. */
+function resolveStyleMode(bundle: BrandBundle, id: string | undefined): StyleMode | undefined {
+	if (id) {
+		const found = bundle.styleModes.find((m) => m.id === id);
+		if (found) {
+			return found;
+		}
+	}
+	return bundle.styleModes[0];
+}
+
+/** Compact palette descriptor: `name hex (role-lead)`. */
+function paletteLine(bundle: BrandBundle): string {
+	return bundle.palette
+		.map((c) => `${c.name} ${c.hex}`)
+		.slice(0, 7)
+		.join(", ");
+}
+
+/**
+ * Build the cover/background prompt. Always returns a string ≤
+ * {@link MAX_COVER_PROMPT_CHARS}; if composition would exceed the ceiling it is
+ * trimmed at a sentence boundary with the hard NO-TEXT/NO-LOGO clause preserved.
+ */
+export function buildCoverPrompt(
+	bundle: BrandBundle,
+	project: Project,
+	opts: BuildCoverPromptOptions = {},
+): string {
+	const styleId = opts.styleMode ?? project.styleMode;
+	const mode = resolveStyleMode(bundle, styleId);
+	const isHero = (mode?.id ?? styleId) === HERO_STYLE_ID;
+	const subject = (opts.subject ?? project.brief ?? "").trim();
+	const role = opts.slideRole ?? "cover";
+
+	const bg = bundle.backgroundSystem;
+	const textureNames = bg.textures.map((t) => t.name).join(", ");
+
+	// The hard constraint clause — always kept, even after trimming.
+	const constraints =
+		"ABSOLUTELY NO TEXT, NO WORDS, NO LETTERING, NO TYPOGRAPHY, NO CAPTIONS, NO NUMBERS, and NO LOGO or wordmark or brand mark anywhere in the image. This is a pure BACKGROUND plate; all copy and the logo are added later as separate editable overlays. Leave clean negative space for text overlay. Do not render any UI, watermark, or signature.";
+
+	const canvasClause = isHero
+		? `Full-bleed dark canvas: Cosmic Black ${VOID_HEX} starfield ground with subtle fine grain and low-opacity silver/graphite stars — never dead-flat black. A single 3D liquid-chrome hero subject, photoreal and glossy, with electric-blue (#0B5FFF) glowing energy veins and rim light; chrome stays glossy (no paper texture on the chrome).`
+		: `Full-bleed light-first canvas: Retro White ${RETRO_WHITE_HEX} paper ground, always textured (never flat white). Always-on ink-bleed / risograph-screenprint treatment: feathered soft ink edges, ink-soak halos around heavy elements, slight plate misregistration (1–3px offset between color plates), occasional roller streaks. Layer paper/riso grain plus 1–2 of these textures at low opacity: ${textureNames}.`;
+
+	const parts: string[] = [
+		`On-brand social ${role} BACKGROUND for ${bundle.brand}, an AI engineer–artist personal brand.`,
+		mode ? `Style mode "${mode.name}" (${mode.id}): ${mode.description}` : "",
+		canvasClause,
+		`Color palette (use only these): ${paletteLine(bundle)}.`,
+		subject ? `Creative subject / theme to evoke (visual only, no literal text): ${subject}` : "",
+		`Background-system rule: ${bg.rule}`,
+		"Composition: bold, scroll-stopping, generous empty area reserved for headline overlay; print-artifact, lab-zine aesthetic; high craft.",
+		constraints,
+	].filter((p) => p.length > 0);
+
+	let prompt = parts.join("\n\n").trim();
+
+	if (prompt.length > MAX_COVER_PROMPT_CHARS) {
+		// Trim the body but always re-append the hard constraint clause.
+		const budget = MAX_COVER_PROMPT_CHARS - constraints.length - 2;
+		const head = prompt.slice(0, Math.max(0, budget));
+		const lastStop = Math.max(head.lastIndexOf(". "), head.lastIndexOf("\n"));
+		const trimmed = (lastStop > 0 ? head.slice(0, lastStop + 1) : head).trim();
+		prompt = `${trimmed}\n\n${constraints}`.slice(0, MAX_COVER_PROMPT_CHARS);
+	}
+
+	return prompt;
+}
