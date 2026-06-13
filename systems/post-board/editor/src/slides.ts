@@ -5,7 +5,7 @@
  */
 
 import { FORMAT_PRESET_LIST } from "../../src/formats";
-import { SLIDE_ROLES } from "../../src/templates";
+import { SLIDE_ROLES, VARIANTS_BY_ROLE } from "../../src/templates";
 import { renderThumb } from "./stage";
 import type { Store } from "./store";
 import type { SlideRole } from "./types";
@@ -108,7 +108,7 @@ export function renderSlides(panel: HTMLElement, store: Store): void {
 	});
 	panel.append(list);
 
-	// ── Add slide ──
+	// ── Add slide (role + layout variant) ──
 	const add = document.createElement("div");
 	add.className = "sl-add";
 	const roleSel = document.createElement("select");
@@ -119,12 +119,33 @@ export function renderSlides(panel: HTMLElement, store: Store): void {
 		opt.textContent = role;
 		roleSel.append(opt);
 	}
+
+	// Layout-variant picker — repopulates when the role changes. The empty
+	// option lets the deterministic arc picker choose a fitting variant.
+	const variantSel = document.createElement("select");
+	variantSel.className = "sl-select";
+	const fillVariants = (role: SlideRole): void => {
+		variantSel.innerHTML = "";
+		const auto = document.createElement("option");
+		auto.value = "";
+		auto.textContent = "auto (picker)";
+		variantSel.append(auto);
+		for (const v of VARIANTS_BY_ROLE[role] ?? []) {
+			const opt = document.createElement("option");
+			opt.value = v;
+			opt.textContent = v;
+			variantSel.append(opt);
+		}
+	};
+	fillVariants(roleSel.value as SlideRole);
+	roleSel.onchange = () => fillVariants(roleSel.value as SlideRole);
+
 	const addBtn = document.createElement("button");
 	addBtn.type = "button";
 	addBtn.className = "sl-add-btn";
 	addBtn.textContent = "+ Add slide";
-	addBtn.onclick = () => store.addSlide(roleSel.value as SlideRole);
-	add.append(roleSel, addBtn);
+	addBtn.onclick = () => store.addSlide(roleSel.value as SlideRole, variantSel.value || undefined);
+	add.append(roleSel, variantSel, addBtn);
 	panel.append(add);
 }
 

@@ -17,6 +17,8 @@ export type {
 	ObjectFit,
 	Project,
 	ProjectFormat,
+	ShapeKind,
+	ShapeLayer,
 	Slide,
 	SlideRole,
 	TextAlign,

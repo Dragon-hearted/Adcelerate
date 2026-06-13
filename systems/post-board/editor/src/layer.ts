@@ -97,6 +97,24 @@ function buildElement(layer: Extract<Layer, { kind: "element" }>): HTMLElement {
 	return img;
 }
 
+/**
+ * Build the inner content for a shape layer — a flat brand-colour fill (the
+ * "color-block" device). Neon-Lime fills are the marker-block SURFACE behind
+ * type; other fills are structural rules / panels. Carries the ink-bleed plate
+ * misregistration so the block reads as printed, never a flat web rectangle.
+ */
+function buildShape(layer: Extract<Layer, { kind: "shape" }>): HTMLElement {
+	const box = document.createElement("div");
+	box.className = `pb-shape shape-${layer.shape}`;
+	if (isLime(layer.fill)) {
+		box.classList.add("accent-block");
+	}
+	box.style.width = "100%";
+	box.style.height = "100%";
+	box.style.background = layer.fill;
+	return box;
+}
+
 /** Build the inner content for a logo layer (container rule enforced for chrome). */
 function buildLogo(brand: BrandResponse, layer: Extract<Layer, { kind: "logo" }>): HTMLElement {
 	const src = logoSrc(brand, layer.variant);
@@ -152,6 +170,9 @@ export function createLayerNode(brand: BrandResponse, layer: Layer): HTMLElement
 			break;
 		case "logo":
 			node.appendChild(buildLogo(brand, layer));
+			break;
+		case "shape":
+			node.appendChild(buildShape(layer));
 			break;
 	}
 	return node;

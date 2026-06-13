@@ -67,6 +67,32 @@ export interface BrandElement {
 	assetSheet?: string;
 }
 
+/** A transparent logo cutout (task #2; additive — `logo.rules` unchanged). */
+export interface BrandCutoutLogo {
+	id: string;
+	name: string;
+	/** Absolute path to the transparent PNG, when present on disk. */
+	file: string;
+	use: string;
+}
+
+/** A family of per-mark transparent element cutouts (task #2). */
+export interface BrandCutoutElement {
+	id: string;
+	/** Cross-link to the `brand_elements` id (barcode / starburst / …). */
+	elementRef: string;
+	name: string;
+	usage: string;
+	/** Absolute paths to each per-mark cutout PNG that exists on disk. */
+	files: string[];
+}
+
+/** The additive transparent-cutout library (logos + per-mark element marks). */
+export interface BrandCutouts {
+	logos: BrandCutoutLogo[];
+	elements: BrandCutoutElement[];
+}
+
 /** Logo container/placement rules. */
 export interface BrandLogoRules {
 	background: string;
@@ -160,6 +186,8 @@ export interface BrandBundle {
 	fontFaceCss: string;
 	styleModes: StyleMode[];
 	elements: BrandElement[];
+	/** Additive transparent cutouts (task #2); empty when none on disk. */
+	cutouts: BrandCutouts;
 	logo: BrandLogo;
 	backgroundSystem: BackgroundSystem;
 	voice: BrandVoice;
@@ -388,6 +416,11 @@ export function loadBrand(options: LoadBrandOptions = {}): BrandBundle {
 		};
 	});
 
+	const cutouts = normalizeCutouts(
+		raw.cutouts as Record<string, unknown> | undefined,
+		root,
+		silent,
+	);
 	const logo = normalizeLogo(raw.logo as Record<string, unknown> | undefined, root, silent);
 	const backgroundSystem = normalizeBackgroundSystem(
 		raw.background_system as Record<string, unknown> | undefined,
@@ -406,6 +439,7 @@ export function loadBrand(options: LoadBrandOptions = {}): BrandBundle {
 		fontFaceCss,
 		styleModes,
 		elements,
+		cutouts,
 		logo,
 		backgroundSystem,
 		voice,
@@ -459,6 +493,76 @@ function normalizeLogo(
 			donts: asArray(rules.donts).map(String),
 		},
 	};
+}
+
+/** Title-case a cutout id (`barcode-marks` → `Barcode Marks`). */
+function titleizeId(id: string): string {
+	return id
+		.split(/[-_]/)
+		.filter(Boolean)
+		.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+		.join(" ");
+}
+
+/**
+ * Normalize the additive `cutouts` block (task #2). Logo cutouts resolve a single
+ * transparent file; element cutouts enumerate `dir/<1..count>.png`. Missing files
+ * are warned + skipped (never thrown), so every returned path is servable.
+ */
+function normalizeCutouts(
+	raw: Record<string, unknown> | undefined,
+	root: string,
+	silent: boolean,
+): BrandCutouts {
+	const o = raw ?? {};
+	const logos: BrandCutoutLogo[] = asArray(o.logos).flatMap((l) => {
+		const lo = l as Record<string, unknown>;
+		const id = String(lo.id ?? "");
+		const file = resolveAsset(
+			typeof lo.file === "string" ? lo.file : undefined,
+			root,
+			silent,
+			`cutout logo "${id}"`,
+		);
+		if (!file) {
+			return [];
+		}
+		return [{ id, name: titleizeId(id), file, use: String(lo.use ?? "") }];
+	});
+
+	const elements: BrandCutoutElement[] = asArray(o.elements).flatMap((e) => {
+		const eo = e as Record<string, unknown>;
+		const id = String(eo.id ?? "");
+		const dir = typeof eo.dir === "string" ? eo.dir : "";
+		const count = typeof eo.count === "number" ? eo.count : 0;
+		if (!dir || count <= 0) {
+			return [];
+		}
+		const files: string[] = [];
+		for (let n = 1; n <= count; n++) {
+			const abs = resolveAsset(`${dir}/${n}.png`, root, true, `cutout "${id}/${n}"`);
+			if (abs) {
+				files.push(abs);
+			}
+		}
+		if (files.length === 0) {
+			if (!silent) {
+				console.warn(`[brand-loader] No cutout files found for "${id}" under ${dir}`);
+			}
+			return [];
+		}
+		return [
+			{
+				id,
+				elementRef: String(eo.element_ref ?? ""),
+				name: titleizeId(id),
+				usage: String(eo.usage ?? ""),
+				files,
+			},
+		];
+	});
+
+	return { logos, elements };
 }
 
 function normalizeBackgroundSystem(raw: Record<string, unknown> | undefined): BackgroundSystem {

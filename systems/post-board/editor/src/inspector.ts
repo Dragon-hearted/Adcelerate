@@ -214,6 +214,21 @@ function buildLogoControls(store: Store, layer: Extract<Layer, { kind: "logo" }>
 	return section("Logo", row("Variant", sel));
 }
 
+function buildShapeControls(store: Store, layer: Extract<Layer, { kind: "shape" }>): HTMLElement {
+	// Fill is a brand SURFACE — palette-only. Unlike text, lime IS allowed here
+	// (the marker-block fill behind type); it's never a glyph colour.
+	const swatchRow = h("div", { class: "insp-swatches" });
+	for (const c of store.brand.palette) {
+		const sw = h("button", { class: "insp-swatch", type: "button" }) as HTMLButtonElement;
+		sw.style.background = c.hex;
+		sw.title = isLime(c.hex) ? `${c.name} — accent-block fill (Graphite type on top)` : c.name;
+		if (layer.fill.toLowerCase() === c.hex.toLowerCase()) sw.classList.add("active");
+		sw.onclick = () => store.updateLayer(layer.id, { fill: c.hex });
+		swatchRow.append(sw);
+	}
+	return section("Shape", row("Kind", h("span", { class: "insp-note" }, [layer.shape])), swatchRow);
+}
+
 /** Common arrange controls (z-order, lock, duplicate, delete). */
 function buildArrange(store: Store, layer: Layer): HTMLElement {
 	const mk = (label: string, fn: () => void, cls = "") => {
@@ -264,8 +279,10 @@ export function renderInspector(panel: HTMLElement, store: Store): void {
 		panel.append(buildImageControls(store, layer));
 	} else if (layer.kind === "logo") {
 		panel.append(buildLogoControls(store, layer));
-	} else {
+	} else if (layer.kind === "element") {
 		panel.append(section("Element", h("p", { class: "insp-note" }, [layer.elementId])));
+	} else {
+		panel.append(buildShapeControls(store, layer));
 	}
 	panel.append(buildArrange(store, layer));
 }
