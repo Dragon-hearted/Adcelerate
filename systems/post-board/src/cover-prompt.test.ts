@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { loadBrand } from "./brand-loader";
-import { MAX_COVER_PROMPT_CHARS, buildCoverPrompt } from "./cover-prompt";
+import {
+	MAX_COVER_PROMPT_CHARS,
+	buildCoverPrompt,
+	buildSlideHeroPrompt,
+	slideSubject,
+} from "./cover-prompt";
 import { createSeedProject } from "./seed";
 
 const bundle = loadBrand({ silent: true });
@@ -53,5 +58,40 @@ describe("buildCoverPrompt", () => {
 		expect(prompt.length).toBeLessThanOrEqual(MAX_COVER_PROMPT_CHARS);
 		// The hard constraint clause survives trimming.
 		expect(prompt).toContain("NO TEXT");
+	});
+});
+
+describe("buildSlideHeroPrompt (per-slide hero plates)", () => {
+	const p = project("08-popart-screenprint");
+
+	test("slideSubject distills the slide's own copy (not the kicker chrome)", () => {
+		const content = p.slides.find((s) => s.role === "content");
+		expect(content).toBeDefined();
+		if (content) {
+			const subject = slideSubject(content, p);
+			expect(subject).toContain("POINT TITLE GOES HERE.");
+			// never pulls the mono system-tag kicker into the subject
+			expect(subject).not.toContain("DRGN.LAB");
+		}
+	});
+
+	test("each slide gets an on-brand BACKGROUND prompt (no text, no logo, ≤4000)", () => {
+		for (const slide of p.slides) {
+			const prompt = buildSlideHeroPrompt(bundle, p, slide);
+			expect(prompt.length).toBeLessThanOrEqual(MAX_COVER_PROMPT_CHARS);
+			expect(prompt).toContain("NO TEXT");
+			expect(prompt.toUpperCase()).toContain("NO LOGO");
+			// light-first feed canvas for the default style mode
+			expect(prompt).toContain("#F4F6F8");
+		}
+	});
+
+	test("the prompt evokes the slide's idea (its headline copy)", () => {
+		const cta = p.slides.find((s) => s.role === "cta");
+		if (cta) {
+			const prompt = buildSlideHeroPrompt(bundle, p, cta);
+			// the CTA banner copy seeds the visual subject
+			expect(prompt).toContain(bundle.positioning.ctaBanner ?? "READY");
+		}
 	});
 });

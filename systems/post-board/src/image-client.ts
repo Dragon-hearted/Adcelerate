@@ -1,9 +1,13 @@
 /**
  * Typed HTTP client for the ImageEngine API.
  *
- * PostBoard talks to ImageEngine exclusively over HTTP (the cover-background
- * transport — Higgsfield GPT Image 2 by default, with ImageEngine's own gemini
- * fallback). Ported near-verbatim from SceneBoard; all types are locally
+ * PostBoard talks to ImageEngine exclusively over HTTP (the cover + per-slide
+ * hero transport). PostBoard omits `model`, so ImageEngine applies its default —
+ * the Higgsfield CLI + NanoBanana Pro (`higgsfield-nano-banana-pro`). The old
+ * silent gemini fallback is now PERMISSION-GATED: with no `model` and Higgsfield
+ * down, ImageEngine returns a clear error (the caller surfaces it) unless the
+ * operator opts in via `autoFallback: true` per request or
+ * `IMAGE_ENGINE_AUTO_FALLBACK=1`. Ported from SceneBoard; all types are locally
  * declared so there is no import coupling to ImageEngine internals.
  *
  * Base URL: `IMAGE_ENGINE_URL` env (default `http://localhost:3002`).
@@ -49,6 +53,12 @@ export interface GenerationRequest {
 	sceneId?: string;
 	/** OpenAI-only quality knob. Ignored by WisGate models. */
 	openaiQuality?: "low" | "medium" | "high";
+	/**
+	 * Opt in to ImageEngine's permission-gated provider fallback for THIS request
+	 * (e.g. NanoBanana down → gemini). Default (omitted) = surface a clear error
+	 * instead of silently swapping providers, so the operator approves the switch.
+	 */
+	autoFallback?: boolean;
 }
 
 export interface GenerationResult {

@@ -15,7 +15,7 @@
  */
 
 import type { BrandBundle, StyleMode } from "./brand-loader";
-import type { Project, SlideRole } from "./project";
+import type { Project, Slide, SlideRole } from "./project";
 
 /** Max prompt length accepted by the transport. */
 export const MAX_COVER_PROMPT_CHARS = 4000;
@@ -106,4 +106,63 @@ export function buildCoverPrompt(
 	}
 
 	return prompt;
+}
+
+// ─── Per-slide hero prompts (image-forward carousels) ───
+
+/** Layer-id suffixes whose text is the slide's *idea* (not chrome/metadata). */
+const SUBJECT_PART_RE = /-(headline|text|value|label|body|sub)$/;
+/** Layer-id suffixes that are chrome/metadata, never part of the subject. */
+const CHROME_PART_RE = /-(kicker|swipe|index|handle|ghost)$/;
+
+/**
+ * Distill a slide's own copy into a short visual subject for its hero image.
+ * Reads the slide's semantic text layers (headline / value / body …), skipping
+ * the mono chrome (kicker, swipe cue, index, handle). Falls back to the project
+ * brief when a slide has no copy yet.
+ */
+export function slideSubject(slide: Slide, project: Project): string {
+	const parts: string[] = [];
+	for (const layer of slide.layers) {
+		if (layer.kind !== "text") {
+			continue;
+		}
+		if (CHROME_PART_RE.test(layer.id)) {
+			continue;
+		}
+		if (SUBJECT_PART_RE.test(layer.id) || !layer.id.includes("-")) {
+			const text = layer.content.trim();
+			if (text) {
+				parts.push(text);
+			}
+		}
+	}
+	const subject = parts.join(" — ").trim();
+	return subject || (project.brief ?? "").trim();
+}
+
+/**
+ * Build the hero-image prompt for ONE slide of an image-forward carousel. The
+ * generated image is the slide's hero plate (subject of the slide), with the
+ * brand-locked headline/body rendered later as editable overlays — so the same
+ * hard NO-TEXT / NO-LOGO rules as {@link buildCoverPrompt} apply, and the prompt
+ * reserves clean negative space sized for the variant's text zone.
+ *
+ * The subject is the slide's own copy (via {@link slideSubject}); the canvas
+ * follows the slide's style mode (light-first retro-white for feed slides,
+ * `01-chrome-hero` cosmic-black for a flagship hero).
+ */
+export function buildSlideHeroPrompt(
+	bundle: BrandBundle,
+	project: Project,
+	slide: Slide,
+	opts: { subject?: string } = {},
+): string {
+	const styleMode =
+		slide.background.type === "css" ? slide.background.styleMode : project.styleMode;
+	return buildCoverPrompt(bundle, project, {
+		slideRole: slide.role,
+		subject: opts.subject ?? slideSubject(slide, project),
+		...(styleMode ? { styleMode } : {}),
+	});
 }
