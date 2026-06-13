@@ -115,6 +115,27 @@ describe("variant registry", () => {
 		}
 	});
 
+	test("hero variants overlay a legibility scrim band, not a flat grey placeholder", () => {
+		const ACCENT_U = ACCENT.toUpperCase();
+		const metal = bundle.palette.find((c) => c.token === "metal")?.hex.toUpperCase() ?? "#C7CCD6";
+		for (const [role, variants] of Object.entries(VARIANTS_BY_ROLE)) {
+			for (const v of variants) {
+				const shapes = render(role as keyof typeof DATA, v).filter((l) => l.kind === "shape");
+				// No solid grey metal panel/card (the slide-4 empty-box bug).
+				expect(shapes.some((s) => s.kind === "shape" && s.fill.toUpperCase() === metal)).toBe(
+					false,
+				);
+				// Any non-lime shape that exists is a translucent scrim (opacity < 1),
+				// so the hero image / CSS-riso fallback shows through (never a flat box).
+				for (const s of shapes) {
+					if (s.kind === "shape" && s.fill.toUpperCase() !== ACCENT_U && s.fill !== theme.primary) {
+						expect(s.opacity !== undefined && s.opacity < 1).toBe(true);
+					}
+				}
+			}
+		}
+	});
+
 	test("body copy stays clean Inter (no bleed/glitch on body)", () => {
 		for (const v of CONTENT_VARIANTS) {
 			const body = render("content", v).find((l) => l.id === "l-content-body");

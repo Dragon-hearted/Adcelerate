@@ -105,7 +105,8 @@ export async function generateCoverBackground(
 	const result = await generateSingle({
 		prompt,
 		aspectRatio: aspectRatioForFormat(project.format),
-		openaiQuality: "high",
+		// No `openaiQuality`: the default model (NanoBanana Pro) rejects a
+		// `quality` param; it is a gpt_image_2-only knob.
 		sceneId: `${project.id}:${slide.id}`,
 	});
 

@@ -22,7 +22,7 @@
  * browser editor with no Node dependencies.
  */
 
-import type { ElementLayer, ImageLayer, Layer, LogoLayer, SlideRole } from "../project";
+import type { ElementLayer, Layer, LogoLayer, SlideRole } from "../project";
 import { type Theme, fitDisplaySize, makeShapeLayer, makeTextLayer } from "./index";
 
 /** Minimal canvas dimensions a variant needs (FormatPreset / ProjectFormat both fit). */
@@ -245,27 +245,30 @@ function elementLayer(
 	};
 }
 
-/** An optional hero `image` layer in the reserved zone (skipped when no src). */
-function heroImage(
+/** Opacity of a legibility scrim band (retro-white paper over the hero image). */
+const SCRIM_OPACITY = 0.84;
+
+/**
+ * A legibility **scrim band** — a semi-opaque retro-white paper panel behind the
+ * text so an overlaid headline reads cleanly over a full-bleed hero image (and
+ * looks like an on-brand riso panel over the CSS-riso fallback when no hero is
+ * generated yet). The hero image keeps the rest of the frame, so it dominates.
+ */
+function scrim(
 	ctx: Ctx,
-	src: string | undefined,
+	part: string,
 	geom: { x: number; y: number; w: number; h: number; z: number },
-): ImageLayer | undefined {
-	if (!src) {
-		return undefined;
-	}
-	return {
-		id: id(ctx, "hero"),
-		kind: "image",
+): Layer {
+	return makeShapeLayer({
+		id: id(ctx, part),
+		fill: ctx.theme.canvas,
+		opacity: SCRIM_OPACITY,
 		x: geom.x,
 		y: geom.y,
 		w: geom.w,
 		h: geom.h,
-		rotation: 0,
 		z: geom.z,
-		src,
-		objectFit: "cover",
-	};
+	});
 }
 
 /** The barcode corner stamp (≤1 per deck — the picker enforces the budget). */
@@ -298,12 +301,18 @@ function withDecor(
 }
 
 // ─── COVER variants ───
+// Image-forward: the generated hero IS the full-bleed slide background; each
+// variant overlays a legibility scrim band + the brand-locked type so the image
+// dominates and the headline still reads. No grey image-zone placeholders — when
+// no hero is generated the CSS-riso background shows through the scrim.
 
 function coverHeroEditorial(ctx: Ctx, c: CoverData): Layer[] {
 	const { format: f, theme: t } = ctx;
-	const hW = px(0.92, f.width);
-	const hH = px(0.26, f.height);
+	const hW = px(0.86, f.width);
+	const hH = px(0.2, f.height);
 	const layers: Layer[] = [
+		// Bottom scrim band — hero image dominates the top ~58%.
+		scrim(ctx, "scrim", { x: 0, y: px(0.56, f.height), w: f.width, h: px(0.44, f.height), z: 1 }),
 		kicker(ctx),
 		makeTextLayer({
 			id: id(ctx, "headline"),
@@ -314,7 +323,7 @@ function coverHeroEditorial(ctx: Ctx, c: CoverData): Layer[] {
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: t.margin,
-			y: px(0.1, f.height),
+			y: px(0.6, f.height),
 			w: hW,
 			h: hH,
 			z: 3,
@@ -329,40 +338,31 @@ function coverHeroEditorial(ctx: Ctx, c: CoverData): Layer[] {
 			color: t.ink,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.38, f.height),
+			y: px(0.82, f.height),
 			w: px(0.8, f.width),
-			h: px(0.1, f.height),
+			h: px(0.08, f.height),
 			z: 3,
 			lineHeight: 1.3,
 		}),
 		logo(ctx),
 		swipeCue(ctx),
 	];
-	const hero = heroImage(ctx, c.hero, {
-		x: 0,
-		y: px(0.5, f.height),
-		w: f.width,
-		h: px(0.5, f.height),
-		z: 1,
-	});
-	if (hero) {
-		layers.push(hero);
-	}
 	return withDecor(ctx, layers);
 }
 
 function coverSplitAccent(ctx: Ctx, c: CoverData): Layer[] {
 	const { format: f, theme: t } = ctx;
-	const colW = px(0.5, f.width) - t.margin;
+	const colW = px(0.46, f.width);
 	const layers: Layer[] = [
-		// Neon-Lime accent block — the right half (a SURFACE behind the hero).
+		// Neon-Lime accent block — the bottom band (a SURFACE behind the type);
+		// the hero image dominates the upper ~56%.
 		makeShapeLayer({
 			id: id(ctx, "accent"),
 			fill: t.accent,
-			x: px(0.55, f.width),
-			y: 0,
-			w: px(0.45, f.width),
-			h: f.height,
+			x: 0,
+			y: px(0.56, f.height),
+			w: f.width,
+			h: px(0.44, f.height),
 			z: 1,
 		}),
 		kicker(ctx),
@@ -371,13 +371,13 @@ function coverSplitAccent(ctx: Ctx, c: CoverData): Layer[] {
 			content: c.headline,
 			family: t.display,
 			weight: 800,
-			size: fitDisplaySize(c.headline, colW, px(0.42, f.height), px(0.1, f.width)),
+			size: fitDisplaySize(c.headline, px(0.86, f.width), px(0.2, f.height), px(0.1, f.width)),
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: t.margin,
-			y: px(0.28, f.height),
-			w: colW,
-			h: px(0.42, f.height),
+			y: px(0.6, f.height),
+			w: px(0.86, f.width),
+			h: px(0.2, f.height),
 			z: 3,
 			letterSpacing: -2,
 		}),
@@ -385,26 +385,26 @@ function coverSplitAccent(ctx: Ctx, c: CoverData): Layer[] {
 			id: id(ctx, "sub"),
 			content: c.sub,
 			family: t.body,
-			weight: 500,
+			weight: 600,
 			size: px(0.03, f.width),
 			color: t.ink,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.74, f.height),
-			w: colW,
-			h: px(0.1, f.height),
+			y: px(0.82, f.height),
+			w: colW + px(0.3, f.width),
+			h: px(0.08, f.height),
 			z: 3,
 			lineHeight: 1.3,
 		}),
 		logo(ctx),
 		swipeCue(ctx),
 	];
-	// A starburst/cutout sits on the lime block (picker may supply one).
+	// A starburst/cutout punctuates the hero (picker may supply one).
 	return withDecor(ctx, layers, {
-		x: px(0.62, f.width),
-		y: px(0.34, f.height),
-		w: px(0.3, f.width),
-		h: px(0.3, f.width),
+		x: px(0.7, f.width),
+		y: px(0.08, f.height),
+		w: px(0.22, f.width),
+		h: px(0.22, f.width),
 		z: 2,
 	});
 }
@@ -412,7 +412,9 @@ function coverSplitAccent(ctx: Ctx, c: CoverData): Layer[] {
 function coverStackedIndex(ctx: Ctx, c: CoverData): Layer[] {
 	const { format: f, theme: t } = ctx;
 	const layers: Layer[] = [
-		// Oversized ghosted slide-index numeral, top-right (low-contrast Silver).
+		// Bottom scrim band; hero image dominates the top ~52%.
+		scrim(ctx, "scrim", { x: 0, y: px(0.5, f.height), w: f.width, h: px(0.5, f.height), z: 1 }),
+		// Oversized ghosted slide-index numeral, top-right over the hero.
 		makeTextLayer({
 			id: id(ctx, "ghost"),
 			content: pad2(ctx.slideNo),
@@ -425,7 +427,7 @@ function coverStackedIndex(ctx: Ctx, c: CoverData): Layer[] {
 			y: px(0.04, f.height),
 			w: px(0.38, f.width),
 			h: px(0.26, f.height),
-			z: 1,
+			z: 2,
 			align: "right",
 		}),
 		kicker(ctx),
@@ -434,13 +436,13 @@ function coverStackedIndex(ctx: Ctx, c: CoverData): Layer[] {
 			content: c.headline,
 			family: t.display,
 			weight: 800,
-			size: fitDisplaySize(c.headline, px(0.92, f.width), px(0.34, f.height), px(0.11, f.width)),
+			size: fitDisplaySize(c.headline, px(0.92, f.width), px(0.24, f.height), px(0.1, f.width)),
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: t.margin,
-			y: px(0.2, f.height),
+			y: px(0.54, f.height),
 			w: px(0.92, f.width),
-			h: px(0.34, f.height),
+			h: px(0.24, f.height),
 			z: 3,
 			letterSpacing: -2,
 		}),
@@ -453,58 +455,64 @@ function coverStackedIndex(ctx: Ctx, c: CoverData): Layer[] {
 			color: t.ink,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.58, f.height),
+			y: px(0.82, f.height),
 			w: px(0.8, f.width),
-			h: px(0.1, f.height),
+			h: px(0.08, f.height),
 			z: 3,
 			lineHeight: 1.3,
 		}),
 		logo(ctx),
 		swipeCue(ctx),
 	];
-	const hero = heroImage(ctx, c.hero, {
-		x: 0,
-		y: px(0.68, f.height),
-		w: f.width,
-		h: px(0.32, f.height),
-		z: 1,
-	});
-	if (hero) {
-		layers.push(hero);
-	}
 	return withDecor(ctx, layers);
 }
 
 function coverChromeHero(ctx: Ctx, c: CoverData): Layer[] {
 	const { format: f, theme: t } = ctx;
+	// Flagship: the chrome hero fills the frame; bottom-anchored type on a scrim.
 	const layers: Layer[] = [
+		scrim(ctx, "scrim", { x: 0, y: px(0.62, f.height), w: f.width, h: px(0.38, f.height), z: 1 }),
 		kicker(ctx),
 		makeTextLayer({
 			id: id(ctx, "headline"),
 			content: c.headline,
 			family: t.display,
 			weight: 800,
-			size: fitDisplaySize(c.headline, px(0.92, f.width), px(0.3, f.height), px(0.11, f.width)),
+			size: fitDisplaySize(c.headline, px(0.92, f.width), px(0.22, f.height), px(0.1, f.width)),
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: t.margin,
-			y: px(0.6, f.height),
+			y: px(0.66, f.height),
 			w: px(0.92, f.width),
-			h: px(0.3, f.height),
+			h: px(0.22, f.height),
 			z: 3,
 			letterSpacing: -2,
+		}),
+		makeTextLayer({
+			id: id(ctx, "sub"),
+			content: c.sub,
+			family: t.body,
+			weight: 500,
+			size: px(0.03, f.width),
+			color: t.ink,
+			treatment: "clean",
+			x: t.margin,
+			y: px(0.88, f.height),
+			w: px(0.8, f.width),
+			h: px(0.06, f.height),
+			z: 3,
+			lineHeight: 1.3,
 		}),
 		logo(ctx),
 		swipeCue(ctx),
 	];
-	const hero = heroImage(ctx, c.hero, { x: 0, y: 0, w: f.width, h: px(0.62, f.height), z: 1 });
-	if (hero) {
-		layers.push(hero);
-	}
 	return withDecor(ctx, layers);
 }
 
 // ─── CONTENT variants ───
+// The hero image dominates; text rides in a TOP scrim band (matches the prompt's
+// reserved band). No grey placeholder panels/cards — the generated image is the
+// proof/showcase; the CSS-riso fallback shows through the scrim until then.
 
 /** Shared content headline + body (the part-ids every content variant must emit). */
 function contentCore(
@@ -528,7 +536,7 @@ function contentCore(
 			content: c.headline,
 			family: t.display,
 			weight: 800,
-			size: fitDisplaySize(c.headline, geom.hw, geom.hh, px(0.072, f.width)),
+			size: fitDisplaySize(c.headline, geom.hw, geom.hh, px(0.07, f.width)),
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: geom.hx,
@@ -543,132 +551,65 @@ function contentCore(
 			content: c.body,
 			family: t.body,
 			weight: 400,
-			size: px(0.034, f.width),
+			size: px(0.03, f.width),
 			color: t.ink,
 			treatment: "clean",
 			x: geom.bx,
 			y: geom.by,
 			w: geom.bw,
 			h: geom.bh,
-			z: 2,
-			lineHeight: 1.4,
+			z: 3,
+			lineHeight: 1.35,
+		}),
+	];
+}
+
+/** Top text band geometry shared by the hero content variants. */
+function topBand(ctx: Ctx, c: ContentData): Layer[] {
+	const { format: f, theme: t } = ctx;
+	return [
+		scrim(ctx, "scrim", { x: 0, y: 0, w: f.width, h: px(0.36, f.height), z: 1 }),
+		kicker(ctx),
+		...contentCore(ctx, c, {
+			hx: t.margin,
+			hy: px(0.1, f.height),
+			hw: px(0.92, f.width),
+			hh: px(0.15, f.height),
+			bx: t.margin,
+			by: px(0.26, f.height),
+			bw: px(0.84, f.width),
+			bh: px(0.09, f.height),
 		}),
 	];
 }
 
 function contentHeroAnnotated(ctx: Ctx, c: ContentData): Layer[] {
-	const { format: f, theme: t } = ctx;
-	const layers: Layer[] = [
-		kicker(ctx),
-		...contentCore(ctx, c, {
-			hx: t.margin,
-			hy: px(0.14, f.height),
-			hw: px(0.92, f.width),
-			hh: px(0.16, f.height),
-			bx: t.margin,
-			by: px(0.32, f.height),
-			bw: px(0.84, f.width),
-			bh: px(0.12, f.height),
-		}),
-	];
-	const hero = heroImage(ctx, c.hero, {
-		x: px(0.1, f.width),
-		y: px(0.48, f.height),
-		w: px(0.8, f.width),
-		h: px(0.42, f.height),
-		z: 1,
-	});
-	if (hero) {
-		layers.push(hero);
-	}
-	// Marker-annotation: a starburst cut-out pointing at the hero (if budgeted).
-	return withDecor(ctx, layers, {
-		x: px(0.66, f.width),
-		y: px(0.4, f.height),
-		w: px(0.22, f.width),
-		h: px(0.22, f.width),
+	const { format: f } = ctx;
+	// Marker-annotation: a starburst cut-out pointing into the hero (if budgeted).
+	return withDecor(ctx, topBand(ctx, c), {
+		x: px(0.64, f.width),
+		y: px(0.46, f.height),
+		w: px(0.24, f.width),
+		h: px(0.24, f.width),
 		z: 2,
 		rotation: 12,
 	});
 }
 
 function contentPromptProof(ctx: Ctx, c: ContentData): Layer[] {
-	const { format: f, theme: t } = ctx;
-	const layers: Layer[] = [
-		kicker(ctx),
-		...contentCore(ctx, c, {
-			hx: t.margin,
-			hy: px(0.14, f.height),
-			hw: px(0.92, f.width),
-			hh: px(0.16, f.height),
-			bx: t.margin,
-			by: px(0.78, f.height),
-			bw: px(0.84, f.width),
-			bh: px(0.1, f.height),
-		}),
-		// Framed "proof" panel (a Silver-ruled card holding a screenshot/prompt).
-		makeShapeLayer({
-			id: id(ctx, "panel"),
-			fill: t.metal,
-			x: t.margin,
-			y: px(0.34, f.height),
-			w: px(0.86, f.width),
-			h: px(0.4, f.height),
-			z: 1,
-		}),
-	];
-	const hero = heroImage(ctx, c.hero, {
-		x: t.margin + px(0.01, f.width),
-		y: px(0.35, f.height),
-		w: px(0.84, f.width),
-		h: px(0.38, f.height),
-		z: 2,
-	});
-	if (hero) {
-		layers.push(hero);
-	}
-	return withDecor(ctx, layers);
+	// The "proof" is the generated screenshot/UI hero behind the text band.
+	return withDecor(ctx, topBand(ctx, c));
 }
 
 function contentGridShowcase(ctx: Ctx, c: ContentData): Layer[] {
-	const { format: f, theme: t } = ctx;
-	const layers: Layer[] = [
-		kicker(ctx),
-		...contentCore(ctx, c, {
-			hx: t.margin,
-			hy: px(0.12, f.height),
-			hw: px(0.92, f.width),
-			hh: px(0.16, f.height),
-			bx: t.margin,
-			by: px(0.82, f.height),
-			bw: px(0.84, f.width),
-			bh: px(0.1, f.height),
-		}),
-	];
-	// 3-up showcase cards (Silver-ruled placeholders; drop hero crops in editor).
-	const cardY = px(0.36, f.height);
-	const cardH = px(0.4, f.height);
-	const gap = px(0.03, f.width);
-	const cardW = Math.round((px(0.86, f.width) - 2 * gap) / 3);
-	for (let i = 0; i < 3; i++) {
-		layers.push(
-			makeShapeLayer({
-				id: id(ctx, `card-${i + 1}`),
-				fill: t.metal,
-				x: t.margin + i * (cardW + gap),
-				y: cardY,
-				w: cardW,
-				h: cardH,
-				z: 1,
-			}),
-		);
-	}
-	return withDecor(ctx, layers);
+	// The "grid/range" is carried by the generated multi-up hero behind the band.
+	return withDecor(ctx, topBand(ctx, c));
 }
 
 function contentBigNumber(ctx: Ctx, c: ContentData): Layer[] {
 	const { format: f, theme: t } = ctx;
 	const layers: Layer[] = [
+		scrim(ctx, "scrim", { x: 0, y: 0, w: f.width, h: px(0.44, f.height), z: 1 }),
 		kicker(ctx),
 		// The dominant device: an oversized step numeral, top-left.
 		makeTextLayer({
@@ -676,24 +617,24 @@ function contentBigNumber(ctx: Ctx, c: ContentData): Layer[] {
 			content: c.step,
 			family: t.display,
 			weight: 800,
-			size: px(0.22, f.width),
+			size: px(0.2, f.width),
 			color: t.primary,
 			treatment: "ink-bleed",
 			x: t.margin,
-			y: px(0.14, f.height),
-			w: px(0.34, f.width),
-			h: px(0.24, f.height),
+			y: px(0.08, f.height),
+			w: px(0.3, f.width),
+			h: px(0.2, f.height),
 			z: 3,
 		}),
 		...contentCore(ctx, c, {
-			hx: t.margin,
-			hy: px(0.42, f.height),
-			hw: px(0.92, f.width),
-			hh: px(0.18, f.height),
+			hx: px(0.34, f.width),
+			hy: px(0.1, f.height),
+			hw: px(0.58, f.width),
+			hh: px(0.16, f.height),
 			bx: t.margin,
-			by: px(0.64, f.height),
+			by: px(0.3, f.height),
 			bw: px(0.84, f.width),
-			bh: px(0.26, f.height),
+			bh: px(0.1, f.height),
 		}),
 	];
 	return withDecor(ctx, layers);
@@ -702,8 +643,10 @@ function contentBigNumber(ctx: Ctx, c: ContentData): Layer[] {
 function contentLeftRule(ctx: Ctx, c: ContentData): Layer[] {
 	const { format: f, theme: t } = ctx;
 	const railX = px(0.08, f.width);
+	// The quiet teaching slide: a left scrim column keeps the text legible while
+	// the hero image peeks on the right.
 	const layers: Layer[] = [
-		// Electric-Blue structural rule spine.
+		scrim(ctx, "scrim", { x: 0, y: 0, w: px(0.66, f.width), h: f.height, z: 1 }),
 		makeShapeLayer({
 			id: id(ctx, "rule"),
 			fill: t.primary,
@@ -717,11 +660,11 @@ function contentLeftRule(ctx: Ctx, c: ContentData): Layer[] {
 		...contentCore(ctx, c, {
 			hx: railX + px(0.04, f.width),
 			hy: px(0.22, f.height),
-			hw: px(0.76, f.width),
+			hw: px(0.5, f.width),
 			hh: px(0.2, f.height),
 			bx: railX + px(0.04, f.width),
 			by: px(0.5, f.height),
-			bw: px(0.76, f.width),
+			bw: px(0.5, f.width),
 			bh: px(0.34, f.height),
 		}),
 	];
@@ -739,7 +682,7 @@ function statBlock(ctx: Ctx, c: StatData): Layer[] {
 			id: id(ctx, "accent"),
 			fill: t.accent,
 			x: t.margin,
-			y: px(0.34, f.height),
+			y: px(0.36, f.height),
 			w: px(0.86, f.width),
 			h: px(0.24, f.height),
 			z: 2,
@@ -753,11 +696,13 @@ function statBlock(ctx: Ctx, c: StatData): Layer[] {
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: t.margin + px(0.02, f.width),
-			y: px(0.355, f.height),
+			y: px(0.375, f.height),
 			w: px(0.82, f.width),
 			h: px(0.22, f.height),
 			z: 3,
 		}),
+		// Label rides its own scrim chip so it reads over the hero.
+		scrim(ctx, "scrim", { x: 0, y: px(0.62, f.height), w: f.width, h: px(0.14, f.height), z: 1 }),
 		makeTextLayer({
 			id: id(ctx, "label"),
 			content: c.label,
@@ -767,17 +712,17 @@ function statBlock(ctx: Ctx, c: StatData): Layer[] {
 			color: t.ink,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.62, f.height),
+			y: px(0.65, f.height),
 			w: t.contentW,
 			h: px(0.1, f.height),
 			z: 3,
 		}),
 	];
 	return withDecor(ctx, layers, {
-		x: px(0.74, f.width),
-		y: px(0.16, f.height),
-		w: px(0.18, f.width),
-		h: px(0.18, f.width),
+		x: px(0.72, f.width),
+		y: px(0.12, f.height),
+		w: px(0.2, f.width),
+		h: px(0.2, f.width),
 		z: 3,
 		rotation: 8,
 	});
@@ -786,6 +731,8 @@ function statBlock(ctx: Ctx, c: StatData): Layer[] {
 function statHero(ctx: Ctx, c: StatData): Layer[] {
 	const { format: f, theme: t } = ctx;
 	const layers: Layer[] = [
+		// Centered scrim band so the big number reads over the hero.
+		scrim(ctx, "scrim", { x: 0, y: px(0.32, f.height), w: f.width, h: px(0.42, f.height), z: 1 }),
 		kicker(ctx),
 		makeTextLayer({
 			id: id(ctx, "value"),
@@ -796,9 +743,9 @@ function statHero(ctx: Ctx, c: StatData): Layer[] {
 			color: t.primary,
 			treatment: "ink-bleed",
 			x: t.margin,
-			y: px(0.34, f.height),
+			y: px(0.36, f.height),
 			w: t.contentW,
-			h: px(0.28, f.height),
+			h: px(0.26, f.height),
 			z: 3,
 		}),
 		makeTextLayer({
@@ -810,7 +757,7 @@ function statHero(ctx: Ctx, c: StatData): Layer[] {
 			color: t.ink,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.62, f.height),
+			y: px(0.63, f.height),
 			w: t.contentW,
 			h: px(0.1, f.height),
 			z: 3,
@@ -818,7 +765,7 @@ function statHero(ctx: Ctx, c: StatData): Layer[] {
 	];
 	return withDecor(ctx, layers, {
 		x: px(0.72, f.width),
-		y: px(0.14, f.height),
+		y: px(0.1, f.height),
 		w: px(0.2, f.width),
 		h: px(0.2, f.width),
 		z: 3,
@@ -831,6 +778,8 @@ function statHero(ctx: Ctx, c: StatData): Layer[] {
 function quoteBleed(ctx: Ctx, c: QuoteData): Layer[] {
 	const { format: f, theme: t } = ctx;
 	const layers: Layer[] = [
+		// Scrim behind the display quote so it reads over the duotone hero.
+		scrim(ctx, "scrim", { x: 0, y: px(0.16, f.height), w: f.width, h: px(0.62, f.height), z: 1 }),
 		kicker(ctx),
 		makeTextLayer({
 			id: id(ctx, "text"),
@@ -857,34 +806,28 @@ function quoteBleed(ctx: Ctx, c: QuoteData): Layer[] {
 			color: t.ink,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.78, f.height),
+			y: px(0.66, f.height),
 			w: t.contentW,
 			h: px(0.06, f.height),
 			z: 3,
 		}),
 	];
-	const hero = heroImage(ctx, c.hero, {
-		x: px(0.1, f.width),
-		y: px(0.62, f.height),
-		w: px(0.8, f.width),
-		h: px(0.12, f.height),
-		z: 1,
-	});
-	if (hero) {
-		layers.push(hero);
-	}
 	return withDecor(ctx, layers);
 }
 
 function quoteRaster(ctx: Ctx, c: QuoteData): Layer[] {
 	const { format: f, theme: t } = ctx;
+	// The duotone/halftone hero IS the generated background; a softer scrim keeps
+	// the quote legible while letting the raster show through more.
 	const layers: Layer[] = [
-		// Low-opacity halftone / duotone hero field behind the quote.
-		elementLayer(ctx, "raster", "halftone", ctx.decor.element?.n ?? 1, {
+		makeShapeLayer({
+			id: id(ctx, "scrim"),
+			fill: t.canvas,
+			opacity: 0.72,
 			x: 0,
-			y: px(0.12, f.height),
+			y: px(0.22, f.height),
 			w: f.width,
-			h: px(0.76, f.height),
+			h: px(0.52, f.height),
 			z: 1,
 		}),
 		kicker(ctx),
@@ -913,13 +856,12 @@ function quoteRaster(ctx: Ctx, c: QuoteData): Layer[] {
 			color: t.ink,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.78, f.height),
+			y: px(0.7, f.height),
 			w: t.contentW,
 			h: px(0.06, f.height),
 			z: 3,
 		}),
 	];
-	// barcode budget may still apply; element budget is consumed by the raster.
 	if (ctx.decor.barcode) {
 		layers.push(barcodeStamp(ctx));
 	}
@@ -932,13 +874,15 @@ function ctaSave(ctx: Ctx, c: CtaData): Layer[] {
 	const { format: f, theme: t } = ctx;
 	const hH = px(0.3, f.height);
 	return [
+		// Footer scrim so the handle + logo read over the hero.
+		scrim(ctx, "scrim", { x: 0, y: px(0.68, f.height), w: f.width, h: px(0.32, f.height), z: 1 }),
 		kicker(ctx),
 		// Neon-Lime action block; the CTA line sits on it as Graphite (ink) text.
 		makeShapeLayer({
 			id: id(ctx, "accent"),
 			fill: t.accent,
 			x: t.margin,
-			y: px(0.3, f.height),
+			y: px(0.32, f.height),
 			w: px(0.86, f.width),
 			h: hH,
 			z: 2,
@@ -948,11 +892,11 @@ function ctaSave(ctx: Ctx, c: CtaData): Layer[] {
 			content: c.cta,
 			family: t.display,
 			weight: 800,
-			size: fitDisplaySize(c.cta, px(0.82, f.width), hH, px(0.072, f.width)),
+			size: fitDisplaySize(c.cta, px(0.82, f.width), hH, px(0.07, f.width)),
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: t.margin + px(0.02, f.width),
-			y: px(0.32, f.height),
+			y: px(0.34, f.height),
 			w: px(0.82, f.width),
 			h: hH,
 			z: 3,
@@ -967,7 +911,7 @@ function ctaSave(ctx: Ctx, c: CtaData): Layer[] {
 			color: t.primary,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.74, f.height),
+			y: px(0.75, f.height),
 			w: t.contentW,
 			h: px(0.05, f.height),
 			z: 3,
@@ -978,19 +922,20 @@ function ctaSave(ctx: Ctx, c: CtaData): Layer[] {
 
 function ctaHero(ctx: Ctx, c: CtaData): Layer[] {
 	const { format: f, theme: t } = ctx;
-	const hH = px(0.36, f.height);
+	const hH = px(0.34, f.height);
 	const layers: Layer[] = [
+		scrim(ctx, "scrim", { x: 0, y: px(0.52, f.height), w: f.width, h: px(0.48, f.height), z: 1 }),
 		kicker(ctx),
 		makeTextLayer({
 			id: id(ctx, "headline"),
 			content: c.cta,
 			family: t.display,
 			weight: 800,
-			size: fitDisplaySize(c.cta, t.contentW, hH, px(0.09, f.width)),
+			size: fitDisplaySize(c.cta, t.contentW, hH, px(0.085, f.width)),
 			color: t.ink,
 			treatment: "ink-bleed",
 			x: t.margin,
-			y: px(0.4, f.height),
+			y: px(0.56, f.height),
 			w: t.contentW,
 			h: hH,
 			z: 3,
@@ -1005,18 +950,14 @@ function ctaHero(ctx: Ctx, c: CtaData): Layer[] {
 			color: t.primary,
 			treatment: "clean",
 			x: t.margin,
-			y: px(0.8, f.height),
+			y: px(0.9, f.height),
 			w: t.contentW,
 			h: px(0.05, f.height),
 			z: 3,
 		}),
 		logo(ctx),
 	];
-	const hero = heroImage(ctx, c.hero, { x: 0, y: 0, w: f.width, h: px(0.38, f.height), z: 1 });
-	if (hero) {
-		layers.push(hero);
-	}
-	return layers;
+	return withDecor(ctx, layers);
 }
 
 // ─── Dispatch ───

@@ -106,7 +106,8 @@ export function buildHeroBatchRequest(
 		// re-deriving it from the current slide copy.
 		prompt: slide.heroPrompt?.trim() || buildSlideHeroPrompt(bundle, project, slide),
 		aspectRatio,
-		openaiQuality: "high",
+		// NOTE: no `openaiQuality` — it's a gpt_image_2-only knob; the default
+		// model is NanoBanana Pro, which rejects a `quality` param.
 		sceneId: sceneIdFor(project, slide),
 		...(opts.autoFallback ? { autoFallback: true } : {}),
 	}));

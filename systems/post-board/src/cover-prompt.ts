@@ -149,15 +149,70 @@ export function slideSubject(slide: Slide, project: Pick<Project, "brief">): str
 }
 
 /**
- * Build the hero-image prompt for ONE slide of an image-forward carousel. The
- * generated image is the slide's hero plate (subject of the slide), with the
- * brand-locked headline/body rendered later as editable overlays — so the same
- * hard NO-TEXT / NO-LOGO rules as {@link buildCoverPrompt} apply, and the prompt
- * reserves clean negative space sized for the variant's text zone.
+ * The visual MEDIUM a style mode renders its subject in (subject-driven, from
+ * `brand.json` `style_modes`). This is what makes the hero an actual subject —
+ * a chrome object, a halftone portrait, a low-poly form — not a flat texture.
+ */
+function modeMedium(styleId: string): { medium: string; dark: boolean } {
+	switch (styleId) {
+		case "01-chrome-hero":
+			return {
+				dark: true,
+				medium: `a single photoreal 3D liquid-chrome hero object — glossy, sculptural, dimensional (a chrome dragon / glyph / product form) — on a Cosmic Black ${VOID_HEX} starfield ground with fine grain; Electric Blue ${"#0B5FFF"} glowing energy veins + rim light thread the chrome (blue is the only chromatic energy)`,
+			};
+		case "05-y2k-chrome":
+		case "07-chrome-space":
+			return {
+				dark: false,
+				medium: `a glossy liquid-chrome cut-out subject (chrome object / Y2K form) floating as a die-cut on the Retro White ${RETRO_WHITE_HEX} textured paper ground; chrome stays glossy, the ground stays printed paper with grain + halftone star-field flecks in Graphite/Silver`,
+			};
+		case "02-lowpoly-neon-glow":
+			return {
+				dark: false,
+				medium: `a low-poly 3D form with Electric Blue ${"#0B5FFF"} edge-wireframe linework printed as ink plates on the Retro White ${RETRO_WHITE_HEX} riso ground, the glow re-rendered as halftone gradients`,
+			};
+		case "03-ascii-dotmatrix":
+		case "06-ascii-glow-night":
+			return {
+				dark: false,
+				medium: `an ASCII / dot-matrix rendering of the subject — Graphite/Silver ink dots and terminal-art glyphs on Retro White ${RETRO_WHITE_HEX} paper, dot-matrix-printer-on-paper aesthetic`,
+			};
+		default:
+			// 08-popart-screenprint (default feed) + anything else
+			return {
+				dark: false,
+				medium: `a bold halftone / screenprint subject — a high-contrast duotone portrait or product hit — with heavy ink-bleed, 1–3px plate misregistration and flat color hits on the Retro White ${RETRO_WHITE_HEX} textured paper ground`,
+			};
+	}
+}
+
+/** The concrete hero SUBJECT for a slide role (the archetypes the refs use). */
+function roleSubject(role: SlideRole): string {
+	switch (role) {
+		case "cover":
+			return "the deck's flagship hero subject — one striking emblem of the topic that stops the scroll";
+		case "stat":
+			return "a single bold proof object — a chrome 3D form or starburst that punctuates the number (the number itself is overlaid later, not in the image)";
+		case "quote":
+			return "a high-contrast duotone / halftone portrait subject (an evocative face or figure) as the reset beat";
+		case "cta":
+			return "a glossy chrome / branded hero object that invites the save/follow action";
+		default:
+			return "a product / app mockup or tool-UI screen that illustrates this point as a tangible subject";
+	}
+}
+
+/**
+ * Build the hero-image prompt for ONE slide of an image-forward carousel.
  *
- * The subject is the slide's own copy (via {@link slideSubject}); the canvas
- * follows the slide's style mode (light-first retro-white for feed slides,
- * `01-chrome-hero` cosmic-black for a flagship hero).
+ * Unlike {@link buildCoverPrompt} (a flat background plate), this emits a prompt
+ * for an actual SUBJECT — a chrome object, halftone portrait, product/app
+ * mockup, tool-UI screenshot, or low-poly form, chosen from the slide's style
+ * mode (subject-driven `style_modes`) and role archetype, themed by the slide's
+ * own copy. The subject fills ~two-thirds of the frame and the prompt reserves a
+ * clean low-detail band for the text overlay (the layout adds a legibility
+ * scrim). Brand-locked treatment (riso grain, Electric-Blue/Lime accents,
+ * retro-white or cosmic-black ground) and the same hard NO-TEXT / NO-LOGO rules.
  */
 export function buildSlideHeroPrompt(
 	bundle: BrandBundle,
@@ -165,11 +220,39 @@ export function buildSlideHeroPrompt(
 	slide: Slide,
 	opts: { subject?: string } = {},
 ): string {
-	const styleMode =
-		slide.background.type === "css" ? slide.background.styleMode : project.styleMode;
-	return buildCoverPrompt(bundle, project, {
-		slideRole: slide.role,
-		subject: opts.subject ?? slideSubject(slide, project),
-		...(styleMode ? { styleMode } : {}),
-	});
+	const styleId =
+		(slide.background.type === "css" ? slide.background.styleMode : undefined) ?? project.styleMode;
+	const mode = bundle.styleModes.find((m) => m.id === styleId);
+	const { medium, dark } = modeMedium(styleId);
+	const theme = opts.subject ?? slideSubject(slide, project);
+	const bandSide = slide.role === "content" ? "top" : "bottom";
+
+	const constraints =
+		"ABSOLUTELY NO TEXT, NO WORDS, NO LETTERING, NO TYPOGRAPHY, NO CAPTIONS, NO NUMBERS, and NO LOGO or wordmark or brand mark anywhere in the image — the headline, body and logo are added later as separate editable overlays. Do not render any UI chrome, watermark, or signature.";
+
+	const parts: string[] = [
+		`On-brand IMAGE-FORWARD social ${slide.role} hero for ${bundle.brand}, an AI engineer–artist personal brand. The IMAGE is the subject of the slide (not a flat background).`,
+		`Hero subject: ${roleSubject(slide.role)}. Render it as ${medium}.`,
+		mode ? `Style mode "${mode.name}" (${mode.id}): ${mode.description}` : "",
+		theme
+			? `Let the subject evoke this idea (visual metaphor only, no literal text): ${theme}`
+			: "",
+		`Composition: the hero subject dominates ~two-thirds of the frame; keep a CLEAN, low-detail, lower-contrast band across the ${bandSide} ~third of the canvas as quiet negative space for a text overlay. Bold, scroll-stopping, high craft; print-artifact lab-zine aesthetic.`,
+		`Color palette (use only these): ${paletteLine(bundle)}.${
+			dark
+				? ""
+				: ` Always-on risograph grain + ink-bleed on the ${RETRO_WHITE_HEX} paper ground (never flat white).`
+		}`,
+		constraints,
+	].filter((p) => p.length > 0);
+
+	let prompt = parts.join("\n\n").trim();
+	if (prompt.length > MAX_COVER_PROMPT_CHARS) {
+		const budget = MAX_COVER_PROMPT_CHARS - constraints.length - 2;
+		const head = prompt.slice(0, Math.max(0, budget));
+		const lastStop = Math.max(head.lastIndexOf(". "), head.lastIndexOf("\n"));
+		const trimmed = (lastStop > 0 ? head.slice(0, lastStop + 1) : head).trim();
+		prompt = `${trimmed}\n\n${constraints}`.slice(0, MAX_COVER_PROMPT_CHARS);
+	}
+	return prompt;
 }

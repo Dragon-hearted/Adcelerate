@@ -97,6 +97,21 @@ export const BASE_URL = process.env.IMAGE_ENGINE_URL || "http://localhost:3002";
 /** Default ceiling for the generate POST (ms). Overridable via env. */
 const GENERATE_TIMEOUT_MS = Number(process.env.IMAGE_ENGINE_TIMEOUT_MS) || 120_000;
 
+/**
+ * Request headers for the JSON endpoints. When
+ * `IMAGE_ENGINE_BUDGET_OVERRIDE=1`, forward `X-Budget-Override: true` so
+ * ImageEngine's budgetGuard 402 (driven by the WisGate dollar balance) is
+ * bypassed — justified for the Higgsfield/NanoBanana path, which does NOT consume
+ * WisGate credit.
+ */
+function jsonHeaders(): Record<string, string> {
+	const headers: Record<string, string> = { "Content-Type": "application/json" };
+	if (process.env.IMAGE_ENGINE_BUDGET_OVERRIDE === "1") {
+		headers["X-Budget-Override"] = "true";
+	}
+	return headers;
+}
+
 async function handleError(res: Response): Promise<never> {
 	const err = await res.json().catch(() => ({ error: res.statusText }));
 	throw new Error(
@@ -112,7 +127,7 @@ export async function generateSingle(req: GenerationRequest): Promise<Generation
 	try {
 		const res = await fetch(`${BASE_URL}/api/generate`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: jsonHeaders(),
 			body: JSON.stringify(req),
 			signal: controller.signal,
 		});
@@ -135,7 +150,7 @@ export async function generateSingle(req: GenerationRequest): Promise<Generation
 export async function generateBatch(req: BatchRequest): Promise<BatchResult> {
 	const res = await fetch(`${BASE_URL}/api/generate/batch`, {
 		method: "POST",
-		headers: { "Content-Type": "application/json" },
+		headers: jsonHeaders(),
 		body: JSON.stringify(req),
 	});
 	if (!res.ok) {

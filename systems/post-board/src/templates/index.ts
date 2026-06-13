@@ -84,6 +84,8 @@ export interface Theme {
 	accent: string;
 	/** Low-contrast Silver — ghost numerals, rules, faint pattern fields. */
 	metal: string;
+	/** Retro-white paper canvas — the scrim-band fill behind overlaid text. */
+	canvas: string;
 	display: string;
 	mono: string;
 	body: string;
@@ -99,6 +101,7 @@ export function resolveTheme(bundle: BrandBundle, format: { width: number }): Th
 		primary: colorOf(bundle, "primary", "#0B5FFF"),
 		accent: colorOf(bundle, "accent", "#C6FF00"),
 		metal: colorOf(bundle, "metal", "#C7CCD6"),
+		canvas: colorOf(bundle, "canvas", "#F4F6F8"),
 		display: familyOf(bundle, "display", "PP Neue Machina"),
 		mono: familyOf(bundle, "tech", "IBM Plex Mono"),
 		body: familyOf(bundle, "body", "Inter"),
@@ -157,9 +160,11 @@ interface ShapeSpec {
 	h: number;
 	z: number;
 	rotation?: number;
+	/** Fill opacity 0–1 (omit for fully opaque). Sub-1 → a legibility scrim. */
+	opacity?: number;
 }
 
-/** Build a `rect` shape layer (Neon-Lime accent panel or structural rule). */
+/** Build a `rect` shape layer (Neon-Lime accent panel, scrim band, or rule). */
 export function makeShapeLayer(spec: ShapeSpec): ShapeLayer {
 	return {
 		id: spec.id ?? newLayerId("shape"),
@@ -172,6 +177,7 @@ export function makeShapeLayer(spec: ShapeSpec): ShapeLayer {
 		z: spec.z,
 		shape: "rect",
 		fill: spec.fill,
+		...(spec.opacity !== undefined ? { opacity: spec.opacity } : {}),
 	};
 }
 
