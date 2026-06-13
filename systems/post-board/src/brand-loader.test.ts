@@ -56,6 +56,21 @@ describe("brand-loader", () => {
 		expect(brand.heroMode?.id).toBe("01-chrome-hero");
 	});
 
+	test("normalizes the additive transparent cutouts (task #2)", () => {
+		// Logo cutouts + per-mark element cutouts resolve to absolute on-disk paths.
+		expect(brand.cutouts.logos.length).toBeGreaterThan(0);
+		expect(brand.cutouts.logos.every((l) => l.file.startsWith("/"))).toBe(true);
+
+		const starburst = brand.cutouts.elements.find((e) => e.elementRef === "starburst");
+		expect(starburst).toBeDefined();
+		expect(starburst?.files.length).toBeGreaterThan(0);
+		expect(starburst?.files.every((f) => f.startsWith("/") && f.endsWith(".png"))).toBe(true);
+		// element_ref cross-links back to a real brand_elements id.
+		for (const fam of brand.cutouts.elements) {
+			expect(brand.elements.some((e) => e.id === fam.elementRef)).toBe(true);
+		}
+	});
+
 	test("raw json loader returns the canonical document", () => {
 		const raw = loadBrandJson({ silent: true });
 		expect(raw.brand).toBe("Dragonhearted Labs");

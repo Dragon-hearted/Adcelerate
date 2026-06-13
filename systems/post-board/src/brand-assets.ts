@@ -159,6 +159,21 @@ export function getBrandElementAssets(
 		}
 	}
 
+	// 1b. Transparent per-mark element cutouts (task #2) — the clean, layering-ready
+	// versions of the sheets. `elementId` reuses the brand `element_ref` so the
+	// renderer's element-kind handling (barcode → CSS bars, others → image) applies.
+	for (const family of bundle.cutouts.elements) {
+		family.files.forEach((file, i) => {
+			push(
+				family.elementRef || family.id,
+				`${family.name} ${i + 1}`,
+				file,
+				family.usage,
+				"element",
+			);
+		});
+	}
+
 	// 2. Logo variants — riso single-plate art may sit container-free.
 	const variants = bundle.logo.variants;
 	if (variants.risoGraphite) {

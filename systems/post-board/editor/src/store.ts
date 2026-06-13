@@ -57,6 +57,8 @@ export interface LayerPatch {
 	elementId?: string;
 	// logo
 	variant?: LogoVariant;
+	// shape
+	fill?: string;
 }
 
 export class Store {
@@ -279,9 +281,13 @@ export class Store {
 
 	// ─── Slide ops ───
 
-	addSlide(role: SlideRole): void {
+	addSlide(role: SlideRole, variant?: string): void {
 		const preset = getFormatPreset(this.project.format.preset);
-		const layers = layoutForRole(role, preset, this.brand);
+		const layers = layoutForRole(role, preset, this.brand, {
+			index: this.project.slides.length,
+			seed: this.project.id,
+			...(variant ? { variant } : {}),
+		});
 		const slide: Slide = {
 			id: `slide-${Math.floor(Math.random() * 1e9).toString(36)}`,
 			role,

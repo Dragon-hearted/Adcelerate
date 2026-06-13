@@ -139,6 +139,17 @@ function buildElement(layer) {
   img.draggable = false;
   return img;
 }
+function buildShape(layer) {
+  const box = document.createElement("div");
+  box.className = `pb-shape shape-${layer.shape}`;
+  if (isLime(layer.fill)) {
+    box.classList.add("accent-block");
+  }
+  box.style.width = "100%";
+  box.style.height = "100%";
+  box.style.background = layer.fill;
+  return box;
+}
 function buildLogo(brand, layer) {
   const src = logoSrc(brand, layer.variant);
   const img = document.createElement("img");
@@ -188,6 +199,9 @@ function createLayerNode(brand, layer) {
       break;
     case "logo":
       node.appendChild(buildLogo(brand, layer));
+      break;
+    case "shape":
+      node.appendChild(buildShape(layer));
       break;
   }
   return node;
@@ -364,6 +378,19 @@ function buildLogoControls(store, layer) {
   sel.onchange = () => store.updateLayer(layer.id, { variant: sel.value });
   return section("Logo", row("Variant", sel));
 }
+function buildShapeControls(store, layer) {
+  const swatchRow = h("div", { class: "insp-swatches" });
+  for (const c of store.brand.palette) {
+    const sw = h("button", { class: "insp-swatch", type: "button" });
+    sw.style.background = c.hex;
+    sw.title = isLime(c.hex) ? `${c.name} — accent-block fill (Graphite type on top)` : c.name;
+    if (layer.fill.toLowerCase() === c.hex.toLowerCase())
+      sw.classList.add("active");
+    sw.onclick = () => store.updateLayer(layer.id, { fill: c.hex });
+    swatchRow.append(sw);
+  }
+  return section("Shape", row("Kind", h("span", { class: "insp-note" }, [layer.shape])), swatchRow);
+}
 function buildArrange(store, layer) {
   const mk = (label, fn, cls = "") => {
     const b = h("button", { class: `insp-btn ${cls}`, type: "button" }, [
@@ -404,8 +431,10 @@ function renderInspector(panel, store) {
     panel.append(buildImageControls(store, layer));
   } else if (layer.kind === "logo") {
     panel.append(buildLogoControls(store, layer));
-  } else {
+  } else if (layer.kind === "element") {
     panel.append(section("Element", h("p", { class: "insp-note" }, [layer.elementId])));
+  } else {
+    panel.append(buildShapeControls(store, layer));
   }
   panel.append(buildArrange(store, layer));
 }
@@ -18209,6 +18238,898 @@ function normalizeModeClasses(project) {
   return project;
 }
 
+// src/templates/variants.ts
+var COVER_VARIANTS = [
+  "hero-editorial",
+  "split-accent",
+  "stacked-index",
+  "chrome-hero"
+];
+var CONTENT_VARIANTS = [
+  "hero-annotated",
+  "prompt-proof",
+  "grid-showcase",
+  "big-number",
+  "left-rule"
+];
+var STAT_VARIANTS = ["stat-block", "stat-hero"];
+var QUOTE_VARIANTS = ["quote-bleed", "quote-raster"];
+var CTA_VARIANTS = ["cta-save", "cta-hero"];
+var VARIANTS_BY_ROLE = {
+  cover: COVER_VARIANTS,
+  content: CONTENT_VARIANTS,
+  stat: STAT_VARIANTS,
+  quote: QUOTE_VARIANTS,
+  cta: CTA_VARIANTS
+};
+var CUTOUTS = {
+  starburst: { dir: "starbursts-chrome", count: 6, elementId: "starburst" },
+  barcode: { dir: "barcode-marks", count: 6, elementId: "barcode" },
+  "wireframe-globe": { dir: "wireframe-globes", count: 4, elementId: "wireframe-globe" },
+  halftone: { dir: "texture-fields", count: 4, elementId: "halftone" }
+};
+function cutoutSrc(kind, n) {
+  const spec = CUTOUTS[kind];
+  const idx = (Math.max(1, n) - 1) % spec.count + 1;
+  return `/brand-assets/cutouts/elements/${spec.dir}/${idx}.png`;
+}
+var px = (frac, dim) => Math.round(frac * dim);
+var pad2 = (n) => String(n).padStart(2, "0");
+function id(ctx, part) {
+  return `l-${ctx.base}-${part}`;
+}
+function kicker(ctx) {
+  const { format: f, theme: t } = ctx;
+  return makeTextLayer({
+    id: id(ctx, "kicker"),
+    content: `[DRGN.LAB//${pad2(ctx.slideNo)}·${pad2(ctx.total)}]`,
+    family: t.mono,
+    weight: 500,
+    size: px(0.024, f.width),
+    color: t.ink,
+    treatment: "clean",
+    x: t.margin,
+    y: t.margin,
+    w: t.contentW,
+    h: px(0.05, f.height),
+    z: 5,
+    letterSpacing: 1
+  });
+}
+function swipeCue(ctx) {
+  const { format: f, theme: t } = ctx;
+  return makeTextLayer({
+    id: id(ctx, "swipe"),
+    content: "SWIPE ›",
+    family: t.mono,
+    weight: 600,
+    size: px(0.026, f.width),
+    color: t.primary,
+    treatment: "clean",
+    x: px(0.62, f.width),
+    y: px(0.92, f.height),
+    w: px(0.31, f.width),
+    h: px(0.05, f.height),
+    z: 5,
+    align: "right",
+    letterSpacing: 2
+  });
+}
+function logo(ctx, z = 4) {
+  const { format: f, theme: t } = ctx;
+  return {
+    id: id(ctx, "logo"),
+    kind: "logo",
+    x: t.margin,
+    y: px(0.86, f.height),
+    w: px(0.26, f.width),
+    h: px(0.07, f.height),
+    rotation: 0,
+    z,
+    variant: "riso_graphite"
+  };
+}
+function elementLayer(ctx, part, kind, n, geom) {
+  return {
+    id: id(ctx, part),
+    kind: "element",
+    x: geom.x,
+    y: geom.y,
+    w: geom.w,
+    h: geom.h,
+    rotation: geom.rotation ?? 0,
+    z: geom.z,
+    elementId: CUTOUTS[kind].elementId,
+    src: cutoutSrc(kind, n)
+  };
+}
+function heroImage(ctx, src, geom) {
+  if (!src) {
+    return;
+  }
+  return {
+    id: id(ctx, "hero"),
+    kind: "image",
+    x: geom.x,
+    y: geom.y,
+    w: geom.w,
+    h: geom.h,
+    rotation: 0,
+    z: geom.z,
+    src,
+    objectFit: "cover"
+  };
+}
+function barcodeStamp(ctx) {
+  const { format: f } = ctx;
+  return elementLayer(ctx, "barcode", "barcode", 1, {
+    x: px(0.74, f.width),
+    y: px(0.05, f.height),
+    w: px(0.19, f.width),
+    h: px(0.03, f.height),
+    z: 5
+  });
+}
+function withDecor(ctx, layers, elementGeom) {
+  if (ctx.decor.barcode) {
+    layers.push(barcodeStamp(ctx));
+  }
+  if (ctx.decor.element && elementGeom) {
+    layers.push(elementLayer(ctx, "element", ctx.decor.element.kind, ctx.decor.element.n, elementGeom));
+  }
+  return layers;
+}
+function coverHeroEditorial(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const hW = px(0.92, f.width);
+  const hH = px(0.26, f.height);
+  const layers = [
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "headline"),
+      content: c.headline,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.headline, hW, hH, px(0.11, f.width)),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.1, f.height),
+      w: hW,
+      h: hH,
+      z: 3,
+      letterSpacing: -2
+    }),
+    makeTextLayer({
+      id: id(ctx, "sub"),
+      content: c.sub,
+      family: t.body,
+      weight: 500,
+      size: px(0.032, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.38, f.height),
+      w: px(0.8, f.width),
+      h: px(0.1, f.height),
+      z: 3,
+      lineHeight: 1.3
+    }),
+    logo(ctx),
+    swipeCue(ctx)
+  ];
+  const hero = heroImage(ctx, c.hero, {
+    x: 0,
+    y: px(0.5, f.height),
+    w: f.width,
+    h: px(0.5, f.height),
+    z: 1
+  });
+  if (hero) {
+    layers.push(hero);
+  }
+  return withDecor(ctx, layers);
+}
+function coverSplitAccent(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const colW = px(0.5, f.width) - t.margin;
+  const layers = [
+    makeShapeLayer({
+      id: id(ctx, "accent"),
+      fill: t.accent,
+      x: px(0.55, f.width),
+      y: 0,
+      w: px(0.45, f.width),
+      h: f.height,
+      z: 1
+    }),
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "headline"),
+      content: c.headline,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.headline, colW, px(0.42, f.height), px(0.1, f.width)),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.28, f.height),
+      w: colW,
+      h: px(0.42, f.height),
+      z: 3,
+      letterSpacing: -2
+    }),
+    makeTextLayer({
+      id: id(ctx, "sub"),
+      content: c.sub,
+      family: t.body,
+      weight: 500,
+      size: px(0.03, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.74, f.height),
+      w: colW,
+      h: px(0.1, f.height),
+      z: 3,
+      lineHeight: 1.3
+    }),
+    logo(ctx),
+    swipeCue(ctx)
+  ];
+  return withDecor(ctx, layers, {
+    x: px(0.62, f.width),
+    y: px(0.34, f.height),
+    w: px(0.3, f.width),
+    h: px(0.3, f.width),
+    z: 2
+  });
+}
+function coverStackedIndex(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    makeTextLayer({
+      id: id(ctx, "ghost"),
+      content: pad2(ctx.slideNo),
+      family: t.display,
+      weight: 800,
+      size: px(0.34, f.width),
+      color: t.metal,
+      treatment: "clean",
+      x: px(0.55, f.width),
+      y: px(0.04, f.height),
+      w: px(0.38, f.width),
+      h: px(0.26, f.height),
+      z: 1,
+      align: "right"
+    }),
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "headline"),
+      content: c.headline,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.headline, px(0.92, f.width), px(0.34, f.height), px(0.11, f.width)),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.2, f.height),
+      w: px(0.92, f.width),
+      h: px(0.34, f.height),
+      z: 3,
+      letterSpacing: -2
+    }),
+    makeTextLayer({
+      id: id(ctx, "sub"),
+      content: c.sub,
+      family: t.body,
+      weight: 500,
+      size: px(0.03, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.58, f.height),
+      w: px(0.8, f.width),
+      h: px(0.1, f.height),
+      z: 3,
+      lineHeight: 1.3
+    }),
+    logo(ctx),
+    swipeCue(ctx)
+  ];
+  const hero = heroImage(ctx, c.hero, {
+    x: 0,
+    y: px(0.68, f.height),
+    w: f.width,
+    h: px(0.32, f.height),
+    z: 1
+  });
+  if (hero) {
+    layers.push(hero);
+  }
+  return withDecor(ctx, layers);
+}
+function coverChromeHero(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "headline"),
+      content: c.headline,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.headline, px(0.92, f.width), px(0.3, f.height), px(0.11, f.width)),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.6, f.height),
+      w: px(0.92, f.width),
+      h: px(0.3, f.height),
+      z: 3,
+      letterSpacing: -2
+    }),
+    logo(ctx),
+    swipeCue(ctx)
+  ];
+  const hero = heroImage(ctx, c.hero, { x: 0, y: 0, w: f.width, h: px(0.62, f.height), z: 1 });
+  if (hero) {
+    layers.push(hero);
+  }
+  return withDecor(ctx, layers);
+}
+function contentCore(ctx, c, geom) {
+  const { format: f, theme: t } = ctx;
+  return [
+    makeTextLayer({
+      id: id(ctx, "headline"),
+      content: c.headline,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.headline, geom.hw, geom.hh, px(0.072, f.width)),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: geom.hx,
+      y: geom.hy,
+      w: geom.hw,
+      h: geom.hh,
+      z: 3,
+      letterSpacing: -1
+    }),
+    makeTextLayer({
+      id: id(ctx, "body"),
+      content: c.body,
+      family: t.body,
+      weight: 400,
+      size: px(0.034, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: geom.bx,
+      y: geom.by,
+      w: geom.bw,
+      h: geom.bh,
+      z: 2,
+      lineHeight: 1.4
+    })
+  ];
+}
+function contentHeroAnnotated(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    ...contentCore(ctx, c, {
+      hx: t.margin,
+      hy: px(0.14, f.height),
+      hw: px(0.92, f.width),
+      hh: px(0.16, f.height),
+      bx: t.margin,
+      by: px(0.32, f.height),
+      bw: px(0.84, f.width),
+      bh: px(0.12, f.height)
+    })
+  ];
+  const hero = heroImage(ctx, c.hero, {
+    x: px(0.1, f.width),
+    y: px(0.48, f.height),
+    w: px(0.8, f.width),
+    h: px(0.42, f.height),
+    z: 1
+  });
+  if (hero) {
+    layers.push(hero);
+  }
+  return withDecor(ctx, layers, {
+    x: px(0.66, f.width),
+    y: px(0.4, f.height),
+    w: px(0.22, f.width),
+    h: px(0.22, f.width),
+    z: 2,
+    rotation: 12
+  });
+}
+function contentPromptProof(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    ...contentCore(ctx, c, {
+      hx: t.margin,
+      hy: px(0.14, f.height),
+      hw: px(0.92, f.width),
+      hh: px(0.16, f.height),
+      bx: t.margin,
+      by: px(0.78, f.height),
+      bw: px(0.84, f.width),
+      bh: px(0.1, f.height)
+    }),
+    makeShapeLayer({
+      id: id(ctx, "panel"),
+      fill: t.metal,
+      x: t.margin,
+      y: px(0.34, f.height),
+      w: px(0.86, f.width),
+      h: px(0.4, f.height),
+      z: 1
+    })
+  ];
+  const hero = heroImage(ctx, c.hero, {
+    x: t.margin + px(0.01, f.width),
+    y: px(0.35, f.height),
+    w: px(0.84, f.width),
+    h: px(0.38, f.height),
+    z: 2
+  });
+  if (hero) {
+    layers.push(hero);
+  }
+  return withDecor(ctx, layers);
+}
+function contentGridShowcase(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    ...contentCore(ctx, c, {
+      hx: t.margin,
+      hy: px(0.12, f.height),
+      hw: px(0.92, f.width),
+      hh: px(0.16, f.height),
+      bx: t.margin,
+      by: px(0.82, f.height),
+      bw: px(0.84, f.width),
+      bh: px(0.1, f.height)
+    })
+  ];
+  const cardY = px(0.36, f.height);
+  const cardH = px(0.4, f.height);
+  const gap = px(0.03, f.width);
+  const cardW = Math.round((px(0.86, f.width) - 2 * gap) / 3);
+  for (let i = 0;i < 3; i++) {
+    layers.push(makeShapeLayer({
+      id: id(ctx, `card-${i + 1}`),
+      fill: t.metal,
+      x: t.margin + i * (cardW + gap),
+      y: cardY,
+      w: cardW,
+      h: cardH,
+      z: 1
+    }));
+  }
+  return withDecor(ctx, layers);
+}
+function contentBigNumber(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "index"),
+      content: c.step,
+      family: t.display,
+      weight: 800,
+      size: px(0.22, f.width),
+      color: t.primary,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.14, f.height),
+      w: px(0.34, f.width),
+      h: px(0.24, f.height),
+      z: 3
+    }),
+    ...contentCore(ctx, c, {
+      hx: t.margin,
+      hy: px(0.42, f.height),
+      hw: px(0.92, f.width),
+      hh: px(0.18, f.height),
+      bx: t.margin,
+      by: px(0.64, f.height),
+      bw: px(0.84, f.width),
+      bh: px(0.26, f.height)
+    })
+  ];
+  return withDecor(ctx, layers);
+}
+function contentLeftRule(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const railX = px(0.08, f.width);
+  const layers = [
+    makeShapeLayer({
+      id: id(ctx, "rule"),
+      fill: t.primary,
+      x: railX,
+      y: px(0.2, f.height),
+      w: Math.max(3, px(0.005, f.width)),
+      h: px(0.52, f.height),
+      z: 2
+    }),
+    kicker(ctx),
+    ...contentCore(ctx, c, {
+      hx: railX + px(0.04, f.width),
+      hy: px(0.22, f.height),
+      hw: px(0.76, f.width),
+      hh: px(0.2, f.height),
+      bx: railX + px(0.04, f.width),
+      by: px(0.5, f.height),
+      bw: px(0.76, f.width),
+      bh: px(0.34, f.height)
+    })
+  ];
+  return withDecor(ctx, layers);
+}
+function statBlock(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    makeShapeLayer({
+      id: id(ctx, "accent"),
+      fill: t.accent,
+      x: t.margin,
+      y: px(0.34, f.height),
+      w: px(0.86, f.width),
+      h: px(0.24, f.height),
+      z: 2
+    }),
+    makeTextLayer({
+      id: id(ctx, "value"),
+      content: c.value,
+      family: t.display,
+      weight: 800,
+      size: px(0.2, f.width),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin + px(0.02, f.width),
+      y: px(0.355, f.height),
+      w: px(0.82, f.width),
+      h: px(0.22, f.height),
+      z: 3
+    }),
+    makeTextLayer({
+      id: id(ctx, "label"),
+      content: c.label,
+      family: t.mono,
+      weight: 600,
+      size: px(0.04, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.62, f.height),
+      w: t.contentW,
+      h: px(0.1, f.height),
+      z: 3
+    })
+  ];
+  return withDecor(ctx, layers, {
+    x: px(0.74, f.width),
+    y: px(0.16, f.height),
+    w: px(0.18, f.width),
+    h: px(0.18, f.width),
+    z: 3,
+    rotation: 8
+  });
+}
+function statHero(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "value"),
+      content: c.value,
+      family: t.display,
+      weight: 800,
+      size: px(0.22, f.width),
+      color: t.primary,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.34, f.height),
+      w: t.contentW,
+      h: px(0.28, f.height),
+      z: 3
+    }),
+    makeTextLayer({
+      id: id(ctx, "label"),
+      content: c.label,
+      family: t.mono,
+      weight: 600,
+      size: px(0.04, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.62, f.height),
+      w: t.contentW,
+      h: px(0.1, f.height),
+      z: 3
+    })
+  ];
+  return withDecor(ctx, layers, {
+    x: px(0.72, f.width),
+    y: px(0.14, f.height),
+    w: px(0.2, f.width),
+    h: px(0.2, f.width),
+    z: 3,
+    rotation: 8
+  });
+}
+function quoteBleed(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "text"),
+      content: c.quote,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.quote, t.contentW, px(0.4, f.height), px(0.085, f.width), 1),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.2, f.height),
+      w: t.contentW,
+      h: px(0.4, f.height),
+      z: 3,
+      letterSpacing: -1,
+      lineHeight: 1
+    }),
+    makeTextLayer({
+      id: id(ctx, "attr"),
+      content: c.attribution,
+      family: t.mono,
+      weight: 500,
+      size: px(0.028, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.78, f.height),
+      w: t.contentW,
+      h: px(0.06, f.height),
+      z: 3
+    })
+  ];
+  const hero = heroImage(ctx, c.hero, {
+    x: px(0.1, f.width),
+    y: px(0.62, f.height),
+    w: px(0.8, f.width),
+    h: px(0.12, f.height),
+    z: 1
+  });
+  if (hero) {
+    layers.push(hero);
+  }
+  return withDecor(ctx, layers);
+}
+function quoteRaster(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const layers = [
+    elementLayer(ctx, "raster", "halftone", ctx.decor.element?.n ?? 1, {
+      x: 0,
+      y: px(0.12, f.height),
+      w: f.width,
+      h: px(0.76, f.height),
+      z: 1
+    }),
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "text"),
+      content: c.quote,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.quote, t.contentW, px(0.4, f.height), px(0.085, f.width), 1),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.26, f.height),
+      w: t.contentW,
+      h: px(0.4, f.height),
+      z: 3,
+      letterSpacing: -1,
+      lineHeight: 1
+    }),
+    makeTextLayer({
+      id: id(ctx, "attr"),
+      content: c.attribution,
+      family: t.mono,
+      weight: 500,
+      size: px(0.028, f.width),
+      color: t.ink,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.78, f.height),
+      w: t.contentW,
+      h: px(0.06, f.height),
+      z: 3
+    })
+  ];
+  if (ctx.decor.barcode) {
+    layers.push(barcodeStamp(ctx));
+  }
+  return layers;
+}
+function ctaSave(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const hH = px(0.3, f.height);
+  return [
+    kicker(ctx),
+    makeShapeLayer({
+      id: id(ctx, "accent"),
+      fill: t.accent,
+      x: t.margin,
+      y: px(0.3, f.height),
+      w: px(0.86, f.width),
+      h: hH,
+      z: 2
+    }),
+    makeTextLayer({
+      id: id(ctx, "headline"),
+      content: c.cta,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.cta, px(0.82, f.width), hH, px(0.072, f.width)),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin + px(0.02, f.width),
+      y: px(0.32, f.height),
+      w: px(0.82, f.width),
+      h: hH,
+      z: 3,
+      letterSpacing: -1
+    }),
+    makeTextLayer({
+      id: id(ctx, "handle"),
+      content: c.handle,
+      family: t.mono,
+      weight: 500,
+      size: px(0.03, f.width),
+      color: t.primary,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.74, f.height),
+      w: t.contentW,
+      h: px(0.05, f.height),
+      z: 3
+    }),
+    logo(ctx)
+  ];
+}
+function ctaHero(ctx, c) {
+  const { format: f, theme: t } = ctx;
+  const hH = px(0.36, f.height);
+  const layers = [
+    kicker(ctx),
+    makeTextLayer({
+      id: id(ctx, "headline"),
+      content: c.cta,
+      family: t.display,
+      weight: 800,
+      size: fitDisplaySize(c.cta, t.contentW, hH, px(0.09, f.width)),
+      color: t.ink,
+      treatment: "ink-bleed",
+      x: t.margin,
+      y: px(0.4, f.height),
+      w: t.contentW,
+      h: hH,
+      z: 3,
+      letterSpacing: -1
+    }),
+    makeTextLayer({
+      id: id(ctx, "handle"),
+      content: c.handle,
+      family: t.mono,
+      weight: 500,
+      size: px(0.03, f.width),
+      color: t.primary,
+      treatment: "clean",
+      x: t.margin,
+      y: px(0.8, f.height),
+      w: t.contentW,
+      h: px(0.05, f.height),
+      z: 3
+    }),
+    logo(ctx)
+  ];
+  const hero = heroImage(ctx, c.hero, { x: 0, y: 0, w: f.width, h: px(0.38, f.height), z: 1 });
+  if (hero) {
+    layers.push(hero);
+  }
+  return layers;
+}
+var REGISTRY = {
+  cover: {
+    "hero-editorial": coverHeroEditorial,
+    "split-accent": coverSplitAccent,
+    "stacked-index": coverStackedIndex,
+    "chrome-hero": coverChromeHero
+  },
+  content: {
+    "hero-annotated": contentHeroAnnotated,
+    "prompt-proof": contentPromptProof,
+    "grid-showcase": contentGridShowcase,
+    "big-number": contentBigNumber,
+    "left-rule": contentLeftRule
+  },
+  stat: {
+    "stat-block": statBlock,
+    "stat-hero": statHero
+  },
+  quote: {
+    "quote-bleed": quoteBleed,
+    "quote-raster": quoteRaster
+  },
+  cta: {
+    "cta-save": ctaSave,
+    "cta-hero": ctaHero
+  }
+};
+function defaultVariant(role) {
+  return VARIANTS_BY_ROLE[role][0];
+}
+function renderSlideLayers(args) {
+  const ctx = {
+    format: args.format,
+    theme: args.theme,
+    base: args.base,
+    slideNo: args.slideNo,
+    total: args.total,
+    decor: args.decor
+  };
+  const byRole = REGISTRY[args.data.role];
+  const fn = byRole[args.variant] ?? byRole[defaultVariant(args.data.role)];
+  return fn(ctx, args.data);
+}
+
+// src/templates/arc.ts
+function hashStr(s) {
+  let h3 = 2166136261;
+  for (let i = 0;i < s.length; i++) {
+    h3 ^= s.charCodeAt(i);
+    h3 = Math.imul(h3, 16777619);
+  }
+  return h3 >>> 0;
+}
+function pick(seed, salt, n) {
+  if (n <= 1) {
+    return 0;
+  }
+  return hashStr(`${seed}::${salt}`) % n;
+}
+function planSlide(role, _index, seed, opts = {}) {
+  const occ = opts.occurrence ?? 0;
+  switch (role) {
+    case "cover":
+      return { role, variant: "hero-editorial", decor: { barcode: true } };
+    case "content": {
+      const start = pick(seed, "content-start", CONTENT_VARIANTS.length);
+      const variant = CONTENT_VARIANTS[(start + occ) % CONTENT_VARIANTS.length];
+      return { role, variant, decor: {} };
+    }
+    case "stat": {
+      const variant = occ === 0 ? "stat-block" : "stat-hero";
+      return { role, variant, decor: { element: { kind: "starburst", n: occ + 1 } } };
+    }
+    case "quote": {
+      const variant = occ % 2 === 0 ? "quote-bleed" : "quote-raster";
+      const decor = variant === "quote-raster" ? { element: { kind: "halftone", n: occ + 1 } } : {};
+      return { role, variant, decor };
+    }
+    default:
+      return { role: "cta", variant: "cta-save", decor: {} };
+  }
+}
+
 // src/templates/index.ts
 var _seq = 0;
 function newLayerId(prefix2 = "l") {
@@ -18221,6 +19142,20 @@ function colorOf(bundle, token, fallback) {
 }
 function familyOf(bundle, role, fallback) {
   return bundle.fonts.find((f) => f.role.includes(role))?.family ?? fallback;
+}
+function resolveTheme(bundle, format) {
+  const margin = Math.round(format.width * 0.07);
+  return {
+    ink: colorOf(bundle, "ink", "#111318"),
+    primary: colorOf(bundle, "primary", "#0B5FFF"),
+    accent: colorOf(bundle, "accent", "#C6FF00"),
+    metal: colorOf(bundle, "metal", "#C7CCD6"),
+    display: familyOf(bundle, "display", "PP Neue Machina"),
+    mono: familyOf(bundle, "tech", "IBM Plex Mono"),
+    body: familyOf(bundle, "body", "Inter"),
+    margin,
+    contentW: format.width - margin * 2
+  };
 }
 function makeTextLayer(spec) {
   return {
@@ -18243,206 +19178,89 @@ function makeTextLayer(spec) {
     ...spec.letterSpacing !== undefined ? { letterSpacing: spec.letterSpacing } : {}
   };
 }
-function makeLogoLayer(format, margin, z) {
+function makeShapeLayer(spec) {
   return {
-    id: newLayerId("logo"),
-    kind: "logo",
-    x: margin,
-    y: Math.round(format.height * 0.86),
-    w: Math.round(format.width * 0.26),
-    h: Math.round(format.height * 0.07),
-    rotation: 0,
-    z,
-    variant: "riso_graphite"
+    id: spec.id ?? newLayerId("shape"),
+    kind: "shape",
+    x: spec.x,
+    y: spec.y,
+    w: spec.w,
+    h: spec.h,
+    rotation: spec.rotation ?? 0,
+    z: spec.z,
+    shape: "rect",
+    fill: spec.fill
   };
 }
+function fitDisplaySize(text, boxW, boxH, baseSize, lineHeight = 1.05, maxLines = 4) {
+  const len = Math.max(text.trim().length, 1);
+  const AVG_ADVANCE = 0.6;
+  const HEADROOM = 0.85;
+  const floor = Math.max(Math.round(baseSize * 0.42), 12);
+  let fs = baseSize;
+  while (fs > floor) {
+    const charsPerLine = Math.max(boxW / (fs * AVG_ADVANCE), 1);
+    const lines = Math.ceil(len / charsPerLine);
+    const textHeight = lines * fs * lineHeight;
+    if (lines <= maxLines && textHeight <= boxH * HEADROOM) {
+      break;
+    }
+    fs -= 2;
+  }
+  return Math.max(fs, floor);
+}
 var SLIDE_ROLES = ["cover", "content", "stat", "quote", "cta"];
-function layoutForRole(role, format, bundle) {
-  const ink = colorOf(bundle, "ink", "#111318");
-  const primary = colorOf(bundle, "primary", "#0B5FFF");
-  const display = familyOf(bundle, "display", "PP Neue Machina");
-  const mono = familyOf(bundle, "tech", "IBM Plex Mono");
-  const body = familyOf(bundle, "body", "Inter");
-  const margin = Math.round(format.width * 0.07);
-  const contentW = format.width - margin * 2;
+function placeholderData(bundle, role) {
   const pos = bundle.positioning;
-  const kicker = makeTextLayer({
-    id: newLayerId("kicker"),
-    content: "[DRGN.LAB//001]",
-    family: mono,
-    weight: 500,
-    size: Math.round(format.width * 0.024),
-    color: ink,
-    treatment: "clean",
-    x: margin,
-    y: margin,
-    w: contentW,
-    h: Math.round(format.height * 0.05),
-    z: 2,
-    letterSpacing: 1
-  });
   switch (role) {
     case "cover":
-      return [
-        kicker,
-        makeTextLayer({
-          content: pos.headlinePromise ?? "BUILDING AI SYSTEMS THAT DRIVE REAL RESULTS.",
-          family: display,
-          weight: 800,
-          size: Math.round(format.width * 0.11),
-          color: ink,
-          treatment: "ink-bleed",
-          x: margin,
-          y: Math.round(format.height * 0.32),
-          w: Math.round(contentW * 0.92),
-          h: Math.round(format.height * 0.4),
-          z: 3,
-          letterSpacing: -2
-        }),
-        makeTextLayer({
-          content: pos.proofBanner ?? "BUILT DIFFERENT. BUILT TO WIN.",
-          family: mono,
-          weight: 500,
-          size: Math.round(format.width * 0.03),
-          color: ink,
-          treatment: "clean",
-          x: margin,
-          y: Math.round(format.height * 0.78),
-          w: contentW,
-          h: Math.round(format.height * 0.06),
-          z: 2
-        }),
-        makeLogoLayer(format, margin, 4)
-      ];
+      return {
+        role: "cover",
+        headline: pos.headlinePromise ?? "BUILDING AI SYSTEMS THAT DRIVE REAL RESULTS.",
+        sub: pos.proofBanner ?? "BUILT DIFFERENT. BUILT TO WIN."
+      };
     case "stat": {
-      const stat = pos.proofStats[0];
-      return [
-        kicker,
-        makeTextLayer({
-          content: stat?.value ?? "+300%",
-          family: display,
-          weight: 800,
-          size: Math.round(format.width * 0.22),
-          color: primary,
-          treatment: "ink-bleed",
-          x: margin,
-          y: Math.round(format.height * 0.34),
-          w: contentW,
-          h: Math.round(format.height * 0.28),
-          z: 3
-        }),
-        makeTextLayer({
-          content: (stat?.label ?? "OUTPUT").toUpperCase(),
-          family: mono,
-          weight: 600,
-          size: Math.round(format.width * 0.04),
-          color: ink,
-          treatment: "clean",
-          x: margin,
-          y: Math.round(format.height * 0.62),
-          w: contentW,
-          h: Math.round(format.height * 0.1),
-          z: 2
-        })
-      ];
+      const stat = pos.proofStats[0] ?? { value: "+300%", label: "output" };
+      return { role: "stat", value: stat.value, label: stat.label.toUpperCase() };
     }
     case "quote":
-      return [
-        kicker,
-        makeTextLayer({
-          content: "“WE DON’T DEMO. WE SHIP.”",
-          family: display,
-          weight: 800,
-          size: Math.round(format.width * 0.085),
-          color: ink,
-          treatment: "ink-bleed",
-          x: margin,
-          y: Math.round(format.height * 0.3),
-          w: contentW,
-          h: Math.round(format.height * 0.4),
-          z: 3,
-          letterSpacing: -1,
-          lineHeight: 1
-        }),
-        makeTextLayer({
-          content: "— DRAGONHEARTED LABS",
-          family: mono,
-          weight: 500,
-          size: Math.round(format.width * 0.028),
-          color: ink,
-          treatment: "clean",
-          x: margin,
-          y: Math.round(format.height * 0.78),
-          w: contentW,
-          h: Math.round(format.height * 0.06),
-          z: 2
-        })
-      ];
+      return {
+        role: "quote",
+        quote: "“WE DON’T DEMO. WE SHIP.”",
+        attribution: `— ${(bundle.wordmark ?? bundle.brand ?? "DRAGONHEARTED LABS").toUpperCase()}`
+      };
     case "cta":
-      return [
-        kicker,
-        makeTextLayer({
-          content: pos.ctaBanner ?? "READY TO BUILD INTELLIGENT SYSTEMS?",
-          family: display,
-          weight: 800,
-          size: Math.round(format.width * 0.09),
-          color: ink,
-          treatment: "ink-bleed",
-          x: margin,
-          y: Math.round(format.height * 0.32),
-          w: contentW,
-          h: Math.round(format.height * 0.36),
-          z: 3,
-          letterSpacing: -1
-        }),
-        makeTextLayer({
-          content: "@dragonhearted.labs",
-          family: mono,
-          weight: 500,
-          size: Math.round(format.width * 0.03),
-          color: primary,
-          treatment: "clean",
-          x: margin,
-          y: Math.round(format.height * 0.74),
-          w: contentW,
-          h: Math.round(format.height * 0.05),
-          z: 2
-        }),
-        makeLogoLayer(format, margin, 4)
-      ];
+      return {
+        role: "cta",
+        cta: pos.ctaBanner ?? "READY TO BUILD INTELLIGENT SYSTEMS?",
+        handle: bundle.wordmark ? `@${bundle.wordmark}` : "@dragonhearted.labs"
+      };
     default:
-      return [
-        kicker,
-        makeTextLayer({
-          content: "POINT TITLE GOES HERE.",
-          family: display,
-          weight: 800,
-          size: Math.round(format.width * 0.075),
-          color: ink,
-          treatment: "ink-bleed",
-          x: margin,
-          y: Math.round(format.height * 0.22),
-          w: contentW,
-          h: Math.round(format.height * 0.3),
-          z: 3,
-          letterSpacing: -1
-        }),
-        makeTextLayer({
-          content: "Supporting copy — crisp, concrete, zero corporate filler. Edit this in the editor.",
-          family: body,
-          weight: 400,
-          size: Math.round(format.width * 0.034),
-          color: ink,
-          treatment: "clean",
-          x: margin,
-          y: Math.round(format.height * 0.56),
-          w: contentW,
-          h: Math.round(format.height * 0.32),
-          z: 2,
-          lineHeight: 1.35
-        })
-      ];
+      return {
+        role: "content",
+        headline: "POINT TITLE GOES HERE.",
+        body: "Supporting copy — crisp, concrete, zero corporate filler. Edit this in the editor.",
+        step: "01"
+      };
   }
+}
+function layoutForRole(role, format, bundle, opts = {}) {
+  const theme = resolveTheme(bundle, format);
+  const index = opts.index ?? 0;
+  const seed = opts.seed ?? "add-slide";
+  const plan = planSlide(role, index, seed, { occurrence: index });
+  const variant = opts.variant ?? plan.variant;
+  const base = `${role}-${newLayerId("s")}`;
+  return renderSlideLayers({
+    data: placeholderData(bundle, role),
+    variant,
+    decor: plan.decor,
+    base,
+    slideNo: index + 1,
+    total: Math.max(index + 1, 1),
+    format,
+    theme
+  });
 }
 
 // editor/src/palette.ts
@@ -18630,11 +19448,11 @@ var FORMAT_PRESET_LIST = Object.values(FORMAT_PRESETS);
 function isFormatId(value) {
   return Object.hasOwn(FORMAT_PRESETS, value);
 }
-function getFormatPreset(id) {
-  if (!isFormatId(id)) {
-    throw new Error(`Unknown format preset: "${id}". Valid ids: ${Object.keys(FORMAT_PRESETS).join(", ")}`);
+function getFormatPreset(id2) {
+  if (!isFormatId(id2)) {
+    throw new Error(`Unknown format preset: "${id2}". Valid ids: ${Object.keys(FORMAT_PRESETS).join(", ")}`);
   }
-  return FORMAT_PRESETS[id];
+  return FORMAT_PRESETS[id2];
 }
 
 // editor/src/stage.ts
@@ -18811,12 +19629,29 @@ function renderSlides(panel, store) {
     opt.textContent = role;
     roleSel.append(opt);
   }
+  const variantSel = document.createElement("select");
+  variantSel.className = "sl-select";
+  const fillVariants = (role) => {
+    variantSel.innerHTML = "";
+    const auto = document.createElement("option");
+    auto.value = "";
+    auto.textContent = "auto (picker)";
+    variantSel.append(auto);
+    for (const v of VARIANTS_BY_ROLE[role] ?? []) {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      variantSel.append(opt);
+    }
+  };
+  fillVariants(roleSel.value);
+  roleSel.onchange = () => fillVariants(roleSel.value);
   const addBtn = document.createElement("button");
   addBtn.type = "button";
   addBtn.className = "sl-add-btn";
   addBtn.textContent = "+ Add slide";
-  addBtn.onclick = () => store.addSlide(roleSel.value);
-  add2.append(roleSel, addBtn);
+  addBtn.onclick = () => store.addSlide(roleSel.value, variantSel.value || undefined);
+  add2.append(roleSel, variantSel, addBtn);
   panel.append(add2);
 }
 function labelled(label, control) {
@@ -18914,7 +19749,7 @@ class Store {
       this.activeSlideIndex = this.project.slides.length - 1;
     }
     const ids = new Set(this.activeSlide().layers.map((l) => l.id));
-    this.selection = this.selection.filter((id) => ids.has(id));
+    this.selection = this.selection.filter((id2) => ids.has(id2));
   }
   mutate(fn, snapshot = true) {
     if (snapshot) {
@@ -19011,9 +19846,13 @@ class Store {
       }
     });
   }
-  addSlide(role) {
+  addSlide(role, variant) {
     const preset = getFormatPreset(this.project.format.preset);
-    const layers = layoutForRole(role, preset, this.brand);
+    const layers = layoutForRole(role, preset, this.brand, {
+      index: this.project.slides.length,
+      seed: this.project.id,
+      ...variant ? { variant } : {}
+    });
     const slide = {
       id: `slide-${Math.floor(Math.random() * 1e9).toString(36)}`,
       role,
@@ -19131,10 +19970,10 @@ class Store {
 }
 
 // editor/src/main.ts
-function $(id) {
-  const el = document.getElementById(id);
+function $(id2) {
+  const el = document.getElementById(id2);
   if (!el) {
-    throw new Error(`missing #${id}`);
+    throw new Error(`missing #${id2}`);
   }
   return el;
 }
@@ -19226,11 +20065,11 @@ async function boot() {
       return;
     }
     const inner = layerEl.querySelector(".pb-text");
-    const id = layerEl.dataset.layerId;
-    if (!inner || !id || layerEl.classList.contains("locked")) {
+    const id2 = layerEl.dataset.layerId;
+    if (!inner || !id2 || layerEl.classList.contains("locked")) {
       return;
     }
-    editingLayerId = id;
+    editingLayerId = id2;
     inner.contentEditable = "true";
     layerEl.classList.add("editing");
     inner.focus();
@@ -19245,7 +20084,7 @@ async function boot() {
       layerEl.classList.remove("editing");
       const content = inner.innerText.replace(/ /g, " ");
       editingLayerId = null;
-      store.updateLayer(id, { content });
+      store.updateLayer(id2, { content });
     };
     inner.addEventListener("blur", finish);
   });
@@ -19319,9 +20158,9 @@ async function boot() {
 }
 async function resolveProject() {
   const params = new URLSearchParams(window.location.search);
-  const id = params.get("project");
-  if (id) {
-    return getProject(id);
+  const id2 = params.get("project");
+  if (id2) {
+    return getProject(id2);
   }
   const ids = await listProjects();
   if (ids.length > 0) {
@@ -19337,9 +20176,9 @@ async function resolveProject() {
   setProjectParam(draft.id);
   return draft;
 }
-function setProjectParam(id) {
+function setProjectParam(id2) {
   const url = new URL(window.location.href);
-  url.searchParams.set("project", id);
+  url.searchParams.set("project", id2);
   window.history.replaceState({}, "", url);
 }
 boot().catch((err) => {

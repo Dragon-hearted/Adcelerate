@@ -344,6 +344,20 @@
 	-webkit-box-decoration-break: clone;
 	font-weight: 600;
 }
+/* Shape layer — a flat brand color-block fill (accent panel / rule / card).
+   Inline background-color is set per-layer; lime fills get the ink-bleed plate
+   misregistration so the block reads as printed, never a flat web rectangle. */
+.layer.layer-shape {
+	overflow: visible;
+}
+.pb-shape {
+	width: 100%;
+	height: 100%;
+}
+.pb-shape.accent-block {
+	filter: url(#ink-bleed);
+}
+
 /* Underline variant — lime rule beneath Graphite type. */
 .accent-underline {
 	background-image: linear-gradient(var(--accent), var(--accent));
