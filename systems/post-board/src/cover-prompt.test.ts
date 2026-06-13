@@ -94,4 +94,22 @@ describe("buildSlideHeroPrompt (per-slide hero plates)", () => {
 			expect(prompt).toContain(bundle.positioning.ctaBanner ?? "READY");
 		}
 	});
+
+	test("is SUBJECT-driven (a hero subject + medium), not an abstract background", () => {
+		const cover = p.slides[0];
+		const prompt = buildSlideHeroPrompt(bundle, p, cover);
+		expect(prompt).toContain("Hero subject:");
+		expect(prompt.toUpperCase()).toContain("IMAGE-FORWARD");
+		// the image must carry a subject, not be a flat background
+		expect(prompt.toLowerCase()).toContain("subject of the slide");
+		// reserves a clean band for the text overlay (image dominates)
+		expect(prompt.toLowerCase()).toContain("band");
+	});
+
+	test("chrome style modes request a chrome SUBJECT", () => {
+		const dark = project("01-chrome-hero");
+		const prompt = buildSlideHeroPrompt(bundle, dark, dark.slides[0]);
+		expect(prompt.toLowerCase()).toContain("chrome");
+		expect(prompt).toContain("#05070D"); // cosmic-black ground for the flagship
+	});
 });

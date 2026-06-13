@@ -357,6 +357,13 @@
 .pb-shape.accent-block {
 	filter: url(#ink-bleed);
 }
+/* Legibility scrim band — a semi-opaque retro-white/graphite panel behind
+   overlaid text so a headline reads cleanly over a full-bleed hero image. The
+   riso grain keeps it a printed panel, not a flat web rectangle. */
+.pb-shape.scrim {
+	background-image: var(--paper-grain, none);
+	background-blend-mode: multiply;
+}
 
 /* Underline variant — lime rule beneath Graphite type. */
 .accent-underline {

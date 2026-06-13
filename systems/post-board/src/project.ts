@@ -82,6 +82,12 @@ const shapeLayerSchema = z.object({
 	kind: z.literal("shape"),
 	shape: shapeKindSchema,
 	fill: z.string(),
+	/**
+	 * Fill opacity 0–1 (default 1). Sub-1 values make a **legibility scrim** — a
+	 * semi-transparent retro-white/graphite band behind text so an overlaid
+	 * headline reads cleanly over a full-bleed hero image.
+	 */
+	opacity: z.number().min(0).max(1).optional(),
 });
 
 /** Discriminated union of all layer kinds. */

@@ -112,6 +112,12 @@ function buildShape(layer: Extract<Layer, { kind: "shape" }>): HTMLElement {
 	box.style.width = "100%";
 	box.style.height = "100%";
 	box.style.background = layer.fill;
+	// Sub-1 opacity = a legibility scrim band behind overlaid text; tag it so the
+	// riso paper grain reads through and it never looks like a flat web rectangle.
+	if (layer.opacity !== undefined && layer.opacity < 1) {
+		box.style.opacity = String(layer.opacity);
+		box.classList.add("scrim");
+	}
 	return box;
 }
 
