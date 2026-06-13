@@ -12,7 +12,7 @@
 
 ---
 
-Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles eight independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
+Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles nine independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
 
 ---
 
@@ -36,7 +36,7 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 
 | Feature | Description |
 |---------|-------------|
-| **autoCaption** | Word-highlighted caption renderer for vertical video — Whisper.cpp transcribes, Remotion paints TikTok-style overlays, all driven from a CLI. |
+| **AutoEditor** | Word-highlighted caption renderer for vertical video — Whisper.cpp transcribes, Remotion paints TikTok-style overlays, all driven from a CLI. |
 | **SceneBoard** | Brief-to-storyboard CLI for short-form video — composite multi-panel storyboard sheets (GPT Image 2 via Higgsfield, ImageEngine fallback) plus a Phase 2 cinematic video prompt. |
 | **Pinboard** | Terminal-first reference board with built-in AI image generation — Pinterest-style import, ImageEngine generations, and Claude vision tagging in an Ink TUI. |
 | **Instagram Scrapper** | Instagram post, reel, and profile extractor — authenticates via a browser-driven Private API login and downloads media to disk. |
@@ -51,7 +51,7 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 
 | System | Description | Status |
 |--------|-------------|--------|
-| [**autoCaption**](systems/autoCaption) | Word-highlighted caption renderer for vertical video. Whisper.cpp transcribes the audio, Remotion paints TikTok-style overlays back on top, and a CLI ties it all together. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**AutoEditor**](systems/auto-editor) | AI video editor for short-form content. A dual-engine pipeline: Hyperframes renders motion-graphic clips (HTML->mp4), Remotion composites them with whisper.cpp captions and deterministic shadergradient backgrounds into a JSON-driven multi-track timeline, then exports MP4 — via a CLI (caption/edit/serve) or an interactive @remotion/player browser editor. Grew out of the autoCaption caption renderer (caption path retained for back-compat). | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**SceneBoard**](systems/scene-board) | Brief-to-storyboard CLI for short-form video. Turns rough scripts and references into a composite multi-panel storyboard SHEET image (≤15s per sheet, GPT Image 2 via the Higgsfield CLI with ImageEngine fallback) plus a Phase 2 cinematic video prompt — with 4-view character/product reference sheets and timecoded panels. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**Pinboard**](systems/pinboard) | Terminal-first reference board with built-in AI image generation. Pinterest-style import, ImageEngine generations, PromptWriter formatting, and Claude Code vision tagging — all in an Ink TUI. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**Instagram Scrapper**](systems/instagram-scrapper) | Instagram post, reel, and profile extractor. Authenticates against the Instagram Private API via a browser-driven login and downloads media to disk. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
@@ -59,6 +59,7 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 | [**ReadmeEngine**](systems/readme-engine) | Drift-aware README generator for the monorepo. Pulls from systems.yaml, library.yaml, package manifests, and live git state to produce consistent docs for the root, every system, and every app. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**MoodBoarder**](systems/MoodBoarder) | Per-client Pinterest moodboard generator. Given an image or video reference (plus optional text description), MoodBoarder analyzes the visual style with Claude vision, generates Pinterest search keywords, scrapes high-resolution images and/or videos, and assembles them into a timestamped per-client / per-deliverable folder. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**PromptWriter**](systems/prompt-writer) | Single source of prompt-engineering knowledge. Per-model writing guides, style anchors, and a registry of image, video, and voice generation models referenced by every other system. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**ScrapeEngine**](systems/scrape-engine) | Centralized adaptive web-scraping gateway over the Scrapling framework. Spawns a uv-run Python sidecar (StealthyFetcher / DynamicFetcher / Fetcher) with anti-bot + Cloudflare bypass and adaptive CSS element tracking, exposing a generic TypeScript client + CLI that other systems call to fetch and extract from markup-drifting sites. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 
 ---
 
@@ -70,11 +71,14 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 
 ```mermaid
 graph TD
-    autocaption[autocaption]
-    autocaption --> bun
-    autocaption --> ffmpeg
-    autocaption --> whisper_cpp
-    autocaption --> remotion
+    auto_editor[auto-editor]
+    auto_editor --> bun
+    auto_editor --> ffmpeg
+    auto_editor --> whisper_cpp
+    auto_editor --> remotion
+    auto_editor --> hyperframes
+    auto_editor --> three
+    auto_editor --> motion
     pinboard[pinboard]
     pinboard --> bun
     pinboard --> sqlite
@@ -87,7 +91,6 @@ graph TD
     instagram_scrapper --> instagram_private_api
     scene_board[scene-board]
     scene_board --> bun
-    scene_board --> higgsfield
     scene_board --> image_engine
     scene_board --> fal_ai
     scene_board --> google_ai
@@ -95,6 +98,7 @@ graph TD
     image_engine[image-engine]
     image_engine --> bun
     image_engine --> wisgate_api
+    image_engine --> higgsfield
     image_engine --> sqlite
     readme_engine[readme-engine]
     readme_engine --> bun
@@ -106,6 +110,12 @@ graph TD
     moodboarder --> playwright
     moodboarder --> pinterest
     moodboarder --> claude_ai
+    moodboarder --> scrape_engine
+    scrape_engine[scrape-engine]
+    scrape_engine --> bun
+    scrape_engine --> uv
+    scrape_engine --> scrapling
+    scrape_engine --> camoufox
 ```
 
 ---
@@ -129,9 +139,9 @@ graph TD
 |------------|---------|
 | **TypeScript 5.9** | Type safety |
 | **Bun** | JavaScript runtime & package manager |
+| **Hono 4** | Lightweight web framework |
 | **Zod 4** | Schema validation |
 | **Playwright 1** | Browser automation & scraping |
-| **Hono 4** | Lightweight web framework |
 | **js-yaml 4** | YAML parsing |
 
 ---
@@ -140,7 +150,7 @@ graph TD
 
 | Category | Count |
 |----------|-------|
-| Skills | 40 |
+| Skills | 41 |
 | Agents | 10 |
 | Commands | 12 |
 
@@ -153,11 +163,11 @@ graph TD
 | **ai-seo** | When the user wants to optimize content for AI search engines, get cited by LLMs, or appear in AI-generated answers. |
 | **analytics-tracking** | When the user wants to set up, improve, or audit analytics tracking and measurement. |
 | **churn-prevention** | When the user wants to reduce churn, build cancellation flows, set up save offers, recover failed payments, or implement retention strategies. |
+| **watch** | Watch a video (URL or local path). Downloads with yt-dlp, extracts auto-scaled frames with ffmpeg, pulls the transcript from captions (or Whisper API fallback), and hands the result to Claude so it can answer questions about what's in the video. |
 | **cold-email** | Write B2B cold emails and follow-up sequences that get replies. |
 | **competitor-alternatives** | When the user wants to create competitor comparison or alternative pages for SEO and sales enablement. |
 | **content-strategy** | When the user wants to plan a content strategy, decide what content to create, or figure out what topics to cover. |
 | **copy-editing** | When the user wants to edit, review, or improve existing marketing copy. |
-| **copywriting** | When the user wants to write, rewrite, or improve marketing copy for any page — including homepage, landing pages, pricing pages, feature pages, about pages, or product pages. |
 
 ### Top Agents
 
@@ -183,7 +193,7 @@ graph TD
 - Bun v1.0+ (JavaScript runtime & package manager) — curl -fsSL https://bun.sh/install | bash
 - git (with submodule support) — required to clone the monorepo and its system submodules
 - just (command runner) — brew install just  (drives the monorepo recipes in justfile)
-- Per-system native dependencies (install only for the systems you run): ffmpeg (autoCaption, MoodBoarder), whisper.cpp (autoCaption transcription), Playwright + Chromium (Instagram Scrapper, MoodBoarder browser login), the Higgsfield CLI (SceneBoard primary image transport), and the Claude CLI (MoodBoarder, SceneBoard).
+- Per-system native dependencies (install only for the systems you run): ffmpeg (AutoEditor, MoodBoarder), whisper.cpp (AutoEditor transcription), Playwright + Chromium (Instagram Scrapper, MoodBoarder browser login), the Higgsfield CLI (SceneBoard primary image transport), and the Claude CLI (MoodBoarder, SceneBoard).
 
 ### Install
 
@@ -262,14 +272,15 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 ```
 adcelerate/
 ├── systems/                # Independent processing systems
-│   ├── autoCaption/            # Word-highlighted caption renderer for vertical video
+│   ├── AutoEditor/             # AI video editor for short-form content
 │   ├── SceneBoard/             # Brief-to-storyboard CLI for short-form video
 │   ├── Pinboard/               # Terminal-first reference board with built-in AI image generation
 │   ├── Instagram Scrapper/     # Instagram post, reel, and profile extractor
 │   ├── ImageEngine/            # Centralized NanoBanana image-generation gateway over WisGate
 │   ├── ReadmeEngine/           # Drift-aware README generator for the monorepo
 │   ├── MoodBoarder/            # Per-client Pinterest moodboard generator
-│   └── PromptWriter/           # Single source of prompt-engineering knowledge
+│   ├── PromptWriter/           # Single source of prompt-engineering knowledge
+│   └── ScrapeEngine/           # Centralized adaptive web-scraping gateway over the Scrapling framework
 ├── apps/                   # Deployable applications
 ├── knowledge/              # Shared knowledge base
 ├── scripts/                # Automation scripts

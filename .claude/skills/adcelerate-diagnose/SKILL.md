@@ -19,7 +19,7 @@ Use this skill when:
 ## Usage
 
 ```
-/adcelerate-diagnose autocaption
+/adcelerate-diagnose auto-editor
 /adcelerate-diagnose The storyboard system is producing blurry images
 ```
 

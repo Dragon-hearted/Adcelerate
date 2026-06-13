@@ -11,10 +11,10 @@
 
 ## Quick Reference
 
-### autoCaption (cli)
+### AutoEditor (cli)
 - **Type:** CLI / Video Rendering Pipeline
 - **Tech Stack:** Bun, TypeScript, Remotion 4, Whisper.cpp, Zod, Vitest
-- **Root:** `autoCaption/`
+- **Root:** `auto-editor/`
 - **Entry Point:** `src/cli.ts`
 
 ### Pinboard (web)
@@ -47,7 +47,7 @@
 
 ## Existing Documentation
 
-- [autoCaption README](../autoCaption/README.md) — Usage, CLI options, project structure, roadmap
+- [AutoEditor README](../auto-editor/README.md) — Usage, CLI options, project structure, roadmap
 - [Pinboard README](../pinboard/README.md) — Architecture overview, getting started
 - [Observability Server README](../apps/server/README.md) — Basic server setup
 - [AI Docs](../ai_docs/) — Claude Code documentation (hooks, skills, agents, channels, plugins, MCP, sub-agents)
@@ -58,4 +58,4 @@
 2. **Initialize:** `just sub-init`
 3. **Install deps:** `just obs-install` and `bun install` in each submodule
 4. **Configure:** Set up `.env` files (root for Anthropic key, pinboard for fal.ai key)
-5. **Run:** `just obs-start` for dashboard, `just sub pinboard dev` for pinboard, `cd autoCaption && bun run src/cli.ts` for captioning
+5. **Run:** `just obs-start` for dashboard, `just sub pinboard dev` for pinboard, `cd AutoEditor && bun run src/cli.ts` for captioning
