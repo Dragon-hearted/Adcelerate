@@ -6,6 +6,7 @@
  */
 
 import type { BrandBundle } from "./brand-loader";
+import { buildSlideHeroPrompt } from "./cover-prompt";
 import { DEFAULT_FORMAT_ID, type FormatPreset, getFormatPreset } from "./formats";
 import { modeClassFor } from "./mode-class";
 import type { Project, ProjectFormat, ProjectType, Slide, SlideRole } from "./project";
@@ -139,6 +140,12 @@ export function createSeedProject(bundle: BrandBundle, input: SeedInput): Projec
 	const plans = planCarousel(roles, id);
 	const background = { type: "css", styleMode, cssClass: modeClassFor(styleMode) } as const;
 
+	// Image-forward default: each slide carries its hero-image prompt so the
+	// operator can review/edit before running `generate-heroes`. Seeding stays
+	// fast (no generation); the CSS-riso background is the fallback shown until a
+	// hero image is generated.
+	const promptProject = { brief: input.brief, styleMode };
+
 	let contentStep = 0;
 	const slides: Slide[] = roles.map((role, index) => {
 		if (role === "content") {
@@ -146,7 +153,7 @@ export function createSeedProject(bundle: BrandBundle, input: SeedInput): Projec
 		}
 		const { data, base } = seedData(bundle, role, index, contentStep);
 		const plan = plans[index];
-		return {
+		const slide: Slide = {
 			id: `slide-${index + 1}`,
 			role,
 			background,
@@ -161,6 +168,8 @@ export function createSeedProject(bundle: BrandBundle, input: SeedInput): Projec
 				theme,
 			}),
 		};
+		slide.heroPrompt = buildSlideHeroPrompt(bundle, promptProject, slide);
+		return slide;
 	});
 
 	return {

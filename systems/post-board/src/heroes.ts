@@ -102,7 +102,9 @@ export function buildHeroBatchRequest(
 ): BatchRequest {
 	const aspectRatio = aspectRatioForFormat(project.format);
 	const items: GenerationRequest[] = targetSlides(project, opts.slideIds).map((slide) => ({
-		prompt: buildSlideHeroPrompt(bundle, project, slide),
+		// Prefer the slide's carried (operator-editable) hero prompt; fall back to
+		// re-deriving it from the current slide copy.
+		prompt: slide.heroPrompt?.trim() || buildSlideHeroPrompt(bundle, project, slide),
 		aspectRatio,
 		openaiQuality: "high",
 		sceneId: sceneIdFor(project, slide),

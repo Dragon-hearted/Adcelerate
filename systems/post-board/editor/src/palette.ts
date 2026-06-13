@@ -167,42 +167,52 @@ export function renderPalette(
 	uploadLabel.append(fileInput);
 	actions.append(uploadLabel);
 
+	// Image-forward: every slide can pull a NanoBanana hero (text overlays on
+	// top). Generation surfaces a clear error if ImageEngine/NanoBanana is down;
+	// the CSS-riso background is the graceful fallback.
 	const slide = store.activeSlide();
-	if (slide.role === "cover") {
-		const genBtn = document.createElement("button");
-		genBtn.type = "button";
-		genBtn.className = "pal-action accent";
-		genBtn.textContent = "✦ Generate background (Higgsfield)";
-		genBtn.onclick = async () => {
-			genBtn.disabled = true;
-			genBtn.classList.add("busy");
-			genBtn.textContent = "✦ Generating…";
-			try {
-				const res = await api.generateBackground({
-					projectId: store.project.id,
-					slideId: slide.id,
-				});
-				store.setSlideBackgroundImage(res.src, res.generationId);
-				toast("Background generated.");
-			} catch (err) {
-				const msg = err instanceof Error ? err.message : String(err);
-				toast(`Generation unavailable — CSS background kept. ${msg}`);
-			} finally {
-				genBtn.disabled = false;
-				genBtn.classList.remove("busy");
-				genBtn.textContent = "✦ Generate background (Higgsfield)";
+	const label = "✦ Generate hero (NanoBanana)";
+	const genBtn = document.createElement("button");
+	genBtn.type = "button";
+	genBtn.className = "pal-action accent";
+	genBtn.textContent = label;
+	genBtn.title =
+		"Generate this slide's hero image via Higgsfield + NanoBanana Pro. Text stays editable on top.";
+	genBtn.onclick = async () => {
+		genBtn.disabled = true;
+		genBtn.classList.add("busy");
+		genBtn.textContent = "✦ Generating…";
+		try {
+			const res = await api.generateHeroes({
+				projectId: store.project.id,
+				slideIds: [slide.id],
+			});
+			const ok = res.generated.find((g) => g.slideId === slide.id);
+			const bad = res.failed.find((f) => f.slideId === slide.id);
+			if (ok?.src) {
+				store.setSlideBackgroundImage(ok.src, ok.generationId);
+				toast("Hero generated.");
+			} else {
+				toast(`Hero generation declined — CSS background kept. ${bad?.error ?? ""}`.trim());
 			}
-		};
-		actions.append(genBtn);
-
-		if (slide.background.type === "image") {
-			const cssBtn = document.createElement("button");
-			cssBtn.type = "button";
-			cssBtn.className = "pal-action";
-			cssBtn.textContent = "↺ Revert to CSS background";
-			cssBtn.onclick = () => store.setSlideBackgroundCss();
-			actions.append(cssBtn);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			toast(`Generation unavailable — CSS background kept. ${msg}`);
+		} finally {
+			genBtn.disabled = false;
+			genBtn.classList.remove("busy");
+			genBtn.textContent = label;
 		}
+	};
+	actions.append(genBtn);
+
+	if (slide.background.type === "image") {
+		const cssBtn = document.createElement("button");
+		cssBtn.type = "button";
+		cssBtn.className = "pal-action";
+		cssBtn.textContent = "↺ Revert to CSS background";
+		cssBtn.onclick = () => store.setSlideBackgroundCss();
+		actions.append(cssBtn);
 	}
 
 	panel.append(elGroup, logoGroup, actions);

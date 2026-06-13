@@ -17,6 +17,13 @@
 import type { BrandBundle, StyleMode } from "./brand-loader";
 import type { Project, Slide, SlideRole } from "./project";
 
+/**
+ * The minimal project context a prompt needs: the brief (visual subject fallback)
+ * and the default style mode. A full {@link Project} satisfies it, but the seed +
+ * copy paths can pass a lightweight object before a project document exists.
+ */
+export type PromptProject = Pick<Project, "brief" | "styleMode">;
+
 /** Max prompt length accepted by the transport. */
 export const MAX_COVER_PROMPT_CHARS = 4000;
 
@@ -63,7 +70,7 @@ function paletteLine(bundle: BrandBundle): string {
  */
 export function buildCoverPrompt(
 	bundle: BrandBundle,
-	project: Project,
+	project: PromptProject,
 	opts: BuildCoverPromptOptions = {},
 ): string {
 	const styleId = opts.styleMode ?? project.styleMode;
@@ -121,7 +128,7 @@ const CHROME_PART_RE = /-(kicker|swipe|index|handle|ghost)$/;
  * the mono chrome (kicker, swipe cue, index, handle). Falls back to the project
  * brief when a slide has no copy yet.
  */
-export function slideSubject(slide: Slide, project: Project): string {
+export function slideSubject(slide: Slide, project: Pick<Project, "brief">): string {
 	const parts: string[] = [];
 	for (const layer of slide.layers) {
 		if (layer.kind !== "text") {
@@ -154,7 +161,7 @@ export function slideSubject(slide: Slide, project: Project): string {
  */
 export function buildSlideHeroPrompt(
 	bundle: BrandBundle,
-	project: Project,
+	project: PromptProject,
 	slide: Slide,
 	opts: { subject?: string } = {},
 ): string {

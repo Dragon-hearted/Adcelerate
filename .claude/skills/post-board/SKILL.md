@@ -134,6 +134,8 @@ Run from `systems/post-board` (`cd systems/post-board` first):
 
 HTTP API (same server): `GET/POST /api/projects`, `GET/PUT /api/projects/:id`, `POST /api/generate {projectId, slideId?, promptOverride?}` (502 if :3002 down), `POST /api/generate-heroes {projectId, slideIds?, autoFallback?}` (batch per-slide heroes; 502 on engine failure), `POST /api/export {projectId, pdf?}`, `POST /api/upload`.
 
+**Image-forward by default.** Seeding is fast and image-free but **image-forward**: every slide carries an editable `heroPrompt` (the intended NanoBanana hero, derived from the slide's copy + style mode + brand `background_system`) and a hero-image-zone layout, with the **CSS-riso background as the fallback shown until a hero is generated**. One `generate-heroes` pass fills them; the brand-locked text stays editable on top. In the editor, each slide has a **"✦ Generate hero (NanoBanana)"** affordance (and a "revert to CSS background").
+
 **Image generation default & fallback.** PostBoard omits the `model`, so ImageEngine applies its default — the **Higgsfield CLI + NanoBanana Pro** (`higgsfield-nano-banana-pro`). The old silent gemini fallback is now **permission-gated**: with NanoBanana down and no model, ImageEngine returns a clear error (cover-gen / hero-gen surface it; the CSS-riso background keeps working) rather than silently swapping providers. The operator approves a switch via `--allow-fallback` (CLI), `autoFallback: true` (API), or `IMAGE_ENGINE_AUTO_FALLBACK=1` (env). Per-slide hero failures are graceful — that slide just keeps its CSS-riso background.
 
 **CopyDoc contract** (from `systems/post-board/src/copy-contract.ts`):

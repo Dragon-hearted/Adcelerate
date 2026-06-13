@@ -121,6 +121,13 @@ export const slideSchema = z.object({
 	role: slideRoleSchema,
 	background: backgroundSchema,
 	layers: z.array(layerSchema),
+	/**
+	 * The intended per-slide hero-image prompt (image-forward carousels). Seeded
+	 * slides carry it so the operator can review/edit before running
+	 * `generate-heroes`, which prefers it over re-deriving from the slide copy.
+	 * Optional — slides without a hero plan simply omit it.
+	 */
+	heroPrompt: z.string().optional(),
 });
 
 export const projectTypeSchema = z.enum(["post", "carousel"]);

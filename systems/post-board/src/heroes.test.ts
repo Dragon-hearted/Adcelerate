@@ -49,6 +49,21 @@ describe("buildHeroBatchRequest", () => {
 		expect(on.items.every((i) => i.autoFallback === true)).toBe(true);
 	});
 
+	test("seeded slides carry a heroPrompt and the batch reuses it verbatim", () => {
+		const p = project();
+		// Image-forward default: seeding bakes a per-slide hero prompt.
+		expect(p.slides.every((s) => typeof s.heroPrompt === "string" && s.heroPrompt.length > 0)).toBe(
+			true,
+		);
+		// An operator-edited heroPrompt is preferred over re-deriving from copy.
+		const edited = {
+			...p,
+			slides: p.slides.map((s, i) => (i === 0 ? { ...s, heroPrompt: "CUSTOM HERO PLATE" } : s)),
+		};
+		const batch = buildHeroBatchRequest(edited, bundle);
+		expect(batch.items[0].prompt).toBe("CUSTOM HERO PLATE");
+	});
+
 	test("slideIds restricts the batch to the named slides", () => {
 		const p = project();
 		const only = [p.slides[1].id];

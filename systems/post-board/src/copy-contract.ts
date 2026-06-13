@@ -21,6 +21,7 @@
 
 import { z } from "zod";
 import type { BrandBundle } from "./brand-loader";
+import { buildSlideHeroPrompt } from "./cover-prompt";
 import type { FormatPreset } from "./formats";
 import type { Slide, SlideRole } from "./project";
 import { type SlideData, planCarousel, renderSlideLayers, resolveTheme } from "./templates";
@@ -98,6 +99,11 @@ export interface CopyDocToSlidesOptions {
 	 * re-seeding a project yields the same varied layout. Defaults to the hook.
 	 */
 	seed?: string;
+	/**
+	 * Project brief — the visual-subject fallback baked into each slide's
+	 * `heroPrompt` (image-forward carousels). Defaults to the hook.
+	 */
+	brief?: string;
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
@@ -219,7 +225,9 @@ export function copyDocToSlides(
 	);
 	const total = items.length;
 
-	// 3. Render each slide's layers through the registry.
+	// 3. Render each slide's layers through the registry; bake in the per-slide
+	// hero prompt (image-forward) so the operator can review before generating.
+	const promptProject = { brief: options.brief ?? copyDoc.hook, styleMode };
 	return items.map((it, idx) => {
 		const plan = plans[idx];
 		const layers = renderSlideLayers({
@@ -232,7 +240,9 @@ export function copyDocToSlides(
 			format,
 			theme,
 		});
-		return { id: `slide-${idx + 1}`, role: it.role, background, layers };
+		const slide: Slide = { id: `slide-${idx + 1}`, role: it.role, background, layers };
+		slide.heroPrompt = buildSlideHeroPrompt(bundle, promptProject, slide);
+		return slide;
 	});
 }
 
