@@ -100,6 +100,39 @@ export async function generateBackground(input: {
 	})) as GenerateResult;
 }
 
+/** One slide's outcome from a hero-generation run. */
+export interface HeroSlideResult {
+	slideId: string;
+	role: string;
+	src?: string;
+	generationId?: string;
+	error?: string;
+}
+
+/** Result of POST /api/generate-heroes. */
+export interface GenerateHeroesResult {
+	generated: HeroSlideResult[];
+	failed: HeroSlideResult[];
+	totalTokens: number;
+}
+
+/**
+ * POST /api/generate-heroes → generate NanoBanana hero image(s). Pass `slideIds`
+ * to scope to specific slides (e.g. the active slide). `autoFallback` opts in to
+ * a provider switch if NanoBanana is down (default: surface the error).
+ */
+export async function generateHeroes(input: {
+	projectId: string;
+	slideIds?: string[];
+	autoFallback?: boolean;
+}): Promise<GenerateHeroesResult> {
+	return (await request("/api/generate-heroes", {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify(input),
+	})) as GenerateHeroesResult;
+}
+
 /** POST /api/upload (multipart) → store an image in the project's assets dir. */
 export async function uploadImage(projectId: string, file: File): Promise<{ src: string }> {
 	const form = new FormData();
