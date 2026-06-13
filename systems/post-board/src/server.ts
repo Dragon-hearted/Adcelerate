@@ -9,6 +9,7 @@
  *   - GET  /api/projects/:id     → project document
  *   - PUT  /api/projects/:id     → Zod-validate + persist
  *   - POST /api/generate         → cover-background via ImageEngine (502 on failure)
+ *   - POST /api/generate-heroes  → per-slide hero images via ImageEngine batch (502)
  *   - POST /api/export           → export pipeline (501 until task #7)
  *   - POST /api/upload           → multipart image into the project's assets/
  *   - GET  /editor[/*]           → editor SPA (dist or source; placeholder until task #5)
@@ -28,6 +29,7 @@ import type { BrandBundle } from "./brand-loader";
 import { loadBrand } from "./brand-loader";
 import { generateCoverBackground } from "./cover";
 import { ExportNotImplementedError, exportProject, renderExportViewHtml } from "./export";
+import { generateHeroBackgrounds } from "./heroes";
 import {
 	type ProjectStoreOptions,
 	listProjects,
@@ -204,6 +206,36 @@ export function createApp(options: AppOptions = {}): Hono {
 				{
 					error: `cover generation failed: ${(err as Error).message}`,
 					hint: "Is ImageEngine running on :3002? The CSS background path still works.",
+				},
+				502,
+			);
+		}
+	});
+
+	// ─── Per-slide hero generation (image-forward carousels) ───
+	app.post("/api/generate-heroes", async (c) => {
+		const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+		const projectId = typeof body.projectId === "string" ? body.projectId : "";
+		if (!projectId) {
+			return c.json({ error: "projectId is required" }, 400);
+		}
+		const slideIds = Array.isArray(body.slideIds)
+			? body.slideIds.filter((s): s is string => typeof s === "string")
+			: undefined;
+		try {
+			const result = await generateHeroBackgrounds({
+				projectId,
+				...(slideIds && slideIds.length > 0 ? { slideIds } : {}),
+				...(body.autoFallback === true ? { autoFallback: true } : {}),
+				store,
+				bundle: getBrand(),
+			});
+			return c.json(result);
+		} catch (err) {
+			return c.json(
+				{
+					error: `hero generation failed: ${(err as Error).message}`,
+					hint: "Is ImageEngine running on :3002? CSS-riso backgrounds still work.",
 				},
 				502,
 			);

@@ -15,6 +15,7 @@ import { loadBrand } from "./brand-loader";
 import { generateCoverBackground } from "./cover";
 import { exportProject } from "./export";
 import { isFormatId } from "./formats";
+import { generateHeroBackgrounds } from "./heroes";
 import { saveProject } from "./project";
 import { createSeedProject } from "./seed";
 import { serve } from "./server";
@@ -28,6 +29,7 @@ COMMANDS
   new              Seed a new draft project from a brief
   serve            Start the editor + API server
   generate-cover   Generate a Higgsfield/ImageEngine background for a slide
+  generate-heroes  Generate a hero image for EVERY slide (image-forward carousel)
   export           Render slides to PNGs (+ optional PDF)
 
 FLAGS
@@ -41,6 +43,10 @@ FLAGS
   generate-cover:
     --project <id>          Project id                              (required)
     --slide <id>            Target slide id                         (default: cover)
+  generate-heroes:
+    --project <id>          Project id                              (required)
+    --slide <id>            Restrict to one slide (repeatable)      (default: all)
+    --allow-fallback        Approve a provider switch if NanoBanana is down
   export:
     --project <id>          Project id                              (required)
     --pdf                   Also assemble carousel.pdf
@@ -49,6 +55,7 @@ EXAMPLES
   bun run src/cli.ts new --brief tests/fixtures/sample-brief.txt --type carousel --format ig-4x5
   bun run src/cli.ts serve --port 4300
   bun run src/cli.ts generate-cover --project my-post-abc
+  bun run src/cli.ts generate-heroes --project my-post-abc
   bun run src/cli.ts export --project my-post-abc --pdf
 `;
 
@@ -149,6 +156,55 @@ async function cmdGenerateCover(argv: string[]): Promise<void> {
 	}
 }
 
+async function cmdGenerateHeroes(argv: string[]): Promise<void> {
+	const { values } = parseArgs({
+		args: argv,
+		options: {
+			project: { type: "string" },
+			slide: { type: "string", multiple: true },
+			"allow-fallback": { type: "boolean", default: false },
+		},
+		strict: true,
+		allowPositionals: false,
+	});
+	if (!values.project) {
+		fail("`generate-heroes` requires --project <id>");
+	}
+	try {
+		const result = await generateHeroBackgrounds({
+			projectId: values.project,
+			...(values.slide && values.slide.length > 0 ? { slideIds: values.slide } : {}),
+			...(values["allow-fallback"] === true ? { autoFallback: true } : {}),
+		});
+		console.log(
+			`Hero generation: ${result.generated.length} generated, ${result.failed.length} failed (${result.totalTokens} tokens).`,
+		);
+		for (const g of result.generated) {
+			console.log(`  ✓ ${g.slideId} (${g.role}) → ${g.src}`);
+		}
+		for (const f of result.failed) {
+			console.log(`  ✗ ${f.slideId} (${f.role}) — kept CSS background: ${f.error}`);
+		}
+		if (result.generated.length === 0) {
+			process.exit(1);
+		}
+	} catch (err) {
+		const msg = (err as Error).message;
+		const isConn =
+			/unable to connect|econnrefused|connection refused|fetch failed|failed to connect|timed out/i.test(
+				msg,
+			);
+		if (isConn) {
+			console.error(
+				"ImageEngine (:3002) unreachable — start it with `just sub systems/image-engine start` (from the monorepo root), or keep the CSS backgrounds.",
+			);
+		} else {
+			console.error(`Error: hero generation failed: ${msg}`);
+		}
+		process.exit(1);
+	}
+}
+
 async function cmdExport(argv: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args: argv,
@@ -184,6 +240,9 @@ async function main(): Promise<void> {
 			break;
 		case "generate-cover":
 			await cmdGenerateCover(rest);
+			break;
+		case "generate-heroes":
+			await cmdGenerateHeroes(rest);
 			break;
 		case "export":
 			await cmdExport(rest);
