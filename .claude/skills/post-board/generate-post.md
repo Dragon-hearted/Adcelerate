@@ -37,7 +37,7 @@ Accept the brief in any form and classify each component as **Provided / Partial
    | Caption / hashtags | Provided / Partial / Missing | |
    | Format (preset / platform) | Provided / Partial / Missing | |
    | Style mode | Provided / Partial / Missing | |
-   | Cover treatment (CSS vs. generated bg) | Provided / Partial / Missing | |
+   | Cover/hero treatment (CSS vs. generated heroes) | Provided / Partial / Missing | |
    | Images / assets (for a generated cover) | Provided / Partial / Missing | |
    | Project type (post vs. carousel) | Provided / Partial / Missing | |
 
@@ -114,11 +114,12 @@ Always write in the brand voice (Engineered, Fearless, Crafted, Kinetic, Vivid).
 
 1. **For the hook**, generate **2–3 distinct options** (different angles — e.g. number-led, contrarian, outcome-led). The hook is the whole game; hold it to "scroll-stopping cover or it doesn't ship."
 
-2. **For body slides**, draft one slide per beat. Choose each slide's `role`:
+2. **For body slides**, draft one slide per beat, shaped by the **reference-derived carousel arc** (the registry's picker turns these roles into varied, non-templated layouts automatically — your job is to feed it the right beats). Choose each slide's `role`:
    - `content` — a lesson/point: `headline` + `body`.
-   - `stat` — a proof number: `stat.value` + `stat.label` (pull from `brand.json` `proof_stats` when the brief lacks one).
-   - `quote` — a pull-quote / manifesto line: `quote` (+ optional `body` attribution).
-   Carousels read best alternating content with the occasional stat/quote. Default carousel ≈ cover + 3–5 body + CTA.
+   - `stat` — a proof number: `stat.value` + `stat.label` (pull from `brand.json` `proof_stats` when the brief lacks one). The **first stat renders on a Neon-Lime accent block** — always include one if you have a number.
+   - `quote` — a pull-quote / manifesto line: `quote` (+ optional `body` attribution). This is the **reset beat** between teaching slides.
+
+   **Canonical 7-slide spine** (the arc the layout picker is tuned for): `cover (hook) → content (method) → content (prompt-proof) → stat (proof) → content (range) → quote (reset) → cta (save)`. Default carousel ≈ cover + 3–5 body + CTA; the picker guarantees adjacent slides differ in dominant device, so **alternate teaching slides with a stat/quote pace-changer** and keep **one idea per slide**. A deck with a real stat + a punchy quote earns the lime accent block and the reset beat the arc is built around. (Full spec: `client/dragonhearted_labs/strategy/reference/ohneis652-carousel-patterns.md`.)
 
 3. **For the CTA**, draft 2 options; fall back to `brand.json` `cta_banner` if the brief has none.
 
@@ -153,23 +154,26 @@ Which hook lands, or what should I sharpen?
 ### Purpose
 Decide the cover treatment, create the draft project, and apply the approved CopyDoc.
 
-### 4A — Cover treatment
+### 4A — Cover / hero treatment
 
-- **Default: CSS riso composition.** Fully on-brand, instantly editable, no external dependency. Recommend this unless the user wants a generated photographic/3D background.
-- **Optional: generated background** (Higgsfield via ImageEngine). If the user wants it:
-  1. Describe the prompt direction (subject, style mode, palette, mood) and present it.
-  2. **Approval Gate** on the prompt before spending a generation.
-  3. After the project exists (4B), run the cover generation (4C).
+PostBoard carousels are **image-forward**: each layout reserves a hero-image zone, and image generation now defaults to the **Higgsfield CLI + NanoBanana Pro** (`higgsfield-nano-banana-pro`). Offer three treatments:
+
+- **[C] CSS riso (default-safe).** Fully on-brand, instantly editable, no external dependency. Recommend when the user wants zero external calls or ImageEngine is unavailable.
+- **[H] Image-forward — hero per slide.** Generate a NanoBanana hero for **every** slide; brand-locked text overlays on top. Describe the visual direction (each hero evokes that slide's idea, light-first retro-white riso for feed / `01-chrome-hero` for a flagship), **Approval Gate on the direction**, then after the project exists (4B) run `generate-heroes` (4C).
+- **[G] Generated cover only.** Just the cover background; inner slides stay CSS riso. Same prompt-approval flow, narrower scope.
 
 ```
---- Cover Direction (4/6) ---
+--- Cover / Hero Direction (4/6) ---
 
-[A] CSS riso cover (default) — on-brand, editable, no external calls
-[G] Generated background — I'll describe the prompt for approval first
+[C] CSS riso (default-safe) — on-brand, editable, no external calls
+[H] Image-forward — a NanoBanana hero per slide (text overlays on top)
+[G] Generated cover only — hero on the cover, CSS riso inside
 [M] Modify — adjust the direction
 
-Which cover treatment?
+Which treatment? (image paths need ImageEngine on :3002)
 ```
+
+> **Permission-gated fallback.** If NanoBanana/Higgsfield is down, generation surfaces a **clear error** instead of silently swapping to gemini — the operator approves a provider switch with `--allow-fallback`. Never auto-degrade the provider; the CSS-riso background is always the safe fallback.
 
 ### 4B — Create the draft project + apply the CopyDoc
 
@@ -196,15 +200,27 @@ bun run scripts/apply-copy.ts --project <project-id> --copydoc tmp/copydoc.json
 
    *Alternative (HTTP):* if the server is already running, GET `/api/projects/:id`, replace `slides` with the `copyDocToSlides()` output, and `PUT /api/projects/:id` the full document (Zod-validated; body `id` must match the path id).
 
-### 4C — Generate the cover background (only if [G] chosen)
+### 4C — Generate the image(s) (only if [H] or [G] chosen)
+
+**[G] Cover only:**
 
 ```bash
 cd systems/post-board
 bun run src/cli.ts generate-cover --project <project-id>   # targets the cover slide
 ```
 
-- **Requires ImageEngine on :3002.** If it's down, the command exits non-zero with a connection error — that's expected; the **CSS cover still works**, so just keep it (or start the engine: `just sub systems/image-engine start` from the monorepo root, then retry).
-- On success it downloads the image into the project's `assets/`, sets the cover slide's background to the image, and persists. The hook text layer stays editable on top.
+**[H] Image-forward — a hero per slide (batch):**
+
+```bash
+cd systems/post-board
+bun run src/cli.ts generate-heroes --project <project-id>            # all slides
+# bun run src/cli.ts generate-heroes --project <project-id> --slide <id>   # one/some slides
+# add --allow-fallback ONLY if the operator approved a provider switch
+```
+
+- **Requires ImageEngine on :3002** (NanoBanana Pro via Higgsfield by default). If it's down, the command exits non-zero with a clear connection error — that's expected; the **CSS-riso backgrounds still work**, so just keep them (or start the engine: `just sub systems/image-engine start` from the monorepo root, then retry).
+- **NanoBanana down (not the whole engine):** generation surfaces a clear provider error rather than silently using gemini. Relay it to the operator; only retry with `--allow-fallback` if they approve the switch.
+- On success it downloads each image into the project's `assets/`, sets the slide background(s) to the generated image, and persists. **Per-slide failures are graceful** — `generate-heroes` reports which slides generated vs. kept their CSS background; the brand-locked text layers stay editable on top either way.
 
 ---
 
@@ -281,7 +297,8 @@ Ready to ship, or should I adjust anything?
 
 ## Error Recovery
 
-- **ImageEngine (:3002) down at cover generation:** expected and non-fatal — keep the CSS cover, or start the engine with `just sub systems/image-engine start` and retry. Never block the post on a generated background.
+- **ImageEngine (:3002) down at cover/hero generation:** expected and non-fatal — keep the CSS-riso backgrounds, or start the engine with `just sub systems/image-engine start` and retry. Never block the post on a generated background.
+- **NanoBanana/Higgsfield down (engine up):** generation surfaces a clear *provider* error (permission-gated — no silent gemini swap). Relay it; retry with `--allow-fallback` only if the operator approves a provider switch. For `generate-heroes`, partial success is normal — failed slides keep their CSS background and are listed in the output.
 - **User goes silent at a gate:** wait. Don't auto-advance.
 - **Brief too vague:** ask 2–3 targeted questions; don't guess the hook.
 - **CopyDoc fails validation (`parseCopyDoc` throws):** fix the offending field (usually a `stat` missing `value`/`label`, or a body role outside content/stat/quote) and re-run.
