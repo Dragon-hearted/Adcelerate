@@ -68,12 +68,29 @@ const logoLayerSchema = z.object({
 	variant: logoVariantSchema,
 });
 
+/** Geometric primitives a {@link shapeLayerSchema} can draw. */
+export const shapeKindSchema = z.enum(["rect"]);
+
+/**
+ * A flat geometric fill — the brand's "color-block" device. Used for Neon-Lime
+ * marker panels sitting *behind* type (Graphite text on a lime field — lime is a
+ * SURFACE, never a text colour on the light canvas) and for thin Electric-Blue /
+ * Graphite structural rules. `fill` must be a palette hex.
+ */
+const shapeLayerSchema = z.object({
+	...baseLayerShape,
+	kind: z.literal("shape"),
+	shape: shapeKindSchema,
+	fill: z.string(),
+});
+
 /** Discriminated union of all layer kinds. */
 export const layerSchema = z.discriminatedUnion("kind", [
 	textLayerSchema,
 	imageLayerSchema,
 	elementLayerSchema,
 	logoLayerSchema,
+	shapeLayerSchema,
 ]);
 
 // ─── Background, slide, project schemas ───
@@ -139,6 +156,8 @@ export type TextLayer = z.infer<typeof textLayerSchema>;
 export type ImageLayer = z.infer<typeof imageLayerSchema>;
 export type ElementLayer = z.infer<typeof elementLayerSchema>;
 export type LogoLayer = z.infer<typeof logoLayerSchema>;
+export type ShapeKind = z.infer<typeof shapeKindSchema>;
+export type ShapeLayer = z.infer<typeof shapeLayerSchema>;
 export type Background = z.infer<typeof backgroundSchema>;
 export type SlideRole = z.infer<typeof slideRoleSchema>;
 export type Slide = z.infer<typeof slideSchema>;
