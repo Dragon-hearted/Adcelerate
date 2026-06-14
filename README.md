@@ -272,7 +272,7 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 ```
 adcelerate/
 ├── systems/                # Independent processing systems
-│   ├── AutoEditor/             # AI video editor for short-form content
+│   ├── auto-editor/            # AI video editor for short-form content
 │   ├── SceneBoard/             # Brief-to-storyboard CLI for short-form video
 │   ├── Pinboard/               # Terminal-first reference board with built-in AI image generation
 │   ├── Instagram Scrapper/     # Instagram post, reel, and profile extractor

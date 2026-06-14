@@ -24,7 +24,7 @@ just sub-init
 just obs-install
 
 # Install AutoEditor dependencies
-cd AutoEditor && bun install && cd ..
+cd systems/auto-editor && bun install && cd ../..
 
 # Install pinboard dependencies
 cd pinboard/server && bun install && cd ../client && bun install && cd ../..
@@ -59,14 +59,14 @@ just obs-stop          # Stop all
 ### AutoEditor
 ```bash
 # Run CLI
-cd AutoEditor
+cd systems/auto-editor
 bun run src/cli.ts video.mp4
 
 # Open Remotion Studio
 bun run studio
 
 # Or via justfile from root
-just sub AutoEditor dev
+just sub auto-editor dev
 ```
 
 ### Pinboard
@@ -87,7 +87,7 @@ just sub pinboard dev
 
 ### AutoEditor
 ```bash
-cd AutoEditor
+cd systems/auto-editor
 bun run test           # Run tests (Vitest)
 bun run test:watch     # Watch mode
 bun run typecheck      # TypeScript type check
@@ -116,7 +116,7 @@ bun run preview        # Preview production build
 
 ### AutoEditor
 ```bash
-cd AutoEditor
+cd systems/auto-editor
 bun run render         # Render a video via CLI
 ```
 

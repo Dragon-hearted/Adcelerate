@@ -58,4 +58,4 @@
 2. **Initialize:** `just sub-init`
 3. **Install deps:** `just obs-install` and `bun install` in each submodule
 4. **Configure:** Set up `.env` files (root for Anthropic key, pinboard for fal.ai key)
-5. **Run:** `just obs-start` for dashboard, `just sub pinboard dev` for pinboard, `cd AutoEditor && bun run src/cli.ts` for captioning
+5. **Run:** `just obs-start` for dashboard, `just sub pinboard dev` for pinboard, `cd systems/auto-editor && bun run src/cli.ts` for captioning

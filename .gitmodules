@@ -1,4 +1,4 @@
-[submodule "systems/autoCaption"]
+[submodule "systems/auto-editor"]
 	path = systems/auto-editor
 	url = https://github.com/Dragon-hearted/auto-editor.git
 [submodule "systems/pinboard"]
