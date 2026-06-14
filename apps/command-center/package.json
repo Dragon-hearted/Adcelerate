@@ -1,0 +1,21 @@
+{
+  "name": "command-center",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "orchestrator",
+    "web"
+  ],
+  "scripts": {
+    "typecheck": "bun run --filter '*' typecheck",
+    "build": "bun run --filter web build",
+    "dev": "bun run --filter '*' dev",
+    "migrate:generate": "bun run --filter @command-center/orchestrator drizzle:generate",
+    "migrate": "bun run --filter @command-center/orchestrator migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

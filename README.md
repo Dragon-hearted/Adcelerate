@@ -207,14 +207,26 @@ cd systems/readme-engine && bun install     # install deps per system you run (n
 
 > **Expected:** All eight systems under systems/ are checked out; the chosen system's dependencies are installed. Run `just sub-update` later to pull submodules to their latest remote.
 
-### 2. Start the observability dashboard in the background
+### 2. Start the Claude Command Center (browser dashboard)
+
+The **Claude Command Center** (`apps/command-center`) is the platform dashboard — a
+localhost-first web app (Next.js 15 + Fastify + Drizzle + Socket.IO) for driving
+Claude Code from the browser: submit prompts, watch a live event timeline,
+approve/deny tool calls, answer questions, track token spend, and view GitHub
+activity across one or more concurrent agents.
 
 ```bash
-just obs-install     # first run only: install dashboard deps
-just obs-bg
+just cc-install      # first run only: install web + orchestrator + shared deps
+just cc-migrate      # optional: backfill history from the legacy events.db
+just cc-dev          # orchestrator (:4100) + web (:3000), Ctrl-C stops both
 ```
 
-> **Expected:** Dashboard at http://localhost:5173 and event server at http://localhost:4000; stop later with `just obs-stop`.
+> **Expected:** Dashboard at http://localhost:3000, orchestrator API + Socket.IO at
+> http://localhost:4100 (both bound to 127.0.0.1). Auth uses your local Claude CLI
+> session by default — no API key required (set `ANTHROPIC_API_KEY` to override).
+>
+> _The previous Vue/Hono dashboard (`apps/client` + `apps/server`) is **deprecated**
+> and superseded by the Command Center; the `obs-*` recipes now delegate to `cc-*`._
 
 ### 3. Run a representative system (ReadmeEngine — no credentials required)
 
@@ -240,7 +252,9 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 | `just sub <system-path> <recipe>` | Run a recipe inside a system submodule that has its own justfile (e.g. `just sub systems/readme-engine check`). |
 | `just systems-list` | List all registered systems and their status from systems.yaml. |
 | `just systems-health` | Quick health check across all registered systems (knowledge + justfile presence). |
-| `just obs-bg / just obs-stop` | Start the observability dashboard in the background / stop it. |
+| `just cc-dev` | Start the Claude Command Center dashboard — orchestrator (:4100) + web (:3000). |
+| `just cc-install / just cc-migrate` | Install Command Center deps / backfill history from the legacy `events.db`. |
+| `just obs-* (deprecated)` | Legacy observability recipes — now delegate to the `cc-*` Command Center equivalents. |
 
 ---
 
@@ -271,6 +285,9 @@ adcelerate/
 │   ├── MoodBoarder/            # Per-client Pinterest moodboard generator
 │   └── PromptWriter/           # Single source of prompt-engineering knowledge
 ├── apps/                   # Deployable applications
+│   ├── command-center/         # Claude Command Center — browser dashboard (active)
+│   ├── server/                 # Legacy observability server (deprecated → command-center)
+│   └── client/                 # Legacy observability client (deprecated → command-center)
 ├── knowledge/              # Shared knowledge base
 ├── scripts/                # Automation scripts
 ├── docs/                   # Documentation

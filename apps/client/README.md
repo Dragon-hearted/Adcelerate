@@ -1,3 +1,11 @@
+> [!WARNING]
+> **DEPRECATED — superseded by the Claude Command Center (`apps/command-center`).**
+> This Vue observability client has been replaced by the browser-based Command
+> Center dashboard (Next.js 15 + Fastify + Drizzle + Socket.IO) at
+> [`apps/command-center`](../command-center). Run it with `just cc-dev`
+> (web → http://localhost:3000, orchestrator → http://localhost:4100).
+> This app is retained for reference and is no longer the maintained dashboard.
+
 <div align="center">
 
 ![multi-agent-observability-client](images/hero.svg)

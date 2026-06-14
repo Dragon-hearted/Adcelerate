@@ -1,0 +1,58 @@
+# Claude Command Center — app-local recipes.
+# Proxied from the repo-root justfile `cc-*` recipes (added in Phase 8).
+# `set positional-arguments` mirrors the root justfile convention.
+set positional-arguments
+
+# Default: list recipes.
+default:
+    @just --list
+
+# Install all workspace dependencies (web, orchestrator, shared).
+install:
+    bun install
+
+# Typecheck every workspace package (tsc --noEmit).
+typecheck:
+    bun run --filter '*' typecheck
+
+# Generate Drizzle migrations from the schema.
+migrate-generate:
+    bun run --filter @command-center/orchestrator drizzle:generate
+
+# Apply Drizzle migrations to the SQLite database.
+migrate:
+    bun run --filter @command-center/orchestrator migrate
+
+# Apply migrations AND import the legacy apps/server/events.db (idempotent).
+# Pass an optional legacy DB path: `just migrate-import /path/to/events.db`.
+migrate-import *args:
+    bun run --filter @command-center/orchestrator migrate
+    bun run --filter @command-center/orchestrator import-legacy "$@"
+
+# Run the orchestrator (Fastify + Socket.IO @ :4100) in watch mode.
+dev-orchestrator:
+    bun run --filter @command-center/orchestrator dev
+
+# Run the Next.js web app (@ :3000) in dev mode.
+dev-web:
+    bun run --filter web dev
+
+# Bring up orchestrator (:4100) + web (:3000) concurrently. Ctrl-C stops both.
+dev:
+    #!/usr/bin/env sh
+    set -eu
+    bun run --filter @command-center/orchestrator dev &
+    orch=$!
+    bun run --filter web dev &
+    web=$!
+    # Propagate Ctrl-C / TERM to both children, then reap.
+    trap 'kill "$orch" "$web" 2>/dev/null || true' INT TERM EXIT
+    wait "$orch" "$web"
+
+# Production build (web).
+build:
+    bun run --filter web build
+
+# Run unit tests.
+test:
+    bun test
