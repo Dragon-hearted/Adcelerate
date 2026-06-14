@@ -107,7 +107,7 @@ export interface TargetConfig {
  */
 export const TARGETS: Record<string, TargetConfig> = {
   adcelerate: { kind: "parent", path: "." },
-  autocaption: { kind: "standalone", url: "https://github.com/Dragon-hearted/autoCaption.git", path: "." },
+  "auto-editor": { kind: "standalone", url: "https://github.com/Dragon-hearted/auto-editor.git", path: "." },
   pinboard: { kind: "standalone", url: "https://github.com/Dragon-hearted/pinboard.git", path: "." },
   "scene-board": { kind: "standalone", url: "https://github.com/Dragon-hearted/scene-board.git", path: "." },
   "instagram-scrapper": { kind: "standalone", url: "https://github.com/Dragon-hearted/instagram-scrapper.git", path: "." },

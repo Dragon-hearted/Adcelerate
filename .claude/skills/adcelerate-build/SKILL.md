@@ -19,7 +19,7 @@ Use this skill when the engineer wants to:
 
 ```
 /adcelerate-build
-/adcelerate-build migrate autocaption
+/adcelerate-build migrate auto-editor
 ```
 
 ## Arguments

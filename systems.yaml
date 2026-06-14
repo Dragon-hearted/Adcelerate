@@ -21,36 +21,55 @@
 
 # System identifier is the kebab-case key (e.g., autocaption, pinboard)
 
-autocaption:
-  name: "autoCaption"
-  path: "systems/autoCaption"
+auto-editor:
+  name: "AutoEditor"
+  path: "systems/auto-editor"
   status: "active"
-  description: "Word-highlighted caption renderer for vertical video. Whisper.cpp transcribes the audio, Remotion paints TikTok-style overlays back on top, and a CLI ties it all together."
+  description: "AI video editor for short-form content. A dual-engine pipeline: Hyperframes renders motion-graphic clips (HTML->mp4), Remotion composites them with whisper.cpp captions and deterministic shadergradient backgrounds into a JSON-driven multi-track timeline, then exports MP4 — via a CLI (caption/edit/serve) or an interactive @remotion/player browser editor. Grew out of the autoCaption caption renderer (caption path retained for back-compat)."
   task_types:
+    - "video-editing"
+    - "ai-video-assembly"
+    - "motion-graphics"
     - "video-captioning"
     - "transcription"
     - "subtitle-generation"
-  knowledge_path: "systems/autoCaption/knowledge"
+  knowledge_path: "systems/auto-editor/knowledge"
   input_types:
     - "video-file"
+    - "brief"
+    - "project-json"
+    - "script"
+    - "reference-images"
   output_types:
+    - "edited-video"
+    - "composed-mp4"
     - "captioned-video"
     - "captions-json"
+    - "motion-graphic-clip"
+    - "editable-project-json"
   domain_tags:
     - "video"
     - "ai"
     - "media-processing"
-  entry_point: "systems/autoCaption/src/cli.ts"
+    - "motion-graphics"
+    - "editor"
+  entry_point: "systems/auto-editor/src/cli.ts"
   justfile: true
   stages:
     - name: "transcription"
       produces: "Caption[] array with word-level timestamps from Whisper.cpp"
-    - name: "caption-styling"
-      produces: "Validated CaptionStyle configuration via Zod schema"
-    - name: "rendering"
-      produces: "Final captioned MP4 video file (1080x1920, h264)"
+    - name: "motion-graphics"
+      produces: "Hyperframes-rendered motion-graphic clips (HTML->mp4): title cards, lower-thirds, intros, transitions"
+    - name: "backgrounds"
+      produces: "Deterministic shadergradient backgrounds via @remotion/three (uTime driven by useCurrentFrame)"
+    - name: "timeline-composition"
+      produces: "JSON-driven multi-track Remotion Timeline (video/text/caption/motionClip/gradient items)"
+    - name: "interactive-editing"
+      produces: "Operator-edited project via the served @remotion/player browser editor (timeline, layers, autosave)"
+    - name: "export"
+      produces: "Final composed MP4 (1080x1920, h264); caption-only CaptionedVideo path retained for back-compat"
   registered_at: "2026-03-25"
-  last_validated: "2026-03-25"
+  last_validated: "2026-06-13"
 
 scene-board:
   name: "SceneBoard"

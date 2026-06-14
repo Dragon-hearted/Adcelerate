@@ -7,7 +7,7 @@
 - **Bun** v1.0+ (primary runtime for all TypeScript/JavaScript)
 - **just** (command runner — install via `brew install just` or `cargo install just`)
 - **Git** with submodule support
-- **FFmpeg** (required by autoCaption for audio extraction)
+- **FFmpeg** (required by AutoEditor for audio extraction)
 - **Node.js** (may be needed for some Remotion operations)
 
 ## Initial Setup
@@ -23,8 +23,8 @@ just sub-init
 # Install observability dependencies
 just obs-install
 
-# Install autoCaption dependencies
-cd autoCaption && bun install && cd ..
+# Install AutoEditor dependencies
+cd systems/auto-editor && bun install && cd ../..
 
 # Install pinboard dependencies
 cd pinboard/server && bun install && cd ../client && bun install && cd ../..
@@ -56,17 +56,17 @@ just obs-stop          # Stop all
 # Server:    http://localhost:4000
 ```
 
-### autoCaption
+### AutoEditor
 ```bash
 # Run CLI
-cd autoCaption
+cd systems/auto-editor
 bun run src/cli.ts video.mp4
 
 # Open Remotion Studio
 bun run studio
 
 # Or via justfile from root
-just sub autoCaption dev
+just sub auto-editor dev
 ```
 
 ### Pinboard
@@ -85,9 +85,9 @@ just sub pinboard dev
 
 ## Testing
 
-### autoCaption
+### AutoEditor
 ```bash
-cd autoCaption
+cd systems/auto-editor
 bun run test           # Run tests (Vitest)
 bun run test:watch     # Watch mode
 bun run typecheck      # TypeScript type check
@@ -114,9 +114,9 @@ bun run build          # vue-tsc + Vite build
 bun run preview        # Preview production build
 ```
 
-### autoCaption
+### AutoEditor
 ```bash
-cd autoCaption
+cd systems/auto-editor
 bun run render         # Render a video via CLI
 ```
 

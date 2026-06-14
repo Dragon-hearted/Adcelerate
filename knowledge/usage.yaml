@@ -6,8 +6,8 @@
 # All keys optional → the engine renders only the sections that have data.
 
 features:                     # → "## ✨ Features" — the 8 registered systems as platform capabilities
-  - name: "autoCaption"
-    description: "Word-highlighted caption renderer for vertical video — Whisper.cpp transcribes, Remotion paints TikTok-style overlays, all driven from a CLI."
+  - name: "AutoEditor"
+    description: "Dual-engine AI video editor for short-form content — a timeline-composition engine assembles clips, transitions, and audio while a motion-graphics engine paints word-highlighted captions and animated overlays (Whisper.cpp + Remotion), all driven from a CLI."
   - name: "SceneBoard"
     description: "Brief-to-storyboard CLI for short-form video — composite multi-panel storyboard sheets (GPT Image 2 via Higgsfield, ImageEngine fallback) plus a Phase 2 cinematic video prompt."
   - name: "Pinboard"
@@ -27,7 +27,7 @@ prerequisites:               # → "### Prerequisites" — platform-wide tools +
   - "Bun v1.0+ (JavaScript runtime & package manager) — curl -fsSL https://bun.sh/install | bash"
   - "git (with submodule support) — required to clone the monorepo and its system submodules"
   - "just (command runner) — brew install just  (drives the monorepo recipes in justfile)"
-  - "Per-system native dependencies (install only for the systems you run): ffmpeg (autoCaption, MoodBoarder), whisper.cpp (autoCaption transcription), Playwright + Chromium (Instagram Scrapper, MoodBoarder browser login), the Higgsfield CLI (SceneBoard primary image transport), and the Claude CLI (MoodBoarder, SceneBoard)."
+  - "Per-system native dependencies (install only for the systems you run): ffmpeg (AutoEditor, MoodBoarder), whisper.cpp (AutoEditor transcription), Playwright + Chromium (Instagram Scrapper, MoodBoarder browser login), the Higgsfield CLI (SceneBoard primary image transport), and the Claude CLI (MoodBoarder, SceneBoard)."
 
 configVars:                  # → "## ⚙️ Configuration" — key env vars across systems (high level; each is per-system optional)
   - name: "WISGATE_API_KEY"
