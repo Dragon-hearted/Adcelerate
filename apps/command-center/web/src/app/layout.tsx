@@ -1,0 +1,19 @@
+import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Command Center',
+  description: 'Local-first operator console for Claude Code multi-agent sessions',
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="en" className="dark">
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        {children}
+      </body>
+    </html>
+  );
+}

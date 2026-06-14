@@ -263,3 +263,13 @@ docs/project-overview.md
 docs/source-tree-analysis.md
 docs/component-inventory.md
 docs/integration-architecture.md
+
+# QilinAI — external/scratch dir, not part of this repo
+QilinAI/
+
+# Claude Command Center workspace — exempt from the Python-oriented `packages/`
+# and `lib/` rules above (those are for Python vendored deps, not this TS app).
+!apps/command-center/packages/
+!apps/command-center/packages/**
+!apps/command-center/web/src/lib/
+!apps/command-center/web/src/lib/**

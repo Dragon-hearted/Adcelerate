@@ -6,27 +6,68 @@ set positional-arguments := true
 default:
   @just --list
 
-# ─── Observability System ─────────────────────────────────
+# ─── Observability System (DEPRECATED → Command Center) ───
+# The Vue + Hono dashboard (apps/client + apps/server) has been superseded by
+# the Claude Command Center (apps/command-center). These obs-* recipes now
+# delegate to the cc-* equivalents. The legacy apps remain on disk (not deleted)
+# and the 848MB legacy events.db is retained as the data-migration source.
 
-# Start observability dashboard (server + client)
+# DEPRECATED → use `just cc-dev`. Delegates to the Command Center dev runner.
 obs-start:
-  sh scripts/start-system.sh
+  @echo "⚠️  obs-start is deprecated → starting the Claude Command Center via 'just cc-dev'."
+  @just cc-dev
 
-# Stop observability dashboard
+# DEPRECATED. The Command Center runs in the foreground; Ctrl-C the cc-dev process to stop it.
 obs-stop:
-  sh scripts/reset-system.sh
+  @echo "⚠️  obs-stop is deprecated. The Command Center runs in the foreground — Ctrl-C your 'just cc-dev' process to stop it."
 
-# Start observability in background
+# DEPRECATED → use `just cc-dev`.
 obs-bg:
-  sh scripts/start-system.sh > /dev/null 2>&1 &
-  @echo "Observability started in background"
-  @echo "  Dashboard: http://localhost:5173"
-  @echo "  Server:    http://localhost:4000"
+  @echo "⚠️  obs-bg is deprecated → starting the Claude Command Center via 'just cc-dev'."
+  @just cc-dev
 
-# Install observability dependencies
+# DEPRECATED → use `just cc-install`.
 obs-install:
-  cd apps/server && bun install
-  cd apps/client && bun install
+  @echo "⚠️  obs-install is deprecated → installing the Claude Command Center via 'just cc-install'."
+  @just cc-install
+
+# ─── Claude Command Center (apps/command-center) ──────────
+# Next.js 15 + Fastify + Drizzle + Socket.IO dashboard that replaces the
+# observability stack above. Localhost-first: orchestrator :4100, web :3000.
+
+# Install Command Center workspace deps (web + orchestrator + shared)
+cc-install:
+  cd apps/command-center && just install
+
+# Apply migrations + import the legacy events.db (idempotent).
+# Optional legacy path: `just cc-migrate /abs/path/to/events.db`
+cc-migrate *args:
+  cd apps/command-center && just migrate-import "$@"
+
+# Bring up orchestrator (:4100) + web (:3000) concurrently (Ctrl-C stops both)
+cc-dev:
+  cd apps/command-center && just dev
+
+# Production build (Next.js web)
+cc-build:
+  cd apps/command-center && just build
+
+# Run the production build (orchestrator + next start) concurrently
+cc-start:
+  #!/usr/bin/env sh
+  set -eu
+  cd apps/command-center
+  bun run --filter @command-center/orchestrator start &
+  orch=$!
+  bun run --filter web start &
+  web=$!
+  trap 'kill "$orch" "$web" 2>/dev/null || true' INT TERM EXIT
+  wait "$orch" "$web"
+
+# Typecheck + test the Command Center
+cc-check:
+  cd apps/command-center && just typecheck
+  cd apps/command-center/orchestrator && bun test
 
 # ─── Submodules ─────────────────────────────────────────
 

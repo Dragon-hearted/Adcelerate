@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.next/
+out/
+build/
+
+# databases (runtime + migration target)
+*.db
+*.db-wal
+*.db-shm
+command-center.db*
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+logs/
+
+# misc
+.DS_Store
