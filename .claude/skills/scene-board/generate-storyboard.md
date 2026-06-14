@@ -414,10 +414,14 @@ Break the approved script into **panels**. Each panel becomes one numbered cell 
 - **Shot Type:** [Wide / Medium / Close-up / Low Angle / High Angle / Dynamic / OTS / Macro]
 - **Script Line:** "[The portion of the script for this panel]"
 - **Voice Script:** "[The voice-over line for this panel, if applicable]"
+- **Speaker:** [Character name who speaks this panel's line / `VO` for narration / blank if none]
+- **Dialogue/VO:** "[The exact spoken line for this panel — printed verbatim as a labeled caption beneath the frame; blank if silent]"
 - **On-Screen Text:** "[Text overlay for this panel, if applicable]"
 - **Shot Caption:** [The one-line description that will appear under this panel in the sheet]
 - **Visual Note:** [What happens visually — action, movement, key elements]
 ```
+
+> **Dialogue/VO caption rule.** The **Dialogue/VO** line is rendered on the sheet as a separate, clearly-labeled caption line **beneath the frame**, derived from **Speaker**: a character name → `Mira: "…"`; `VO` → `VO: "…"`; no speaker → generic `Dialogue: "…"`. It is **never** drawn inside the depicted shot. Keeping the spoken line labeled and separate from the **Shot Caption** (the visual description) ensures the Phase 2 video model never confuses scene action with dialogue.
 
 4. **Verify duration arithmetic**: Assert that the per-panel timecodes within each sheet sum to that sheet's window (≤15s) and that all sheets together sum to the target video duration confirmed in Stage 2. Reconcile before presenting. Flag any discrepancy: "Sheet [S] panels sum to [X]s but the block is [Y]s — adjusting panel [N] to reconcile."
 
@@ -720,8 +724,8 @@ The prompt is one flowing block of natural language (NOT bullet points), inside 
 | **B) Style Declaration** | Rich style block from the locked Style Anchor (Sheet Style Block). Adapts fully to the style (3D / live-action / anime / 2D). |
 | **C) Character/Product Descriptions** | Flowing-prose DNA of each subject, drawn from the locked reference-sheet descriptions. |
 | **D) Visual Tone** | Colour grading, atmosphere, lighting quality, rendering approach. |
-| **E) Storyboard Layout Details** | The sheet's physical look: header (brand + "15-SECOND STORYBOARD" or block label), numbered frames, **per-panel timecodes**, one-line shot captions under each frame, clean typography, studio-quality presentation. |
-| **F) Scene Breakdown** | One line per panel: *"Panel [N] (timecode): [shot type] shot. [description with action, environment, emotional beat]."* Distribute subject DNA across panels (don't front-load). |
+| **E) Storyboard Layout Details** | The sheet's physical look: header (brand + "15-SECOND STORYBOARD" or block label), numbered frames, **per-panel timecodes**, and a caption block of up to **two stacked lines** beneath each frame — first the one-line shot caption, then (only when the panel has spoken words) a separate, clearly-**labeled dialogue/VO line** (`Speaker: "…"` / `VO: "…"` / `Dialogue: "…"`). Clean typography, studio-quality presentation. **State explicitly that the depicted shot stays text-free except the brand logo** — the dialogue/VO text appears only in the caption block, never inside the frame. |
+| **F) Scene Breakdown** | One line per panel: *"Panel [N] (timecode): [shot type] shot. [description with action, environment, emotional beat]."* When the panel speaks, append the exact labeled caption to print beneath the frame, e.g. *"Caption beneath the frame (dialogue/VO): Mira: "We built this for you.""*. Distribute subject DNA across panels (don't front-load). |
 | **G) Art Direction Footer** | Expression quality, camera-angle variety, texture/environment detail, composition principles — tailored to the style. |
 | **H) Rendering & Format Footer** | Render-quality cues, aspect ratio, "professional storyboard sheet", quality tier. |
 
@@ -754,7 +758,7 @@ The prompt is one flowing block of natural language (NOT bullet points), inside 
 | … | … | … | … |
 ```
 
-2. **Text in the sheet is intentional.** GPT Image 2 renders the header, panel numbers, timecodes, and captions accurately. Brand wordmarks / polished end cards still prefer **Remotion** for pixel-perfect type — note any such panel as a Remotion render in Production Notes rather than relying on the sheet.
+2. **Text in the sheet is intentional.** GPT Image 2 renders the header, panel numbers, timecodes, shot captions, and the labeled dialogue/VO caption line beneath each panel accurately. The dialogue/VO is printed **only** in the caption block beneath the frame — the depicted shot itself stays text-free except the brand logo. Brand wordmarks / polished end cards still prefer **Remotion** for pixel-perfect type — note any such panel as a Remotion render in Production Notes rather than relying on the sheet.
 
 3. **Validate before presenting:**
    - [ ] Per-panel timecodes within each sheet sum to that sheet's ≤15s window; all sheets sum to the target duration
