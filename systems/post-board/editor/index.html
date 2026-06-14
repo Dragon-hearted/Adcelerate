@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PostBoard Editor</title>
+
+<!-- Google Fonts fallback for the two OFL families (Inter, IBM Plex Mono).
+     Neue Machina + the canonical faces are swapped in at runtime from
+     /api/brand (base64 @font-face) by main.ts. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+	href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+	rel="stylesheet"
+/>
+
+<link rel="stylesheet" href="/editor/styles/brand.css" />
+<link rel="stylesheet" href="/editor/styles/editor.css" />
+</head>
+<body>
+
+<!-- ── SVG filter defs — the ink-bleed / riso plate system (PB_FILTER_DEFS).
+     Inlined ONCE per document; brand.css references these by id. ── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+	<defs>
+		<filter id="ink-bleed" x="-6%" y="-6%" width="112%" height="112%">
+			<feTurbulence type="fractalNoise" baseFrequency="0.014 0.019" numOctaves="2" seed="7" result="noise" />
+			<feDisplacementMap in="SourceGraphic" in2="noise" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
+		</filter>
+		<filter id="ink-bleed-heavy" x="-12%" y="-12%" width="124%" height="124%">
+			<feTurbulence type="fractalNoise" baseFrequency="0.02 0.028" numOctaves="3" seed="11" result="noise" />
+			<feDisplacementMap in="SourceGraphic" in2="noise" scale="5.5" xChannelSelector="R" yChannelSelector="G" />
+		</filter>
+		<filter id="misregister" x="-10%" y="-10%" width="120%" height="120%">
+			<feOffset in="SourceGraphic" dx="-2" dy="-1.4" result="rplate" />
+			<feColorMatrix in="rplate" type="matrix"
+				values="0 0 0 0 1   0 0 0 0 0.16   0 0 0 0 0.16   0 0 0 0.5 0" result="red" />
+			<feOffset in="SourceGraphic" dx="2" dy="1.4" result="bplate" />
+			<feColorMatrix in="bplate" type="matrix"
+				values="0 0 0 0 0.04   0 0 0 0 0.37   0 0 0 0 1   0 0 0 0.5 0" result="blue" />
+			<feMerge>
+				<feMergeNode in="red" />
+				<feMergeNode in="blue" />
+				<feMergeNode in="SourceGraphic" />
+			</feMerge>
+		</filter>
+	</defs>
+</svg>
+
+<div id="app">
+	<header id="topbar">
+		<div class="tb-left">
+			<span class="tb-brand">PostBoard</span>
+			<span id="project-title" class="tb-project">—</span>
+			<span id="fmt-label" class="tb-fmt"></span>
+		</div>
+		<div class="tb-right">
+			<span id="dirty-dot" class="saved">● saved</span>
+			<button id="undo-btn" type="button" class="tb-btn" title="Undo (⌘Z)">↶</button>
+			<button id="redo-btn" type="button" class="tb-btn" title="Redo (⌘⇧Z)">↷</button>
+			<button id="save-btn" type="button" class="tb-btn primary" title="Save (⌘S)">Save</button>
+			<button id="export-btn" type="button" class="tb-btn" title="Export PNG + PDF">Export</button>
+		</div>
+	</header>
+
+	<aside id="slides-panel" class="panel"></aside>
+	<main id="stage-wrap"></main>
+	<aside id="inspector-panel" class="panel"></aside>
+	<footer id="palette-panel" class="panel"></footer>
+	<div id="toast"></div>
+</div>
+
+<script type="module" src="/editor/dist/main.js"></script>
+</body>
+</html>

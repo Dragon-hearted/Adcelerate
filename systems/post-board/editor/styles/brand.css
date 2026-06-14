@@ -1,0 +1,518 @@
+/* =============================================================================
+   PostBoard — Dragonhearted Labs brand rendering system  (brand.css)
+   -----------------------------------------------------------------------------
+   Light-first retro-white canvas with an ALWAYS-ON ink-bleed / risograph print
+   system. Display type carries the bleed + plate misregistration; body type
+   stays CLEAN. Derived from client/dragonhearted_labs/brand-identity/brand.json
+   (v2.1.0) and the proven in-browser precedent in
+   lead-magnets/build-systems-breakdown/index.html.
+
+   @font-face is injected at RUNTIME from /api/brand (fontFaceCss, base64) — it
+   is intentionally NOT hardcoded here. This file only declares the font stacks.
+
+   Companion: the SVG filter defs (#ink-bleed, #ink-bleed-heavy, #misregister)
+   MUST be inlined once in the document (see PB_FILTER_DEFS in demo.html). CSS
+   below references them via `filter: url(#ink-bleed)`.
+   ========================================================================== */
+
+/* ── Brand tokens ─────────────────────────────────────────────────────────
+   All 6 palette tokens + the Hero-Mode void. Hex values are canonical.        */
+:root {
+	--canvas: #f4f6f8; /* Retro White — default canvas, never flat */
+	--ink: #111318; /* Graphite — primary printed ink */
+	--primary: #0b5fff; /* Electric Blue — hero color / 2nd riso plate */
+	--accent: #c6ff00; /* Neon Lime — marker-block SURFACE only, never text */
+	--accent2: #ff2a2a; /* Dragon Red — urgency / misregistration plate */
+	--metal: #c7ccd6; /* Silver — dividers, low-contrast pattern fields */
+	--void: #05070d; /* Cosmic Black — Hero Mode (01-chrome-hero) canvas ONLY */
+
+	/* Derived working inks (AA-legible helpers, mirror the precedent). */
+	--ink-2: rgba(17, 19, 24, 0.66); /* muted graphite body */
+	--hair: rgba(17, 19, 24, 0.16); /* divider lines on light */
+	--silver-ink: #6b7280; /* silver-derived, legible for small labels */
+
+	/* Font stacks. Families are supplied at runtime via @font-face from the
+	   brand loader; these stacks define family + fallbacks (see brand.json). */
+	--font-display: "PP Neue Machina", "Neue Machina", "Archivo Black", Inter, sans-serif;
+	--font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+	--font-mono: "IBM Plex Mono", "JetBrains Mono", Menlo, monospace;
+
+	/* Misregistration plate offsets (1–3px chromatic shift). */
+	--misreg-x: 1.5px;
+	--misreg-y: 1.5px;
+}
+
+/* ── Slide stage ──────────────────────────────────────────────────────────
+   The fixed-size canvas every slide renders into. Width/height are set by the
+   format preset (inline style / JS); default to IG 4:5 (1080×1350).
+   ALWAYS-ON paper grain: a layered riso grain + faint halftone dot field at
+   4–10% opacity. Flat untextured white is off-brand.                         */
+.slide-stage {
+	position: relative;
+	width: 1080px;
+	height: 1350px;
+	background-color: var(--canvas);
+	color: var(--ink);
+	font-family: var(--font-body);
+	overflow: hidden;
+	isolation: isolate; /* contain blend modes to the stage */
+	-webkit-font-smoothing: antialiased;
+	text-rendering: geometricPrecision;
+}
+
+/* Base always-on texture: riso paper grain (SVG fractal noise) + a fine
+   Graphite halftone dot-matrix field. Sits below all layers. */
+.slide-stage::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background-image: radial-gradient(rgba(17, 19, 24, 0.05) 0.55px, transparent 0.6px),
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+	background-size: 6px 6px, 160px 160px;
+}
+
+/* Edge ink-soak vignette — subtle print artifact toward the paper edges. */
+.slide-stage::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background: radial-gradient(120% 120% at 50% 50%, transparent 70%, rgba(17, 19, 24, 0.05) 100%);
+	mix-blend-mode: multiply;
+}
+
+/* Everything authored sits above the texture base. */
+.slide-stage > * {
+	position: relative;
+	z-index: 1;
+}
+
+/* ── Layer base ──────────────────────────────────────────────────────────
+   Layers are absolutely positioned within the stage (x/y/w/h/rotation/z set
+   inline by the editor / project model).                                     */
+.layer {
+	position: absolute;
+	box-sizing: border-box;
+	transform-origin: center center;
+}
+.layer.layer-text {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+}
+.layer.layer-image,
+.layer.layer-element {
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+}
+.layer.layer-image > img,
+.layer.layer-element > img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
+}
+
+/* ── Type roles ───────────────────────────────────────────────────────────
+   Display = Neue Machina, carries the bleed. Body = Inter, CLEAN. Mono = IBM
+   Plex Mono for system-tags / kickers / metadata.                            */
+.type-display {
+	font-family: var(--font-display);
+	font-weight: 800;
+	text-transform: uppercase;
+	line-height: 0.92;
+	letter-spacing: -0.01em;
+	color: var(--ink);
+}
+.type-body {
+	font-family: var(--font-body);
+	font-weight: 400;
+	line-height: 1.55;
+	color: var(--ink);
+	letter-spacing: 0;
+}
+.type-body.muted {
+	color: var(--ink-2);
+}
+.type-mono {
+	font-family: var(--font-mono);
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	color: var(--ink);
+}
+
+/* System-tag kicker, e.g. [SYS.01//POST]. Core voice device. */
+.system-tag {
+	font-family: var(--font-mono);
+	font-weight: 600;
+	font-size: 0.78em;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--primary);
+}
+.system-tag.silver {
+	color: var(--silver-ink);
+}
+.system-tag.ink {
+	color: var(--ink);
+}
+
+/* ── Treatment classes ─────────────────────────────────────────────────────
+   Applied to type/graphic layers. Body text MUST stay .treat-clean.          */
+
+/* Clean: no bleed, no misregistration. Inter body + clean captions/code. */
+.treat-clean {
+	filter: none;
+	text-shadow: none;
+}
+
+/* Ink-bleed: feathered ink edges (feTurbulence+feDisplacement filter) plus a
+   1–3px chromatic plate misregistration (Electric Blue + Dragon Red ghosts).
+   For display type only. */
+.treat-ink-bleed {
+	filter: url(#ink-bleed);
+	text-shadow: var(--misreg-x) var(--misreg-y) 0 rgba(11, 95, 255, 0.22),
+		calc(var(--misreg-x) * -0.66) calc(var(--misreg-y) * -0.4) 0 rgba(255, 42, 42, 0.16);
+}
+/* Heavier bleed for solid color blocks / banners. */
+.treat-ink-bleed-heavy {
+	filter: url(#ink-bleed-heavy);
+}
+
+/* Riso grain fill on heavy display type — clips a noise field into the glyphs.
+   Layered on top of .treat-ink-bleed. */
+.treat-ink-bleed.grain-fill {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E");
+	background-size: 120px 120px;
+	-webkit-background-clip: text;
+	background-clip: text;
+}
+
+/* Glitch / distress: STATIC (animation-free) clip-path plate slices in the
+   misregistration colors. Display type only, max 1 per slide (enforced in the
+   editor). Reads as a misprint / xerox artifact on the light canvas. */
+.treat-glitch {
+	position: relative;
+	filter: url(#ink-bleed);
+}
+.treat-glitch::before,
+.treat-glitch::after {
+	content: attr(data-text);
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.treat-glitch::before {
+	color: var(--primary);
+	transform: translate(-2px, 0);
+	clip-path: polygon(0 12%, 100% 12%, 100% 34%, 0 34%, 0 62%, 100% 62%, 100% 78%, 0 78%);
+	opacity: 0.55;
+	mix-blend-mode: multiply;
+}
+.treat-glitch::after {
+	color: var(--accent2);
+	transform: translate(2px, 0);
+	clip-path: polygon(
+		0 0,
+		100% 0,
+		100% 10%,
+		0 10%,
+		0 44%,
+		100% 44%,
+		100% 56%,
+		0 56%,
+		0 86%,
+		100% 86%,
+		100% 100%,
+		0 100%
+	);
+	opacity: 0.4;
+	mix-blend-mode: multiply;
+}
+
+/* ── Texture overlay classes ───────────────────────────────────────────────
+   Add as extra layers / stage modifiers. Per brand.json layering: canvas →
+   paper grain (always, on .slide-stage::before) → 1–2 more textures max.
+   Apply these to a full-bleed overlay node OR to the stage as a modifier.    */
+
+/* Paper grain — same field as the always-on base, exposed as a class for
+   explicit overlay layers / non-stage surfaces. */
+.tex-paper-grain {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+	background-size: 160px 160px;
+	mix-blend-mode: multiply;
+	pointer-events: none;
+}
+
+/* Halftone / dot-matrix field — radial dot grid, ≤15% opacity. */
+.tex-halftone {
+	background-image: radial-gradient(var(--ink) 18%, transparent 19%);
+	background-size: 8px 8px;
+	opacity: 0.12;
+	mix-blend-mode: multiply;
+	pointer-events: none;
+}
+.tex-halftone.blue {
+	background-image: radial-gradient(var(--primary) 18%, transparent 19%);
+}
+.tex-halftone.silver {
+	background-image: radial-gradient(var(--metal) 24%, transparent 25%);
+	opacity: 0.5;
+}
+
+/* ASCII / terminal — low-opacity mono character grid printed in Silver ink. */
+.tex-ascii {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	line-height: 12px;
+	letter-spacing: 1px;
+	color: var(--silver-ink);
+	opacity: 0.16;
+	overflow: hidden;
+	white-space: pre-wrap;
+	word-break: break-all;
+	user-select: none;
+	pointer-events: none;
+}
+
+/* Distress / grit — photocopy edge wear, masked to corners/edges. */
+.tex-distress {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.5 0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23d)' opacity='0.5'/%3E%3C/svg%3E");
+	background-size: 200px 200px;
+	opacity: 0.22;
+	mix-blend-mode: multiply;
+	pointer-events: none;
+	-webkit-mask-image: radial-gradient(120% 120% at 50% 50%, transparent 55%, #000 100%);
+	mask-image: radial-gradient(120% 120% at 50% 50%, transparent 55%, #000 100%);
+}
+
+/* Texture-field sheet overlay (multiply blend from the brand texture sheet).
+   The editor sets --tex-field-src to a /brand-assets/… route. */
+.tex-field {
+	background-image: var(--tex-field-src);
+	background-size: cover;
+	background-position: center;
+	opacity: 0.14;
+	mix-blend-mode: multiply;
+	pointer-events: none;
+}
+
+/* Wireframe-globe / line-plate motif behind type (Electric Blue or Silver). */
+.tex-wireframe {
+	background-image: var(--tex-wireframe-src);
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	opacity: 0.18;
+	mix-blend-mode: multiply;
+	pointer-events: none;
+}
+
+/* Barcode strip — Graphite ink bars (CSS-native, no image needed). */
+.element-barcode {
+	background: repeating-linear-gradient(
+		90deg,
+		var(--ink) 0,
+		var(--ink) 2px,
+		transparent 2px,
+		transparent 4px,
+		var(--ink) 4px,
+		var(--ink) 5px,
+		transparent 5px,
+		transparent 9px,
+		var(--ink) 9px,
+		var(--ink) 11px,
+		transparent 11px,
+		transparent 13px
+	);
+	opacity: 0.92;
+}
+
+/* ── Accents ────────────────────────────────────────────────────────────── */
+
+/* Neon Lime marker-block: lime SURFACE behind Graphite type.
+   NEVER lime-colored text on the light canvas (~1.1:1 contrast). */
+.accent-marker {
+	color: var(--ink);
+	background: var(--accent);
+	padding: 0 0.18em;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+	font-weight: 600;
+}
+/* Shape layer — a flat brand color-block fill (accent panel / rule / card).
+   Inline background-color is set per-layer; lime fills get the ink-bleed plate
+   misregistration so the block reads as printed, never a flat web rectangle. */
+.layer.layer-shape {
+	overflow: visible;
+}
+.pb-shape {
+	width: 100%;
+	height: 100%;
+}
+.pb-shape.accent-block {
+	filter: url(#ink-bleed);
+}
+/* Legibility scrim band — a semi-opaque retro-white/graphite panel behind
+   overlaid text so a headline reads cleanly over a full-bleed hero image. The
+   riso grain keeps it a printed panel, not a flat web rectangle. */
+.pb-shape.scrim {
+	background-image: var(--paper-grain, none);
+	background-blend-mode: multiply;
+}
+
+/* Underline variant — lime rule beneath Graphite type. */
+.accent-underline {
+	background-image: linear-gradient(var(--accent), var(--accent));
+	background-repeat: no-repeat;
+	background-position: 0 88%;
+	background-size: 100% 0.32em;
+}
+
+/* Thin Electric-Blue rule. */
+.rule {
+	height: 2px;
+	width: 100%;
+	background: var(--primary);
+	opacity: 0.85;
+	border: 0;
+}
+.rule.hair {
+	height: 1px;
+	background: var(--hair);
+	opacity: 1;
+}
+
+/* ── Logo container rule ────────────────────────────────────────────────────
+   The chrome logo PNG must ALWAYS sit inside a Graphite (#111318) container
+   with ink-bleed edges and padding ≥ 1× wordmark cap-height. Riso single-plate
+   variants (logo-riso-*) may sit container-free and so skip this wrapper.     */
+.logo-container {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--ink);
+	padding: 0.6em 0.9em; /* ≥1× cap-height clear space inside the panel */
+	filter: url(#ink-bleed); /* bleed edges on the printed ink block */
+}
+.logo-container > img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+/* Riso single-plate logos — container-free is allowed. */
+.logo-riso {
+	display: inline-block;
+}
+.logo-riso > img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+/* ── Style-mode classes ─────────────────────────────────────────────────────
+   Applied to .slide-stage. Each mode tunes which accent / textures dominate
+   per brand.json style_modes. They set CSS vars + opt-in texture emphasis;
+   the always-on paper grain persists underneath in every light mode.         */
+
+/* 02 — Lowpoly Neon Glow: Electric Blue edge linework + halftone glow. */
+.mode-02-lowpoly {
+	--mode-accent: var(--primary);
+}
+.mode-02-lowpoly .tex-halftone {
+	background-image: radial-gradient(var(--primary) 18%, transparent 19%);
+	opacity: 0.14;
+}
+
+/* 03 — ASCII / Dot-Matrix: Graphite/Silver ink, native to the v2 canvas. */
+.mode-03-ascii {
+	--mode-accent: var(--ink);
+}
+.mode-03-ascii .tex-ascii {
+	opacity: 0.2;
+}
+.mode-03-ascii .system-tag {
+	color: var(--ink);
+}
+
+/* 05 — Y2K Chrome: glossy chrome cut-outs on paper; chrome stays un-textured. */
+.mode-05-y2k {
+	--mode-accent: var(--metal);
+}
+.mode-05-y2k .layer-image.chrome,
+.mode-05-y2k .layer-element.chrome {
+	filter: none; /* keep chrome glossy — no bleed over the mark */
+}
+
+/* 06 — ASCII Glow Night: DARK-PANEL exception. A Graphite ink-block window
+   (with bleed edges) printed on the light canvas — never a full dark stage. */
+.mode-06-ascii-night {
+	--mode-accent: var(--primary);
+}
+.mode-06-ascii-night .panel-dark {
+	background: var(--void);
+	color: var(--canvas);
+	filter: url(#ink-bleed);
+}
+.mode-06-ascii-night .panel-dark .type-body {
+	color: var(--canvas);
+}
+.mode-06-ascii-night .panel-dark .system-tag {
+	color: var(--primary);
+}
+
+/* 07 — Chrome Space: starbursts + halftone star fields in Graphite/Silver. */
+.mode-07-chrome-space {
+	--mode-accent: var(--metal);
+}
+.mode-07-chrome-space .tex-halftone {
+	background-image: radial-gradient(var(--metal) 24%, transparent 25%);
+	background-size: 12px 12px;
+	opacity: 0.35;
+}
+
+/* 08 — Pop-Art Screenprint: bold flat color hits + heavy misregistration.
+   Home turf of the v2 system — lean hardest into the ink bleed here. */
+.mode-08-popart {
+	--mode-accent: var(--accent2);
+	--misreg-x: 3px;
+	--misreg-y: 2.5px;
+}
+.mode-08-popart .tex-halftone {
+	opacity: 0.18;
+}
+.mode-08-popart .type-display.treat-ink-bleed {
+	text-shadow: var(--misreg-x) var(--misreg-y) 0 rgba(11, 95, 255, 0.3),
+		calc(var(--misreg-x) * -0.8) calc(var(--misreg-y) * -0.6) 0 rgba(255, 42, 42, 0.26);
+}
+
+/* 01 — Chrome Hero: FLAGSHIP dark-first exception. The one full-dark stage:
+   Cosmic Black starfield, electric-blue energy, no paper texture on chrome. */
+.mode-01-chrome-hero {
+	background-color: var(--void);
+	color: var(--canvas);
+	--mode-accent: var(--primary);
+}
+.mode-01-chrome-hero::before {
+	/* swap riso paper grain for a faint Silver/Graphite starfield */
+	background-image: radial-gradient(rgba(199, 204, 214, 0.5) 0.6px, transparent 0.7px),
+		radial-gradient(rgba(199, 204, 214, 0.3) 0.5px, transparent 0.6px);
+	background-size: 90px 90px, 140px 140px;
+	background-position: 0 0, 40px 60px;
+}
+.mode-01-chrome-hero::after {
+	background: radial-gradient(120% 120% at 50% 40%, transparent 60%, rgba(0, 0, 0, 0.55) 100%);
+}
+.mode-01-chrome-hero .type-display {
+	color: var(--canvas);
+}
+.mode-01-chrome-hero .type-body {
+	color: var(--canvas);
+}
+.mode-01-chrome-hero .system-tag {
+	color: var(--primary);
+}

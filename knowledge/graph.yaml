@@ -4,8 +4,8 @@
 # Updated by: build-mode (registration), diagnosis (failure patterns), engineer (manual)
 
 metadata:
-  lastUpdated: "2026-06-04"
-  systemCount: 9
+  lastUpdated: "2026-06-12"
+  systemCount: 10
 
 # Per-system entries added during Build Mode registration or migration
 # Schema per system:
@@ -128,6 +128,21 @@ systems:
       - "image-engine"
     failure_patterns: []
 
+  post-board:
+    depends_on:
+      - { system: "bun", type: "runtime" }
+      - { system: "hono", type: "runtime" }
+      - { system: "playwright", type: "runtime" }
+      - { system: "image-engine", type: "optional" }
+      - { system: "higgsfield", type: "optional" }
+    shared_models: []
+    related_systems:
+      - "scene-board"
+      - "image-engine"
+      - "prompt-writer"
+      - "moodboarder"
+    failure_patterns: []
+
 # Cross-system relationships
 # Schema: {from: id, to: id, type: pipeline|shared-dependency|shared-model, description: string}
 relationships:
@@ -202,6 +217,19 @@ relationships:
     to: "instagram-scrapper"
     type: "shared-dependency"
     description: "Both perform authenticated scraping with cookies.json; instagram-scrapper is a future candidate to route through ScrapeEngine."
+  - from: "image-engine"
+    to: "post-board"
+    type: "pipeline"
+    relationship: "optional"
+    description: "OPTIONAL cover-background transport: PostBoard's cover slide can pull a Higgsfield GPT Image 2 background through ImageEngine's HTTP API (:3002), reusing SceneBoard's image-client port. The default cover is a pure CSS riso composition, and that CSS fallback ALWAYS works — when :3002 is down PostBoard surfaces a clear message and keeps the editable CSS cover path intact."
+  - from: "prompt-writer"
+    to: "post-board"
+    type: "pipeline"
+    description: "PromptWriter provides the centralized prompt-engineering methodology PostBoard's cover-prompt.ts uses to compose the Higgsfield GPT Image 2 cover-background prompt (brand style mode + brief + riso rules, no in-frame text)."
+  - from: "scene-board"
+    to: "post-board"
+    type: "shared-dependency"
+    description: "PostBoard is modeled on SceneBoard — it ports SceneBoard's ImageEngine image-client verbatim in shape and shares the same client/<slug>/<system-slug>/ brand + output convention (projects live under client/dragonhearted_labs/post-board/<project>/)."
 
 # Known failure patterns for accelerated diagnosis
 # Schema: {id: fp-NNN, description: string, diagnosed: date, resolution: string, affects: [system-id]}

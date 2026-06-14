@@ -1,0 +1,37 @@
+{
+	"hook": "5 LESSONS FROM BUILDING AN AI CONTENT PIPELINE THAT CUT MANUAL WORK 80%.",
+	"slides": [
+		{
+			"role": "content",
+			"headline": "STOP WRITING PROMPTS. BUILD SYSTEMS.",
+			"body": "One prompt is a coin flip. A pipeline is a machine — same brief in, on-brand asset out, every time."
+		},
+		{
+			"role": "stat",
+			"stat": { "value": "-80%", "label": "manual work per post" }
+		},
+		{
+			"role": "content",
+			"headline": "THE BRAND JSON IS THE SOURCE OF TRUTH.",
+			"body": "Fonts, palette, voice, positioning — encode them once. Then every model decision is constrained, not guessed."
+		},
+		{
+			"role": "stat",
+			"stat": { "value": "+300%", "label": "output volume" }
+		},
+		{
+			"role": "quote",
+			"quote": "“WE DON’T DEMO. WE SHIP.”",
+			"body": "— DRAGONHEARTED LABS"
+		}
+	],
+	"cta": "READY TO BUILD INTELLIGENT SYSTEMS?",
+	"caption": "I spent a month wiring an end-to-end AI content pipeline for the studio. Here are the 5 lessons that actually moved the needle — concrete numbers, zero corporate filler. Save this if you're building in public.\n\nWhich one hits hardest? Drop a comment.",
+	"hashtags": [
+		"#buildinpublic",
+		"#AIcontent",
+		"#automation",
+		"#contentengineering",
+		"#dragonheartedlabs"
+	]
+}
