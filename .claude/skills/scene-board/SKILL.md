@@ -7,7 +7,7 @@ description: "Create professional video storyboards from briefs. Use when user w
 
 SceneBoard transforms video briefs of any format into a **two-phase, production-ready deliverable**:
 
-1. **Phase 1 — Composite Storyboard Sheet:** one multi-panel sheet image per ≤15-second block, with numbered panels, timecodes, and shot captions all baked into a single render (not one image per scene).
+1. **Phase 1 — Composite Storyboard Sheet:** one multi-panel sheet image per ≤15-second block, with numbered panels, timecodes, shot captions, and a labeled dialogue/VO line beneath each panel all baked into a single render (not one image per scene). Dialogue/VO sits in the caption block beneath the frame — never on the scene, which stays text-free except the brand logo.
 2. **Phase 2 — Cinematic Video Prompt:** after the sheet is approved, a timed, per-shot video prompt ready to paste into an AI video tool.
 
 It uses a dynamic, approval-gated pipeline where any component provided in the brief is locked in and any component missing is generated as options for the user to choose from. Images are generated with **GPT Image 2 via the Higgsfield CLI** as the primary path, with the **ImageEngine HTTP service kept as an automatic fallback**. The result is a complete storyboard document — script, voice script, scene breakdown, style anchor, reference sheets, composite storyboard sheet(s), and a cinematic video prompt — that meets a "client gets flattened" quality bar.
@@ -117,7 +117,8 @@ SceneBoard's defining output is a **single composite multi-panel sheet image per
 
 - A **header** (brand + "15-SECOND STORYBOARD" or the block's label).
 - A **grid of numbered panels** (3×5 = 15 panels by default for landscape 16:9; the grid flips for vertical 9:16).
-- Each panel shows a **timecode** (e.g. `00:00-00:01`) and a **one-line shot description** beneath the frame.
+- Each panel shows a **timecode** (e.g. `00:00-00:01`), a **one-line shot description**, and — when the panel has spoken words — a separate, clearly-**labeled dialogue/VO line** (`Mira: "…"` / `VO: "…"` / `Dialogue: "…"`), all beneath the frame.
+- **The dialogue/VO text lives only in that caption block beneath the frame — never rendered inside the depicted shot.** The shot artwork stays visually clean; the **only** in-frame text/graphic permitted is the **brand logo** (and supplied brand assets). This keeps scene vs. spoken line unambiguous for the Phase 2 video model.
 
 **Key rules:**
 
@@ -179,7 +180,8 @@ Quick reference for image generation:
 | Auth | `higgsfield auth login` once per machine (creds in `~/.config/higgsfield`) |
 
 **Critical rules:**
-- **Text in the sheet is intentional and accurate** — GPT Image 2 renders the header, panel numbers, timecodes, and shot captions reliably (unlike the legacy NanoBanana path, where text was garbled). Brand wordmarks / end cards still prefer Remotion for pixel-perfect type.
+- **Text in the sheet is intentional and accurate** — GPT Image 2 renders the header, panel numbers, timecodes, shot captions, and the labeled dialogue/VO line beneath each panel reliably (unlike the legacy NanoBanana path, where text was garbled). Brand wordmarks / end cards still prefer Remotion for pixel-perfect type.
+- **Dialogue/VO goes in the caption block, never on the scene.** Write each panel's spoken line as a labeled caption line beneath the frame (`Speaker: "…"` / `VO: "…"` / `Dialogue: "…"`). The depicted shot itself carries **no** words, captions, subtitles, dialogue, or lettering — the brand logo is the only permitted in-frame text/graphic.
 - Prompts must be highly specific to the product and brand; generic visual descriptions are the number one failure mode.
 - The composite-sheet prompt must fold in the Style Anchor and weave character/product DNA across panels.
 - The image path uses **Higgsfield first** and **silently falls back to ImageEngine** on any failure, logging which provider served the request.

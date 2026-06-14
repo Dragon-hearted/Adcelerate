@@ -91,10 +91,10 @@ output_dir: "client/{{client-slug}}/storyboards/{{project-slug}}"
 {{phase-1-prompt}}
 ```
 
-| Panel | Timecode | Shot Type | Caption |
-|-------|----------|-----------|---------|
+| Panel | Timecode | Shot Type | Caption | Dialogue/VO |
+|-------|----------|-----------|---------|-------------|
 {{FOR EACH PANEL IN SHEET:}}
-| {{N}} | {{start}}–{{end}} | {{shot-type}} | {{caption}} |
+| {{N}} | {{start}}–{{end}} | {{shot-type}} | {{caption}} | {{labeled-dialogue-or-blank, e.g. Mira: "We built this for you." / VO: "…" / —}} |
 {{END FOR EACH}}
 
 {{END FOR EACH}}
@@ -128,7 +128,7 @@ Audio: Diegetic sound only — natural ambience, environmental foley, and subjec
 | **Color Palette** | {{color-palette}} |
 | **Lighting** | {{lighting-description}} |
 | **Camera** | {{camera-style}} |
-| **Text / Type** | {{Sheet text rendered by GPT Image 2; brand wordmarks/end cards via Remotion}} |
+| **Text / Type** | {{Sheet text — header, panel numbers, timecodes, shot captions, and the labeled dialogue/VO caption line beneath each panel — rendered by GPT Image 2. Dialogue/VO appears only in the caption block, never inside the depicted shot (logo-only). Brand wordmarks/end cards via Remotion}} |
 | **Music** | {{music-description}} |
 
 ---
