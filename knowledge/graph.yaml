@@ -14,15 +14,21 @@ metadata:
 #   related_systems: [string]
 #   failure_patterns: [string] (references to failure_patterns.id below)
 systems:
-  autocaption:
+  auto-editor:
     depends_on:
       - { system: "bun", type: "runtime" }
       - { system: "ffmpeg", type: "runtime" }
       - { system: "whisper-cpp", type: "runtime" }
       - { system: "remotion", type: "runtime" }
+      - { system: "hyperframes", type: "runtime" }
+      - { system: "three", type: "runtime" }
+      - { system: "motion", type: "runtime" }
     shared_models: []
     related_systems:
       - "pinboard"
+      - "scene-board"
+      - "image-engine"
+      - "prompt-writer"
     failure_patterns: []
 
   pinboard:
@@ -34,7 +40,7 @@ systems:
       - { system: "fal-ai", type: "optional" }
     shared_models: []
     related_systems:
-      - "autocaption"
+      - "auto-editor"
       - "scene-board"
     failure_patterns: ["fp-002"]
 
@@ -59,7 +65,7 @@ systems:
     shared_models: []
     related_systems:
       - "pinboard"
-      - "autocaption"
+      - "auto-editor"
       - "image-engine"
       - "prompt-writer"
     failure_patterns: []
@@ -81,7 +87,7 @@ systems:
       - { system: "bun", type: "runtime" }
     shared_models: []
     related_systems:
-      - "autocaption"
+      - "auto-editor"
       - "pinboard"
       - "scene-board"
       - "instagram-scrapper"
@@ -112,7 +118,7 @@ systems:
       - "scene-board"
       - "pinboard"
       - "instagram-scrapper"
-      - "autocaption"
+      - "auto-editor"
     failure_patterns: []
 
   scrape-engine:
@@ -131,15 +137,15 @@ systems:
 # Cross-system relationships
 # Schema: {from: id, to: id, type: pipeline|shared-dependency|shared-model, description: string}
 relationships:
-  - from: "autocaption"
+  - from: "auto-editor"
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems use Bun as their JavaScript/TypeScript runtime"
-  - from: "autocaption"
+  - from: "auto-editor"
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems use React 19 for UI rendering (Remotion compositions / web client)"
-  - from: "autocaption"
+  - from: "auto-editor"
     to: "pinboard"
     type: "shared-dependency"
     description: "Both systems use TypeScript with similar toolchain versions"
@@ -148,9 +154,9 @@ relationships:
     type: "shared-dependency"
     description: "Both systems use NanoBanana Pro (fal.ai) for image generation"
   - from: "scene-board"
-    to: "autocaption"
+    to: "auto-editor"
     type: "shared-dependency"
-    description: "Both systems use Remotion for rendering (SceneBoard for text scenes, autoCaption for captions)"
+    description: "Both systems use Remotion for rendering (SceneBoard for text scenes, auto-editor for captions)"
   - from: "scene-board"
     to: "pinboard"
     type: "shared-dependency"
@@ -190,9 +196,9 @@ relationships:
     type: "shared-dependency"
     description: "Both systems use Playwright + cookies.json browser-login pattern for authenticated scraping"
   - from: "moodboarder"
-    to: "autocaption"
+    to: "auto-editor"
     type: "shared-dependency"
-    description: "Both systems use ffmpeg / ffprobe for media processing (autoCaption for audio, MoodBoarder for video keyframe extraction)"
+    description: "Both systems use ffmpeg / ffprobe for media processing (auto-editor for audio, MoodBoarder for video keyframe extraction)"
   - from: "scrape-engine"
     to: "moodboarder"
     type: "pipeline"

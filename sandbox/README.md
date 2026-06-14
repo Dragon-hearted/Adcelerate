@@ -81,7 +81,7 @@ API credits. That requires an OAuth token and the API key to stay **unset**.
 
 ```bash
 just sandbox-build     # base image → adcelerate-sandbox:latest
-just sandbox-build 1   # + ffmpeg etc. (autoCaption / MoodBoarder workloads)
+just sandbox-build 1   # + ffmpeg etc. (AutoEditor / MoodBoarder workloads)
 ```
 
 `sandbox-build` takes a single **positional** arg (`just` lacks working named args).
@@ -171,7 +171,7 @@ per-run staging dirs under `$TMPDIR/adcelerate-sandbox`.
 | Target | Kind | Clone behavior | PR routing |
 |---|---|---|---|
 | `adcelerate` | **parent** | Parent monorepo, `--recurse-submodules` | PR on parent; a `systems/*` submodule edit also triggers submodule PR(s) + a parent-pointer DRAFT PR |
-| `autocaption` | standalone | `Dragon-hearted/autoCaption.git` | single PR on that repo |
+| `auto-editor` | standalone | `Dragon-hearted/auto-editor.git` | single PR on that repo |
 | `pinboard` | standalone | `Dragon-hearted/pinboard.git` | single PR on that repo |
 | `scene-board` | standalone | `Dragon-hearted/scene-board.git` | single PR on that repo |
 | `instagram-scrapper` | standalone | `Dragon-hearted/instagram-scrapper.git` | single PR on that repo |

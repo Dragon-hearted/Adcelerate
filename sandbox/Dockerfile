@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 \
   && rm -rf /var/lib/apt/lists/*
 
-# Optional heavy media stack (autoCaption / MoodBoarder workloads).
+# Optional heavy media stack (AutoEditor / MoodBoarder workloads).
 RUN if [ "$WITH_MEDIA" = "1" ]; then \
       apt-get update && \
       apt-get install -y --no-install-recommends ffmpeg && \

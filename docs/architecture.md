@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-Adcelerate is a monorepo that combines multiple independent applications and an agent tooling platform. The architecture is decoupled by design: each application (autoCaption, pinboard) lives as a git submodule with its own dependencies and build pipeline, while the root project provides shared infrastructure (observability, skill library, session hooks) and orchestration via justfile.
+Adcelerate is a monorepo that combines multiple independent applications and an agent tooling platform. The architecture is decoupled by design: each application (AutoEditor, pinboard) lives as a git submodule with its own dependencies and build pipeline, while the root project provides shared infrastructure (observability, skill library, session hooks) and orchestration via justfile.
 
 ## Architecture Pattern
 
@@ -14,7 +14,7 @@ Adcelerate is a monorepo that combines multiple independent applications and an 
 - Integration happens at the orchestration layer (justfile, hooks) rather than at the code level
 - The observability system (apps/) is the only cross-cutting concern that monitors agent sessions across all parts
 
-## Part: autoCaption
+## Part: AutoEditor
 
 ### Type: CLI Tool / Video Rendering Pipeline
 
@@ -146,6 +146,6 @@ Extensive skill library under `.claude/skills/bmad-*` for project management, de
 - No shared database — each service owns its data
 
 ### Testing Strategy
-- autoCaption: Vitest with comprehensive test suite
+- AutoEditor: Vitest with comprehensive test suite
 - pinboard: No test framework detected (quick scan)
 - observability: No test framework detected (quick scan)
