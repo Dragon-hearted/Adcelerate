@@ -1,0 +1,34 @@
+# post-board
+set dotenv-load := true
+
+# List all recipes
+default:
+  @just --list
+
+# Run in development mode (watch)
+dev:
+  bun run dev
+
+# Serve the editor + REST API (Hono)
+serve *args:
+  bun run src/cli.ts serve {{args}}
+
+# Export a project: PNG per slide + PDF
+export *args:
+  bun run src/cli.ts export {{args}}
+
+# Run tests
+test:
+  bun test
+
+# Build for production
+build:
+  bun run build
+
+# Lint code
+lint:
+  bun run lint
+
+# Check and fix formatting
+check:
+  bun run check

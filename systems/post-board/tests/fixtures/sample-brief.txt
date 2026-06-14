@@ -1,0 +1,4 @@
+Carousel: 5 lessons from building an AI content pipeline that cut manual work 80%.
+
+Audience: AI-curious builders + founders.
+Tone: builder-artist first person, concrete numbers, zero corporate filler.

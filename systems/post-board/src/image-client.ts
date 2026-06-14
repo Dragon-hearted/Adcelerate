@@ -1,0 +1,194 @@
+/**
+ * Typed HTTP client for the ImageEngine API.
+ *
+ * PostBoard talks to ImageEngine exclusively over HTTP (the cover + per-slide
+ * hero transport). PostBoard omits `model`, so ImageEngine applies its default —
+ * the Higgsfield CLI + NanoBanana Pro (`higgsfield-nano-banana-pro`). The old
+ * silent gemini fallback is now PERMISSION-GATED: with no `model` and Higgsfield
+ * down, ImageEngine returns a clear error (the caller surfaces it) unless the
+ * operator opts in via `autoFallback: true` per request or
+ * `IMAGE_ENGINE_AUTO_FALLBACK=1`. Ported from SceneBoard; all types are locally
+ * declared so there is no import coupling to ImageEngine internals.
+ *
+ * Base URL: `IMAGE_ENGINE_URL` env (default `http://localhost:3002`).
+ */
+
+// ─── Local types matching ImageEngine API shapes ───
+
+type WisGateModel =
+	| "gemini-3-pro-image-preview"
+	| "gemini-3.1-flash-image-preview"
+	| "gemini-2.5-flash-image";
+
+type OpenAIImageModel = "gpt-image-2" | "gpt-image-1.5";
+
+type ImageModel = WisGateModel | OpenAIImageModel;
+
+export type AspectRatio =
+	| "1:1"
+	| "2:3"
+	| "3:2"
+	| "3:4"
+	| "4:3"
+	| "4:5"
+	| "5:4"
+	| "9:16"
+	| "16:9"
+	| "21:9";
+
+interface TokenUsage {
+	promptTokens: number;
+	candidateTokens: number;
+	totalTokens: number;
+}
+
+export interface GenerationRequest {
+	prompt: string;
+	model?: ImageModel;
+	referenceImageIds?: string[];
+	aspectRatio?: AspectRatio;
+	imageSize?: string;
+	forceImage?: boolean;
+	systemInstruction?: string;
+	sceneId?: string;
+	/** OpenAI-only quality knob. Ignored by WisGate models. */
+	openaiQuality?: "low" | "medium" | "high";
+	/**
+	 * Opt in to ImageEngine's permission-gated provider fallback for THIS request
+	 * (e.g. NanoBanana down → gemini). Default (omitted) = surface a clear error
+	 * instead of silently swapping providers, so the operator approves the switch.
+	 */
+	autoFallback?: boolean;
+}
+
+export interface GenerationResult {
+	id: string;
+	imageUrl: string;
+	model: string;
+	prompt: string;
+	tokenUsage: TokenUsage;
+	sceneId?: string;
+	createdAt: string;
+}
+
+export interface BatchRequest {
+	items: GenerationRequest[];
+	dependencies?: { sceneId: string; dependsOn: string[] }[];
+}
+
+export interface BatchResult {
+	results: Record<string, GenerationResult | { error: string }>;
+	totalTokens: number;
+}
+
+export interface BudgetStatus {
+	tokenCeiling: number;
+	tokensSpent: number;
+	tokensRemaining: number;
+	percentUsed: number;
+	isActive: boolean;
+}
+
+// ─── Client ───
+
+/** ImageEngine base URL (override with `IMAGE_ENGINE_URL`). */
+export const BASE_URL = process.env.IMAGE_ENGINE_URL || "http://localhost:3002";
+
+/** Default ceiling for the generate POST (ms). Overridable via env. */
+const GENERATE_TIMEOUT_MS = Number(process.env.IMAGE_ENGINE_TIMEOUT_MS) || 120_000;
+
+/**
+ * Request headers for the JSON endpoints. When
+ * `IMAGE_ENGINE_BUDGET_OVERRIDE=1`, forward `X-Budget-Override: true` so
+ * ImageEngine's budgetGuard 402 (driven by the WisGate dollar balance) is
+ * bypassed — justified for the Higgsfield/NanoBanana path, which does NOT consume
+ * WisGate credit.
+ */
+function jsonHeaders(): Record<string, string> {
+	const headers: Record<string, string> = { "Content-Type": "application/json" };
+	if (process.env.IMAGE_ENGINE_BUDGET_OVERRIDE === "1") {
+		headers["X-Budget-Override"] = "true";
+	}
+	return headers;
+}
+
+async function handleError(res: Response): Promise<never> {
+	const err = await res.json().catch(() => ({ error: res.statusText }));
+	throw new Error(
+		`ImageEngine error ${res.status}: ${(err as Record<string, string>).error || res.statusText}`,
+	);
+}
+
+export async function generateSingle(req: GenerationRequest): Promise<GenerationResult> {
+	// Bound the POST so a hung ImageEngine cannot block the provider's fallback
+	// chain (e.g. gpt-image-2 → gpt-image-1.5) indefinitely.
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), GENERATE_TIMEOUT_MS);
+	try {
+		const res = await fetch(`${BASE_URL}/api/generate`, {
+			method: "POST",
+			headers: jsonHeaders(),
+			body: JSON.stringify(req),
+			signal: controller.signal,
+		});
+		if (!res.ok) {
+			await handleError(res);
+		}
+		return (await res.json()) as GenerationResult;
+	} catch (err) {
+		if (err instanceof Error && err.name === "AbortError") {
+			throw new Error(
+				`ImageEngine generate request timed out after ${GENERATE_TIMEOUT_MS}ms (${BASE_URL}/api/generate).`,
+			);
+		}
+		throw err;
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
+export async function generateBatch(req: BatchRequest): Promise<BatchResult> {
+	const res = await fetch(`${BASE_URL}/api/generate/batch`, {
+		method: "POST",
+		headers: jsonHeaders(),
+		body: JSON.stringify(req),
+	});
+	if (!res.ok) {
+		await handleError(res);
+	}
+	return res.json() as Promise<BatchResult>;
+}
+
+export async function getGallery(limit = 20, offset = 0): Promise<GenerationResult[]> {
+	const res = await fetch(`${BASE_URL}/api/gallery?limit=${limit}&offset=${offset}`);
+	if (!res.ok) {
+		await handleError(res);
+	}
+	return res.json() as Promise<GenerationResult[]>;
+}
+
+export async function getImage(id: string): Promise<Buffer> {
+	const res = await fetch(`${BASE_URL}/api/gallery/${encodeURIComponent(id)}/image`);
+	if (!res.ok) {
+		await handleError(res);
+	}
+	return Buffer.from(await res.arrayBuffer());
+}
+
+export async function getImageAsReference(id: string): Promise<{ data: string; mimeType: string }> {
+	const res = await fetch(`${BASE_URL}/api/gallery/${encodeURIComponent(id)}/use-as-reference`, {
+		method: "POST",
+	});
+	if (!res.ok) {
+		await handleError(res);
+	}
+	return res.json() as Promise<{ data: string; mimeType: string }>;
+}
+
+export async function getBudgetStatus(): Promise<BudgetStatus> {
+	const res = await fetch(`${BASE_URL}/api/budget`);
+	if (!res.ok) {
+		await handleError(res);
+	}
+	return res.json() as Promise<BudgetStatus>;
+}

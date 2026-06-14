@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240" width="800" height="240">
+  <defs>
+    <filter id="glow-0" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+      <feFlood flood-color="#EF4444" flood-opacity="0.35" result="color" />
+      <feComposite in="color" in2="blur" operator="in" result="glow" />
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <marker id="pipe-arrow" viewBox="0 0 10 6" refX="10" refY="3"
+      markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#EF4444" />
+    </marker>
+  </defs>
+  <text x="400" y="34" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="16" font-weight="600" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0s" fill="freeze" />
+    PostBoard Pipeline
+  </text>
+<line x1="199" y1="86" x2="231" y2="86"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#pipe-arrow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.6000000000000001s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="0.6000000000000001s" repeatCount="indefinite" />
+  </line>
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.4s" fill="freeze" />
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="3.4s" repeatCount="indefinite" />
+    <rect x="50" y="56" width="145" height="60" rx="10" fill="#EF444414" stroke="#EF4444" stroke-width="1.5" filter="url(#glow-0)" />
+  <text x="122.5" y="80" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600">
+      <tspan x="122.5" dy="0">copy-generation</tspan>
+  </text>
+
+  </g>
+<line x1="384" y1="86" x2="416" y2="86"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#pipe-arrow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1s" repeatCount="indefinite" />
+  </line>
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.8s" fill="freeze" />
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="3.8s" repeatCount="indefinite" />
+    <rect x="235" y="56" width="145" height="60" rx="10" fill="#EF444414" stroke="#EF4444" stroke-width="1.5" filter="url(#glow-0)" />
+  <text x="307.5" y="80" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600">
+      <tspan x="307.5" dy="0">project-seeding</tspan>
+  </text>
+
+  </g>
+<line x1="569" y1="86" x2="601" y2="86"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#pipe-arrow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.4000000000000001s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.4000000000000001s" repeatCount="indefinite" />
+  </line>
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.2000000000000002s" fill="freeze" />
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="4.2s" repeatCount="indefinite" />
+    <rect x="420" y="56" width="145" height="60" rx="10" fill="#EF444414" stroke="#EF4444" stroke-width="1.5" filter="url(#glow-0)" />
+  <text x="492.5" y="80" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600">
+      <tspan x="492.5" dy="0">cover-generation</tspan>
+  </text>
+
+  </g>
+<line x1="754" y1="86" x2="762" y2="86"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.8s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.8s" repeatCount="indefinite" />
+  </line>
+<line x1="762" y1="86" x2="762" y2="132"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.85s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.85s" repeatCount="indefinite" />
+  </line>
+<line x1="762" y1="132" x2="315.5" y2="132"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.9000000000000001s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.9000000000000001s" repeatCount="indefinite" />
+  </line>
+<line x1="315.5" y1="132" x2="315.5" y2="178"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.9500000000000002s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="1.9500000000000002s" repeatCount="indefinite" />
+  </line>
+<line x1="315.5" y1="178" x2="323.5" y2="178"
+    stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#pipe-arrow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2s" fill="freeze" />
+    <animate attributeName="stroke-dashoffset" from="20" to="0" dur="2s" begin="2s" repeatCount="indefinite" />
+  </line>
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.6s" fill="freeze" />
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="4.6s" repeatCount="indefinite" />
+    <rect x="605" y="56" width="145" height="60" rx="10" fill="#EF444414" stroke="#EF4444" stroke-width="1.5" filter="url(#glow-0)" />
+  <text x="677.5" y="80" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600">
+      <tspan x="677.5" dy="0">interactive-editing</tspan>
+  </text>
+
+  </g>
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="2s" fill="freeze" />
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" begin="5s" repeatCount="indefinite" />
+    <rect x="327.5" y="148" width="145" height="60" rx="10" fill="#EF444414" stroke="#EF4444" stroke-width="1.5" filter="url(#glow-0)" />
+  <text x="400" y="172" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600">
+      <tspan x="400" dy="0">export</tspan>
+  </text>
+
+  </g>
+</svg>
