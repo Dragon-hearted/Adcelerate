@@ -124,6 +124,13 @@ library:
     path: .agents/skills/diagnosing-bugs/SKILL.md
     version: ~
     see_also: []
+  - name: domain-modeling
+    description: Build and sharpen a project's domain model.
+    trigger: ''
+    source: https://github.com/mattpocock/skills
+    path: .agents/skills/domain-modeling/SKILL.md
+    version: ~
+    see_also: []
   - name: email-sequence
     description: When the user wants to create or optimize an email sequence, drip campaign, automated email flow, or lifecycle email program.
     trigger: email sequence, drip campaign, nurture sequence, onboarding emails, welcome sequence, re-engagement emails, email automation, lifecycle emails, trigger-based emails, email funnel, email workflow,
@@ -155,6 +162,13 @@ library:
     path: .agents/skills/free-tool-strategy/SKILL.md
     version: 1.1.0
     see_also: [content-strategy]
+  - name: grill-with-docs
+    description: A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go.
+    trigger: ''
+    source: https://github.com/mattpocock/skills
+    path: .agents/skills/grill-with-docs/SKILL.md
+    version: ~
+    see_also: []
   - name: grilling
     description: Interview the user relentlessly about a plan or design.
     trigger: ''
