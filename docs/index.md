@@ -50,7 +50,7 @@
 - [AutoEditor README](../auto-editor/README.md) — Usage, CLI options, project structure, roadmap
 - [Pinboard README](../pinboard/README.md) — Architecture overview, getting started
 - [Observability Server README](../apps/server/README.md) — Basic server setup
-- [AI Docs](../ai_docs/) — Claude Code documentation (hooks, skills, agents, channels, plugins, MCP, sub-agents)
+- **AI Docs** (`ai_docs/`) — Claude Code documentation cache (hooks, skills, agents, channels, plugins, MCP, sub-agents). Not committed; regenerate locally with `/load_ai_docs`.
 
 ## Getting Started
 

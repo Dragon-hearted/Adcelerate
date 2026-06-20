@@ -276,3 +276,6 @@ QilinAI/
 
 # Local product-marketing working context (references client/ brand; not for the public repo)
 .agents/product-marketing-context.md
+
+# Regenerable Claude Code doc cache — rebuild locally via /load_ai_docs (not committed)
+ai_docs/
