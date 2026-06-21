@@ -8,6 +8,7 @@ import { PromptConsole } from '@/components/console/PromptConsole';
 import { GitHubPanel } from '@/components/github/GitHubPanel';
 import { SpawnTree } from '@/components/agents/SpawnTree';
 import { FileChangePanel } from '@/components/files/FileChangePanel';
+import { SystemCatalogPanel } from '@/components/systems/SystemCatalogPanel';
 import { Canvas } from '@/components/canvas/Canvas';
 import { IncompatibilityBanner } from '@/components/incompatibility/IncompatibilityBanner';
 import { BudgetTripBanner } from '@/components/budget/BudgetTripBanner';
@@ -54,6 +55,7 @@ export function Dashboard() {
             whole layout. */}
         <aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-border bg-card/30">
           <SpawnTree />
+          <SystemCatalogPanel />
           <FileChangePanel />
           <GitHubPanel />
         </aside>

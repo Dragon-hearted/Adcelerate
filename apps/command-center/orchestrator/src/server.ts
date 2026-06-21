@@ -30,6 +30,7 @@ import { ingestRoutes } from './routes/ingest';
 import { artifactsRoutes } from './routes/artifacts';
 import { boardRoutes } from './routes/boards';
 import { budgetRoutes } from './routes/budget';
+import { systemsRoutes } from './routes/systems';
 import { startTranscriptIngest } from './tokens/transcript-ingest';
 import { startFileWatcher } from './files/watcher';
 import { startGithubPoller } from './github/poller';
@@ -94,6 +95,12 @@ async function buildServer() {
   // POSTs a trip when a serving provider crosses its budget-line; this broadcasts
   // `budget-trip` over the socket (transient signal, not a persisted CCEvent).
   await app.register(budgetRoutes);
+  // System distribution + version-drift catalog (slice #40 / ADR-0021, ADR-0022).
+  // GET /api/systems reads delivery facts off `git submodule status`; POST
+  // /api/systems/:name/ensure does the ADR-0021 gated lazy-init. Delivery facts
+  // only — the soft/hard freshness tier is fused client-side (drift → soft; a
+  // live #33 incompatibility → hard), no new socket event.
+  await app.register(systemsRoutes);
 
   // Catch-all error handler. Client errors (4xx, e.g. validation) keep their
   // message; anything 5xx/unknown collapses to a generic 500 — never leak

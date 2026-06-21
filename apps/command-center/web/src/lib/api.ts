@@ -11,6 +11,7 @@ import type {
   GitHubActivity,
   StepGraph,
   SummaryResponse,
+  SystemFreshness,
 } from '@command-center/shared';
 
 // `GET /api/boards` list row (lighter than a full projection — no slots).
@@ -112,4 +113,13 @@ export const api = {
     }),
   getBoard: (boardId: string) =>
     request<BoardProjection>(`/api/boards/${encodeURIComponent(boardId)}`),
+
+  // System distribution + SHA-pin freshness (slice #40). Delivery facts only;
+  // the soft/hard tier is fused client-side against the #33 incompatibilities slice.
+  listSystems: () => request<SystemFreshness[]>('/api/systems'),
+  ensureSystem: (name: string) =>
+    request<{ populated: true }>(
+      `/api/systems/${encodeURIComponent(name)}/ensure`,
+      { method: 'POST' },
+    ),
 };

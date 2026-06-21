@@ -43,6 +43,20 @@ export interface BudgetTripSignal {
   at: number;        // epoch ms the trip occurred
 }
 
+// System distribution + version-drift facts (slice #40 / ADR-0021, ADR-0022).
+// Systems are SHA-pinned, lazily-initialized submodules; `git submodule status`
+// IS the delivery registry (no version field invented). These are DELIVERY FACTS
+// only — surfaced over REST (GET /api/systems), NOT a socket event. The soft/hard
+// freshness TIER is derived client-side: drift/!populated → soft "update
+// available"; a matching live `incompatibilities` entry (by producerSystem) →
+// hard "too old". No new socket event — the hard tier reuses the #33 surface.
+export interface SystemFreshness {
+  name: string;       // basename of the systems/<name> submodule path
+  pinnedSha: string;  // the 40-char SHA pinned in the parent index
+  populated: boolean; // submodule dir on disk + checked out (git flag ' ' or '+')
+  drift: boolean;     // checked-out SHA differs from the pin (git flag '+')
+}
+
 export interface ServerToClient {
   'event': (e: CCEvent) => void;                  // every normalized event (per-session room)
   'event:global': (e: CCEvent) => void;           // cross-session aggregate feed (all clients)
