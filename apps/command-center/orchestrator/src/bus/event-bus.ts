@@ -46,6 +46,13 @@ export type TypedServer = Server<ClientToServer, ServerToClient>;
 /** Socket.IO room name for a session's scoped event stream. */
 export const room = (sessionId: string): string => `session:${sessionId}`;
 
+// Latest-per-provider budget trip (slice #42). The trip signal is otherwise
+// broadcast-only/transient (emitBudgetTrip → socket); the cascade preview route
+// reads the most recent trip per provider for its honest `budgetHeadroom`.
+// ponytail: in-memory, lost on restart — trips are transient anyway; persist only
+// if a slice needs trip history.
+export const budgetTripCache = new Map<string, BudgetTripSignal>();
+
 // Everything a caller supplies; `seq` is bus-assigned, `source_app`/`timestamp`
 // default. The id is DB-assigned on insert.
 export type EmitInput = Omit<CCEvent, 'id' | 'seq' | 'source_app' | 'timestamp'> & {
@@ -214,6 +221,9 @@ class EventBus {
    * cost; the block lives at the serving provider in image-engine).
    */
   emitBudgetTrip(signal: BudgetTripSignal): void {
+    // Cache the latest trip per provider so the cascade preview (#42) can surface
+    // honest budget-headroom from the last known trip (not a predicted total).
+    budgetTripCache.set(signal.provider, signal);
     this.io?.emit('budget-trip', signal);
     this.emitter.emit('budget-trip', signal);
   }

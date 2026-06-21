@@ -25,7 +25,12 @@ export type EventType =
   // EVENT-LOG FOLD (no SQL table) — these three CCEvents ARE the branch substrate;
   // `projectBranches` derives the lineage tree + human-sticky active pointer +
   // stale/orphaned overlays from them. ponytail: no-branches-table-fold-instead.
-  | 'cc.branch.created'   | 'cc.branch.activated' | 'cc.branch.staled';
+  | 'cc.branch.created'   | 'cc.branch.activated' | 'cc.branch.staled'
+  // Provenance-aware cascade request (slice #42, ADR-0003/0016). Durable intent:
+  // Confirm in the Console → POST /api/runs/:runId/cascade emits this ONE event
+  // carrying { editedStepKey, targets: stepKey[] }. The #39 executor consumes it;
+  // #42 emits it but folds nothing from it (control-plane request seam only).
+  | 'cc.cascade.requested';
 
 export interface CCEvent {
   id?: number;
@@ -89,6 +94,7 @@ export const CC_SYNTHETIC_EVENT_TYPES = [
   'cc.agent.message',
   'cc.run.started', 'cc.run.completed', 'cc.step',
   'cc.branch.created', 'cc.branch.activated', 'cc.branch.staled',
+  'cc.cascade.requested',
 ] as const satisfies readonly EventType[];
 
 export const ALL_EVENT_TYPES = [

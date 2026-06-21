@@ -30,6 +30,7 @@ import { ingestRoutes } from './routes/ingest';
 import { artifactsRoutes } from './routes/artifacts';
 import { boardRoutes } from './routes/boards';
 import { branchRoutes } from './routes/branches';
+import { cascadeRoutes } from './routes/cascade';
 import { budgetRoutes } from './routes/budget';
 import { systemsRoutes } from './routes/systems';
 import { startTranscriptIngest } from './tokens/transcript-ingest';
@@ -98,6 +99,12 @@ async function buildServer() {
   // `cc.branch.*` CCEvents on the existing log (no branches table) and broadcasts
   // `branch:update` + `step-graph:update` over Socket.IO via the EventBus.
   await app.register(branchRoutes);
+  // Provenance-aware cascade preview + request (slice #42 / ADR-0003/0016). GET
+  // /api/runs/:runId/cascade-preview folds the run's graph+branches and returns the
+  // agent-authored downstream target set (human-active excluded) + cached
+  // budget-headroom; POST /api/runs/:runId/cascade persists ONE cc.cascade.requested
+  // (durable intent — no projection consumes it yet). Registered AFTER branchRoutes.
+  await app.register(cascadeRoutes);
   // Provider-scoped budget-guard trip ingress (slice #38 / ADR-0007). image-engine
   // POSTs a trip when a serving provider crosses its budget-line; this broadcasts
   // `budget-trip` over the socket (transient signal, not a persisted CCEvent).

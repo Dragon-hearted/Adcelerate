@@ -57,6 +57,38 @@ export interface SystemFreshness {
   drift: boolean;     // checked-out SHA differs from the pin (git flag '+')
 }
 
+// Provenance-aware cascade preview + request (slice #42 / ADR-0003/0016). REST
+// types ONLY — the preview is request/response (GET) and the request is a POST;
+// no socket event is added (the cascade-Run lifecycle is the #39 executor's, not
+// the Console's). The preview shows what is HONESTLY known: count + affected
+// stages + budget-headroom from cached trips. NO dollar total, NO fabricated
+// per-model breakdown (ADR-0009/0016) — provider-per-step is a documented follow-up.
+export interface CascadeTarget {
+  stepKey: string;
+  stage: string;
+}
+// One per provider we have a cached BudgetTripSignal for — straight from the last
+// trip, never a predicted/aggregated total.
+export interface BudgetHeadroom {
+  provider: string;
+  model: string;
+  spentUsd: number;
+  limitUsd: number;
+  at: number;
+}
+export interface CascadePreview {
+  runId: string;
+  editedStepKey: string;
+  targets: CascadeTarget[];        // agent-authored downstream only (human-sticky excluded)
+  count: number;                   // = targets.length
+  threshold: number;               // = 2 (silent at/below, confirm above)
+  excludedHumanStepKeys: string[]; // human-active downstream left Stale (shown for transparency)
+  budgetHeadroom: BudgetHeadroom[];// honest, may be empty; never a predicted total
+}
+export interface CascadeRequest {
+  stepKey: string;                 // POST body — the edited upstream step
+}
+
 export interface ServerToClient {
   'event': (e: CCEvent) => void;                  // every normalized event (per-session room)
   'event:global': (e: CCEvent) => void;           // cross-session aggregate feed (all clients)

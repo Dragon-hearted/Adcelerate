@@ -1,8 +1,8 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Handle, Position, useViewport, type NodeProps } from '@xyflow/react';
-import type { BranchInfo, StepState } from '@command-center/shared';
+import type { BranchInfo, CascadePreview, StepState } from '@command-center/shared';
 import { api } from '@/lib/api';
 import { ORCH_URL } from '@/lib/config';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,10 @@ export interface StepNodeData {
   // RESTYLE the node, never remove it (Stale/Orphaned are "preserved, not deleted").
   stale?: boolean;
   orphaned?: boolean;
+  // #42: DERIVED render-time view state (computed in Canvas `layout()` via
+  // `blockedUpstreamStepKeys` — node queued ∧ a transitive upstream failed). NOT a
+  // wire lifecycle state; emits nothing (ADR-0009/0016 §4). RESTYLE only, never hide.
+  blockedUpstream?: boolean;
   // #41: the editing surface needs the run + lineage to fork/activate Branches.
   // Threaded from the BranchProjection slice (absent until a branch exists).
   runId?: string;
@@ -64,6 +68,11 @@ const STATE_DOT: Record<StepState, string> = {
 const STALE_OVERLAY = '!border-dashed !border-amber-500';
 const ORPHANED_OVERLAY = 'opacity-40 grayscale';
 
+// #42 derived overlay — a queued Step whose transitive upstream FAILED can't run.
+// Amber solid border + a lock ring on top of the queued skeleton (restyle, never
+// hide). Consistent with the #41 stale/orphaned overlay approach above.
+const BLOCKED_UPSTREAM_OVERLAY = '!border-solid !border-amber-500 ring-1 ring-amber-500/40';
+
 // A short, human-scannable label for a Branch in the active-branch selector.
 function branchLabel(b: BranchInfo): string {
   const short = b.branchId.length > 8 ? `${b.branchId.slice(0, 8)}…` : b.branchId;
@@ -85,6 +94,19 @@ function StepNodeComponent({ data }: NodeProps) {
   const [ref, setRef] = useState(active?.payload?.ref ?? '');
   const [busy, setBusy] = useState(false);
 
+  // #42 cascade gate state — after a fork stales downstream, the preview decides:
+  // `toast` is the transient inline "regenerating N…" (silent path, ≤ threshold);
+  // `cascade` holds the preview for the confirm overlay (> threshold).
+  const [toast, setToast] = useState<string | null>(null);
+  const [cascade, setCascade] = useState<CascadePreview | null>(null);
+
+  // Auto-dismiss the inline toast (transient, like the #41 fire-and-forget edits).
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const canEdit = Boolean(d.runId);
   const branches = d.branches ?? [];
 
@@ -99,10 +121,43 @@ function StepNodeComponent({ data }: NodeProps) {
         ref: ref || undefined,
       });
       setForking(false);
+      // #42 cascade gate — a fork stales the agent-authored downstream set. Preview
+      // it (REST req/resp, no socket) and gate: nothing downstream → no-op; ≤
+      // threshold → silent dispatch + inline toast; > threshold → confirm overlay.
+      // Never an implicit dispatch above the threshold (ADR-0016).
+      try {
+        const preview = await api.getCascadePreview(d.runId, d.stepKey);
+        if (preview.count === 0) {
+          /* no agent-authored downstream → nothing to regenerate */
+        } else if (preview.count <= preview.threshold) {
+          await api.requestCascade(d.runId, d.stepKey);
+          setToast(`regenerating ${preview.count}…`);
+        } else {
+          setCascade(preview);
+        }
+      } catch {
+        /* preview is best-effort; the fork already landed */
+      }
     } catch {
       /* fire-and-forget; the broadcast is the source of truth */
     } finally {
       setBusy(false);
+    }
+  }
+
+  // #42 Confirm seam — POST the cascade request, then close the overlay. Cancel
+  // simply closes (NO POST), the demoable cancel-before-it-runs (ADR-0016).
+  async function confirmCascade() {
+    if (!d.runId || !cascade || busy) return;
+    setBusy(true);
+    try {
+      await api.requestCascade(d.runId, cascade.editedStepKey);
+      setToast(`regenerating ${cascade.count}…`);
+    } catch {
+      /* fire-and-forget; the executor (#39) owns the run lifecycle */
+    } finally {
+      setBusy(false);
+      setCascade(null);
     }
   }
 
@@ -140,11 +195,15 @@ function StepNodeComponent({ data }: NodeProps) {
           d.malformed && 'ring-2 ring-amber-400/70',
           d.stale && STALE_OVERLAY,
           d.orphaned && ORPHANED_OVERLAY,
+          d.blockedUpstream && BLOCKED_UPSTREAM_OVERLAY,
         )}
       >
         <Handle type="target" position={Position.Left} className="!bg-border" />
         <span className={cn('h-2 w-2 shrink-0 rounded-full', STATE_DOT[d.state])} aria-label={d.state} />
         <span className="text-sm font-medium leading-tight">{d.stage}</span>
+        {d.blockedUpstream ? (
+          <span className="text-amber-300" aria-label="blocked: upstream failed" title="Blocked — a transitive upstream Step failed">🔒</span>
+        ) : null}
         <Handle type="source" position={Position.Right} className="!bg-border" />
       </div>
     );
@@ -161,6 +220,8 @@ function StepNodeComponent({ data }: NodeProps) {
         // #41 overlays compose on top of state coloring (preserve, never hide).
         d.stale && STALE_OVERLAY,
         d.orphaned && ORPHANED_OVERLAY,
+        // #42 derived blocked-upstream overlay (queued ∧ upstream failed).
+        d.blockedUpstream && BLOCKED_UPSTREAM_OVERLAY,
       )}
     >
       <Handle type="target" position={Position.Left} className="!bg-border" />
@@ -191,6 +252,11 @@ function StepNodeComponent({ data }: NodeProps) {
         {d.orphaned ? (
           <span className="text-muted-foreground" aria-label="orphaned: slot dropped on re-plan" title="Orphaned — a re-plan dropped this slot; preserved, not deleted">
             ·&nbsp;orphaned
+          </span>
+        ) : null}
+        {d.blockedUpstream ? (
+          <span className="text-amber-300" aria-label="blocked: upstream failed" title="Blocked — a transitive upstream Step failed; this Step can't run">
+            ·&nbsp;🔒 blocked: upstream failed
           </span>
         ) : null}
       </div>
@@ -262,7 +328,113 @@ function StepNodeComponent({ data }: NodeProps) {
         )
       ) : null}
 
+      {/* #42 inline cascade toast — transient "regenerating N…" (silent path). */}
+      {toast ? (
+        <div
+          className="nodrag nopan mt-1.5 rounded border border-emerald-500 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-mono text-emerald-300"
+          aria-live="polite"
+        >
+          ↻ {toast}
+        </div>
+      ) : null}
+
       <Handle type="source" position={Position.Right} className="!bg-border" />
+
+      {/* #42 confirm overlay (> threshold) — reuses the DiffViewer fixed-overlay
+          pattern (fixed inset-0 z-50 backdrop + centered card), NO modal lib. Lists
+          count, affected stages, excluded human-edited steps, and budget headroom.
+          Cancel closes WITHOUT a POST; Confirm POSTs the cascade request. */}
+      {cascade ? (
+        <div
+          className="nodrag nopan fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setCascade(null)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+              <span className="text-sm font-semibold text-foreground">Regenerate downstream?</span>
+              <span className="ml-auto rounded border border-amber-500 bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-amber-300">
+                {cascade.count} step{cascade.count === 1 ? '' : 's'}
+              </span>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-auto px-4 py-3 text-xs text-foreground">
+              <p className="text-muted-foreground">
+                Editing <span className="font-mono text-foreground">{cascade.editedStepKey}</span> will
+                regenerate {cascade.count} agent-authored downstream step
+                {cascade.count === 1 ? '' : 's'}:
+              </p>
+              <ul className="mt-1.5 flex flex-wrap gap-1">
+                {cascade.targets.map((t) => (
+                  <li
+                    key={t.stepKey}
+                    className="rounded border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[10px]"
+                    title={t.stepKey}
+                  >
+                    {t.stage}
+                  </li>
+                ))}
+              </ul>
+
+              {cascade.excludedHumanStepKeys.length > 0 ? (
+                <div className="mt-3">
+                  <p className="text-muted-foreground">
+                    Kept — human-edited, left Stale (never overridden):
+                  </p>
+                  <ul className="mt-1.5 flex flex-wrap gap-1">
+                    {cascade.excludedHumanStepKeys.map((k) => (
+                      <li
+                        key={k}
+                        className="rounded border border-amber-500/60 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-300"
+                      >
+                        🧑 {k}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {cascade.budgetHeadroom.length > 0 ? (
+                <div className="mt-3">
+                  <p className="text-muted-foreground">Budget headroom:</p>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {cascade.budgetHeadroom.map((b) => (
+                      <li
+                        key={`${b.provider} ${b.model}`}
+                        className="rounded border border-red-500/60 bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] text-red-300"
+                      >
+                        ⚠ {b.provider} at ${Math.max(0, b.limitUsd - b.spentUsd).toFixed(2)} remaining
+                        <span className="opacity-70"> (${b.spentUsd.toFixed(2)}/${b.limitUsd.toFixed(2)})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+
+            <footer className="flex items-center justify-end gap-2 border-t border-border px-4 py-2.5">
+              <button
+                type="button"
+                onClick={() => setCascade(null)}
+                disabled={busy}
+                className="rounded border border-border px-2 py-1 text-[11px] font-mono text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmCascade}
+                disabled={busy}
+                className="rounded border border-emerald-500 px-2 py-1 text-[11px] font-mono text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
+              >
+                Confirm — regenerate {cascade.count}
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

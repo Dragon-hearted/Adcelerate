@@ -21,6 +21,10 @@
 
 import { z } from 'zod';
 import type { CCEvent } from './events';
+// Type-only (erased at runtime → no circular dep with ws-contract, which imports
+// the projection types from here). #42 returns the preview shape minus the bits
+// the route fills in (runId + budgetHeadroom from the trip cache).
+import type { CascadePreview, CascadeTarget } from './ws-contract';
 
 // The orchestrator's CURRENT envelope version. Producers may lag within the
 // supported window below; older-in-window envelopes are upcast at ingest.
@@ -766,6 +770,82 @@ export function projectBranches(events: CCEvent[]): BranchProjection {
 // Mirrors `StepGraphUpdate` (#31): every control-plane edit re-folds + broadcasts
 // the whole BranchProjection; the Canvas replaces its view (no delta to mis-merge).
 export type BranchUpdate = BranchProjection;
+
+// ── Provenance-aware cascade preview (#42, ADR-0003/0016) ─────────────────────
+// Pure + testable. REUSES `staleDownstream` (declared-dep reachability) — no new
+// reachability — and the `projectBranches` active-pointer + provenance.
+
+/** The active branch's provenance for a step; default `agent` when no human edit
+ *  exists (Emitter steps carry only the agent-authored root → absence = agent). */
+function activeProvenance(branchProj: BranchProjection, stepKey: string): Provenance {
+  const step = branchProj.steps[stepKey];
+  if (!step) return 'agent';
+  return step.branches.find((b) => b.branchId === step.activeBranchId)?.provenance ?? 'agent';
+}
+
+/**
+ * The cascade the operator would trigger by editing `editedStepKey`: the transitive
+ * agent-authored downstream Branch set that would regenerate. `targets` = the
+ * downstream steps whose ACTIVE branch provenance is `agent`; `excludedHumanStepKeys`
+ * = the human-active rest of that same downstream set — left Stale, NEVER silently
+ * overridden (ADR-0003/0015). `count === targets.length`; `threshold` gates the UI
+ * (silent at/below, confirm above). The route fills `runId` + `budgetHeadroom`.
+ * ponytail: reuse-staledownstream — reachability is one shared walk, not re-derived.
+ */
+export function cascadePreview(
+  graph: StepGraph,
+  branchProj: BranchProjection,
+  editedStepKey: string,
+  threshold = 2,
+): Omit<CascadePreview, 'runId' | 'budgetHeadroom'> {
+  const stageByKey = new Map(graph.nodes.map((n) => [n.stepKey, n.stage]));
+  const downstream = [...staleDownstream(graph.edges, [editedStepKey])].sort();
+
+  const targets: CascadeTarget[] = [];
+  const excludedHumanStepKeys: string[] = [];
+  for (const stepKey of downstream) {
+    if (activeProvenance(branchProj, stepKey) === 'agent') {
+      targets.push({ stepKey, stage: stageByKey.get(stepKey) ?? stageOf(graph.runId, stepKey) });
+    } else {
+      excludedHumanStepKeys.push(stepKey);
+    }
+  }
+  return { editedStepKey, targets, count: targets.length, threshold, excludedHumanStepKeys };
+}
+
+/**
+ * DERIVED render-time view state (emits nothing — ADR-0009/0016 §4): the stepKeys
+ * whose node is `queued` AND has SOME transitive upstream node in `failed`. The
+ * Canvas restyles these "blocked: upstream failed"; it never adds a wire state.
+ * Pure walk over the declared-dep edges (upstream = edge `to`→`from`).
+ */
+export function blockedUpstreamStepKeys(graph: StepGraph): Set<string> {
+  const stateByKey = new Map(graph.nodes.map((n) => [n.stepKey, n.state]));
+  const upstream = new Map<string, string[]>();
+  for (const e of graph.edges) {
+    const list = upstream.get(e.to);
+    if (list) list.push(e.from);
+    else upstream.set(e.to, [e.from]);
+  }
+
+  const blocked = new Set<string>();
+  for (const node of graph.nodes) {
+    if (node.state !== 'queued') continue;
+    const seen = new Set<string>();
+    const stack = [...(upstream.get(node.stepKey) ?? [])];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      if (seen.has(cur)) continue;
+      seen.add(cur);
+      if (stateByKey.get(cur) === 'failed') {
+        blocked.add(node.stepKey);
+        break;
+      }
+      for (const up of upstream.get(cur) ?? []) stack.push(up);
+    }
+  }
+  return blocked;
+}
 
 // ── Board projection (#36) ────────────────────────────────────────────────────
 // A Board is the unit of persistence: a grouping over already-persisted Runs.

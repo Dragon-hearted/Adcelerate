@@ -9,6 +9,7 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { blockedUpstreamStepKeys } from '@command-center/shared';
 import type { BoardSlot, BranchProjection, RunStatus, StepGraph } from '@command-center/shared';
 import { useStore } from '@/store/useStore';
 import { api, type BoardListItem } from '@/lib/api';
@@ -66,6 +67,10 @@ function layout(graph: StepGraph, branchProj?: BranchProjection): { nodes: Node[
     }
   }
 
+  // #42: DERIVED render-time view state — queued nodes with a transitive failed
+  // upstream. Pure (emits nothing, ADR-0009/0016 §4); restyles the node, never hides.
+  const blocked = blockedUpstreamStepKeys(graph);
+
   // Stack nodes that share a depth column vertically.
   const rowByDepth = new Map<number, number>();
   const nodes: Node[] = graph.nodes.map((n) => {
@@ -88,6 +93,8 @@ function layout(graph: StepGraph, branchProj?: BranchProjection): { nodes: Node[
       malformed: n.malformed,
       stale: n.stale,
       orphaned: n.orphaned,
+      // #42: derived "blocked: upstream failed" view state (not a wire lifecycle).
+      blockedUpstream: blocked.has(n.stepKey),
       runId: graph.runId,
       branches: lineage?.branches,
       activeBranchId: lineage?.activeBranchId,

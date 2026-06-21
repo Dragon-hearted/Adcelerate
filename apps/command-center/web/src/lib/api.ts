@@ -7,6 +7,7 @@ import type {
   ApprovalDecision,
   BoardProjection,
   BranchProjection,
+  CascadePreview,
   CCEvent,
   FileChange,
   GitHubActivity,
@@ -141,6 +142,21 @@ export const api = {
     ),
   getBranches: (runId: string) =>
     request<BranchProjection>(`/api/runs/${encodeURIComponent(runId)}/branches`),
+
+  // Provenance-aware cascade (slice #42 / ADR-0003/0016). Control-plane only:
+  // the preview is request/response (GET, no socket event) and the request is a
+  // POST that emits ONE `cc.cascade.requested` intent (the #39 executor consumes
+  // it). `getCascadePreview` powers the operator gate; `requestCascade` is the
+  // Confirm seam — returns the dispatched target stepKeys.
+  getCascadePreview: (runId: string, stepKey: string) =>
+    request<CascadePreview>(
+      `/api/runs/${encodeURIComponent(runId)}/cascade-preview?stepKey=${encodeURIComponent(stepKey)}`,
+    ),
+  requestCascade: (runId: string, stepKey: string) =>
+    request<{ requested: string[] }>(
+      `/api/runs/${encodeURIComponent(runId)}/cascade`,
+      { method: 'POST', body: JSON.stringify({ stepKey }) },
+    ),
 
   // System distribution + SHA-pin freshness (slice #40). Delivery facts only;
   // the soft/hard tier is fused client-side against the #33 incompatibilities slice.
