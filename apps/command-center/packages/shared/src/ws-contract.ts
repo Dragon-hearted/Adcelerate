@@ -9,6 +9,7 @@ import type { AgentDescriptor } from './agents';
 import type { ApprovalRequest, ApprovalDecision, ApprovalStatus } from './approvals';
 import type { GitHubActivity } from './github';
 import type { TokenTick } from './tokens';
+import type { StepGraphUpdate } from './substrate';
 
 // Initial hydration payload sent on connect (mirrors the legacy `{type:'initial'}`).
 export interface SnapshotPayload {
@@ -27,6 +28,7 @@ export interface ServerToClient {
   'token:tick': (t: TokenTick) => void;
   'github:update': (g: GitHubActivity) => void;
   'file:changed': (f: FileChange) => void;
+  'step-graph:update': (g: StepGraphUpdate) => void;  // Substrate Run/Step graph (slice #31)
 }
 
 export interface ClientToServer {

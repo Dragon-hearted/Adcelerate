@@ -31,6 +31,7 @@ import type {
   ApprovalResolvedPayload,
   FileChange,
   GitHubActivity,
+  StepGraphUpdate,
 } from '@command-center/shared';
 import { db } from '../db/client';
 import { events } from '../db/schema';
@@ -130,6 +131,23 @@ class EventBus {
   onGithubUpdate(listener: (activity: GitHubActivity) => void): () => void {
     this.emitter.on('github:update', listener);
     return () => this.emitter.off('github:update', listener);
+  }
+
+  /**
+   * Broadcast a re-projected Step Graph (`step-graph:update`) to all clients —
+   * drives the Console Canvas (slice #31). The persisted Run/Step events flow
+   * through `emit()` separately (persist-then-broadcast); this is the live
+   * read-model push the Canvas subscribes to.
+   */
+  emitStepGraphUpdate(graph: StepGraphUpdate): void {
+    this.io?.emit('step-graph:update', graph);
+    this.emitter.emit('step-graph:update', graph);
+  }
+
+  /** Subscribe to Step Graph updates in-process. */
+  onStepGraphUpdate(listener: (graph: StepGraphUpdate) => void): () => void {
+    this.emitter.on('step-graph:update', listener);
+    return () => this.emitter.off('step-graph:update', listener);
   }
 
   /**

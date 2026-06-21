@@ -18,7 +18,9 @@ export type EventType =
   | 'cc.question.asked'   | 'cc.question.answered'
   | 'cc.file.changed'     | 'cc.command.executed'
   | 'cc.agent.state'      | 'cc.token.tick'
-  | 'cc.agent.message';
+  | 'cc.agent.message'
+  // Substrate Run/Step ingest (slice #31) — folded read-side into a Step Graph.
+  | 'cc.run.started'      | 'cc.run.completed' | 'cc.step';
 
 export interface CCEvent {
   id?: number;
@@ -72,6 +74,7 @@ export const CC_SYNTHETIC_EVENT_TYPES = [
   'cc.file.changed', 'cc.command.executed',
   'cc.agent.state', 'cc.token.tick',
   'cc.agent.message',
+  'cc.run.started', 'cc.run.completed', 'cc.step',
 ] as const satisfies readonly EventType[];
 
 export const ALL_EVENT_TYPES = [
