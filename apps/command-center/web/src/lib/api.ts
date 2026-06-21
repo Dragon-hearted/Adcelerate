@@ -158,6 +158,17 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ stepKey }) },
     ),
 
+  // Drive-mode dispatch (slice #39 / ADR-0002). Control-plane command: POST
+  // /api/drive emits ONE `cc.drive.requested` and spawns a skill-loaded session
+  // (`skills:['adcelerate-execute']`); the Console subscribes the returned
+  // sessionId to stream its Run onto the Canvas. Mirrors POST /api/sessions
+  // (REST — no socket event). Body matches the pinned `DriveCommand`.
+  drive: (task: string, systemHint?: string) =>
+    request<{ sessionId: string }>('/api/drive', {
+      method: 'POST',
+      body: JSON.stringify(systemHint ? { task, systemHint } : { task }),
+    }),
+
   // System distribution + SHA-pin freshness (slice #40). Delivery facts only;
   // the soft/hard tier is fused client-side against the #33 incompatibilities slice.
   listSystems: () => request<SystemFreshness[]>('/api/systems'),

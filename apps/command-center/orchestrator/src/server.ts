@@ -22,6 +22,7 @@ import { registerGateway } from './ws/gateway';
 import { wireAgentEngine } from './agents/registry';
 import { wireApprovalEngine } from './agents/approval-engine';
 import { sessionRoutes } from './routes/sessions';
+import { driveRoutes } from './routes/drive';
 import { approvalRoutes } from './routes/approvals';
 import { tokenRoutes } from './routes/tokens';
 import { fileRoutes } from './routes/files';
@@ -78,6 +79,11 @@ async function buildServer() {
   });
 
   await app.register(sessionRoutes);
+  // Drive-mode dispatch (slice #39 / ADR-0002). POST /api/drive spawns a session
+  // with the adcelerate-execute skill loaded (via a repo-local plugin, settingSources:[]
+  // preserved), emits ONE cc.drive.requested, and prompts the session to route+run the
+  // task. Registered AFTER sessionRoutes (reuses SessionRegistry.create + prompt path).
+  await app.register(driveRoutes);
   await app.register(approvalRoutes);
   await app.register(tokenRoutes);
   await app.register(fileRoutes);

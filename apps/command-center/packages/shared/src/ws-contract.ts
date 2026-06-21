@@ -89,6 +89,15 @@ export interface CascadeRequest {
   stepKey: string;                 // POST body — the edited upstream step
 }
 
+// Drive-mode dispatch (slice #39 / ADR-0002). REST body ONLY — POST /api/drive
+// takes this and returns { sessionId: string } (no type needed for the response).
+// NO socket event is added: Drive mirrors POST /api/sessions (REST), and the
+// Console subscribes to the returned sessionId to stream the Run onto the Canvas.
+export interface DriveCommand {
+  task: string;                    // the operator's command, routed by adcelerate-execute
+  systemHint?: string;             // optional target system (skill scores systems.yaml otherwise)
+}
+
 export interface ServerToClient {
   'event': (e: CCEvent) => void;                  // every normalized event (per-session room)
   'event:global': (e: CCEvent) => void;           // cross-session aggregate feed (all clients)

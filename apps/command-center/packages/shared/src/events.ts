@@ -30,7 +30,11 @@ export type EventType =
   // Confirm in the Console → POST /api/runs/:runId/cascade emits this ONE event
   // carrying { editedStepKey, targets: stepKey[] }. The #39 executor consumes it;
   // #42 emits it but folds nothing from it (control-plane request seam only).
-  | 'cc.cascade.requested';
+  | 'cc.cascade.requested'
+  // Drive-mode dispatch (slice #39, ADR-0002). Durable control-plane record:
+  // POST /api/drive emits this ONE event carrying { task, systemHint? }; the Drive
+  // session spawns with skills:['adcelerate-execute']. Emit-path seam only (no fold).
+  | 'cc.drive.requested';
 
 export interface CCEvent {
   id?: number;
@@ -95,6 +99,7 @@ export const CC_SYNTHETIC_EVENT_TYPES = [
   'cc.run.started', 'cc.run.completed', 'cc.step',
   'cc.branch.created', 'cc.branch.activated', 'cc.branch.staled',
   'cc.cascade.requested',
+  'cc.drive.requested',
 ] as const satisfies readonly EventType[];
 
 export const ALL_EVENT_TYPES = [

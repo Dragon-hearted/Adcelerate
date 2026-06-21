@@ -63,6 +63,20 @@ export interface AgentSessionInit {
   cwd: string;
   /** Role persona appended to the Claude Code system prompt (Phase 7 presets). */
   systemPromptAppend?: string;
+  /**
+   * SDK `options.skills` — a context filter over DISCOVERED skills (slice #39 /
+   * ADR-0002). Drive sessions pass `['adcelerate-execute']`. Note: this is a
+   * filter, not a discovery root — the skill must already be discoverable (Drive
+   * supplies `plugins` below to make it so without touching `settingSources`).
+   */
+  skills?: Options['skills'];
+  /**
+   * SDK `options.plugins` — local plugins loaded for this session (slice #39).
+   * Drive passes the repo-local `drive-plugin` so `adcelerate-execute` is
+   * discoverable while `settingSources:[]` stays (no project settings/permissions/
+   * hooks load → the canUseTool gate is uncircumventable). Empirically verified.
+   */
+  plugins?: Options['plugins'];
 }
 
 function userMessage(text: string): SDKUserMessage {
@@ -110,12 +124,16 @@ export class AgentSession {
   private q: Query | null = null;
   private loopPromise: Promise<void> | null = null;
   private readonly systemPromptAppend?: string;
+  private readonly skills?: Options['skills'];
+  private readonly plugins?: Options['plugins'];
 
   constructor(
     init: AgentSessionInit,
     private readonly deps: AgentSessionDeps = {},
   ) {
     this.systemPromptAppend = init.systemPromptAppend;
+    this.skills = init.skills;
+    this.plugins = init.plugins;
     this.descriptor = {
       session_id: randomUUID(),
       name: init.name,
@@ -215,6 +233,12 @@ export class AgentSession {
       settingSources: [],
       permissionMode: 'default',
     };
+    // Skill loading (slice #39 / ADR-0002). `settingSources:[]` above stays — the
+    // skill is made discoverable via a local `plugin` (default plugin discovery is
+    // independent of settingSources), and `skills` filters to just it. The
+    // canUseTool gate is untouched: plugins load skills/commands, NOT permissions.
+    if (this.skills) options.skills = this.skills;
+    if (this.plugins) options.plugins = this.plugins;
     // Role persona — keep full Claude Code capability, append the role flavor.
     if (this.systemPromptAppend) {
       options.systemPrompt = {
