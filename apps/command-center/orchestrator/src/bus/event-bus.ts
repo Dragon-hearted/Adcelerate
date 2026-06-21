@@ -34,6 +34,7 @@ import type {
   StepGraphUpdate,
   BoardProjection,
   IncompatibilitySignal,
+  BudgetTripSignal,
 } from '@command-center/shared';
 import { db } from '../db/client';
 import { events } from '../db/schema';
@@ -184,6 +185,24 @@ class EventBus {
   onIncompatibility(listener: (signal: IncompatibilitySignal) => void): () => void {
     this.emitter.on('incompatibility', listener);
     return () => this.emitter.off('incompatibility', listener);
+  }
+
+  /**
+   * Broadcast a provider-scoped budget-guard trip (`budget-trip`) to all clients
+   * — drives the Console BudgetTripBanner (slice #38 / ADR-0007). Like the #33
+   * incompatibility signal this is a TRANSIENT alarm pushed by image-engine over
+   * a thin POST, deliberately NOT persisted as a CCEvent (the Emitter carries no
+   * cost; the block lives at the serving provider in image-engine).
+   */
+  emitBudgetTrip(signal: BudgetTripSignal): void {
+    this.io?.emit('budget-trip', signal);
+    this.emitter.emit('budget-trip', signal);
+  }
+
+  /** Subscribe to budget-trip signals in-process (e.g. route tests). */
+  onBudgetTrip(listener: (signal: BudgetTripSignal) => void): () => void {
+    this.emitter.on('budget-trip', listener);
+    return () => this.emitter.off('budget-trip', listener);
   }
 
   /**

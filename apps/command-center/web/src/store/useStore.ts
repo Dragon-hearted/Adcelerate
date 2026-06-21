@@ -6,6 +6,7 @@ import type {
   ApprovalRequest,
   ApprovalResolvedPayload,
   BoardProjection,
+  BudgetTripSignal,
   CCEvent,
   FileChange,
   GitHubActivity,
@@ -66,6 +67,11 @@ interface StoreState {
   // keyed for dismiss. NOT hydrated/persisted; a rejected envelope leaves no state.
   incompatibilities: IncompatibilitySignal[];
 
+  // provider budget-trip slice (slice #38) — transient guard trips pushed by
+  // image-engine, keyed for dismiss. NOT hydrated/persisted; a trip is a signal,
+  // the block + cost data live at the serving provider in image-engine.
+  budgetTrips: BudgetTripSignal[];
+
   // actions
   setConnected: (v: boolean) => void;
   hydrate: (snap: SnapshotPayload) => void;
@@ -83,6 +89,8 @@ interface StoreState {
   selectBoard: (id: string) => void;
   addIncompatibility: (s: IncompatibilitySignal) => void;
   dismissIncompatibility: (at: number, producerSystem: string) => void;
+  addBudgetTrip: (s: BudgetTripSignal) => void;
+  dismissBudgetTrip: (at: number, provider: string, model: string) => void;
 }
 
 function eventKey(e: CCEvent): string {
@@ -143,6 +151,7 @@ export const useStore = create<StoreState>((set) => ({
   boards: {},
   selectedBoardId: null,
   incompatibilities: [],
+  budgetTrips: [],
 
   setConnected: (v) => set({ connected: v }),
 
@@ -269,6 +278,23 @@ export const useStore = create<StoreState>((set) => ({
     set((state) => ({
       incompatibilities: state.incompatibilities.filter(
         (x) => !(x.at === at && x.producerSystem === producerSystem),
+      ),
+    })),
+
+  // Newest-first; dedupe identical (provider, model) so a provider stuck over its
+  // line doesn't stack duplicate banners. Cap the transient ring (mirrors #33).
+  addBudgetTrip: (s) =>
+    set((state) => {
+      const rest = state.budgetTrips.filter(
+        (x) => !(x.provider === s.provider && x.model === s.model),
+      );
+      return { budgetTrips: [s, ...rest].slice(0, 20) };
+    }),
+
+  dismissBudgetTrip: (at, provider, model) =>
+    set((state) => ({
+      budgetTrips: state.budgetTrips.filter(
+        (x) => !(x.at === at && x.provider === provider && x.model === model),
       ),
     })),
 }));

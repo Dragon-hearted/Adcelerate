@@ -29,6 +29,7 @@ import { githubRoutes } from './routes/github';
 import { ingestRoutes } from './routes/ingest';
 import { artifactsRoutes } from './routes/artifacts';
 import { boardRoutes } from './routes/boards';
+import { budgetRoutes } from './routes/budget';
 import { startTranscriptIngest } from './tokens/transcript-ingest';
 import { startFileWatcher } from './files/watcher';
 import { startGithubPoller } from './github/poller';
@@ -89,6 +90,10 @@ async function buildServer() {
   // Board persistence + open-into-Board + slot projection (slice #36). Broadcasts
   // `board:update` over Socket.IO via the EventBus (same path as step-graph:update).
   await app.register(boardRoutes);
+  // Provider-scoped budget-guard trip ingress (slice #38 / ADR-0007). image-engine
+  // POSTs a trip when a serving provider crosses its budget-line; this broadcasts
+  // `budget-trip` over the socket (transient signal, not a persisted CCEvent).
+  await app.register(budgetRoutes);
 
   // Catch-all error handler. Client errors (4xx, e.g. validation) keep their
   // message; anything 5xx/unknown collapses to a generic 500 — never leak

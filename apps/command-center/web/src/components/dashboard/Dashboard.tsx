@@ -10,6 +10,7 @@ import { SpawnTree } from '@/components/agents/SpawnTree';
 import { FileChangePanel } from '@/components/files/FileChangePanel';
 import { Canvas } from '@/components/canvas/Canvas';
 import { IncompatibilityBanner } from '@/components/incompatibility/IncompatibilityBanner';
+import { BudgetTripBanner } from '@/components/budget/BudgetTripBanner';
 
 /**
  * Top-level dashboard grid (the architecture diagram):
@@ -28,6 +29,9 @@ export function Dashboard() {
 
       {/* Out-of-window envelope rejects (slice #33) — dismissible, off the socket. */}
       <IncompatibilityBanner />
+
+      {/* Provider budget-guard trips (slice #38) — dismissible, off the socket. */}
+      <BudgetTripBanner />
 
       <div className="flex min-h-0 flex-1">
         {/* Center column: pending approvals dock above the live timeline. */}

@@ -29,6 +29,20 @@ export interface IncompatibilitySignal {
   at: number;        // epoch ms the reject occurred
 }
 
+// Provider-scoped budget-guard trip (slice #38 / ADR-0007). image-engine owns
+// the cost data + the block point; when a serving provider's cumulative spend
+// crosses its per-(provider,model,modality) budget-line the next gen is blocked
+// (402) and image-engine POSTs this trip to the Console. Mirrors the #33
+// IncompatibilitySignal precedent: a TRANSIENT signal, NOT persisted as a
+// CCEvent (the Emitter carries no cost — the trip is a separate POST).
+export interface BudgetTripSignal {
+  provider: string;  // serving provider that tripped (e.g. "higgsfield")
+  model: string;     // model in flight when the line was crossed
+  spentUsd: number;  // cumulative USD spent on that provider
+  limitUsd: number;  // the budget-line that was crossed
+  at: number;        // epoch ms the trip occurred
+}
+
 export interface ServerToClient {
   'event': (e: CCEvent) => void;                  // every normalized event (per-session room)
   'event:global': (e: CCEvent) => void;           // cross-session aggregate feed (all clients)
@@ -42,6 +56,7 @@ export interface ServerToClient {
   'step-graph:update': (g: StepGraphUpdate) => void;  // Substrate Run/Step graph (slice #31)
   'board:update': (b: BoardProjection) => void;       // Board slot projection (slice #36)
   'incompatibility': (s: IncompatibilitySignal) => void;  // out-of-window envelope rejected (slice #33)
+  'budget-trip': (s: BudgetTripSignal) => void;           // provider crossed its budget-line (slice #38)
 }
 
 export interface ClientToServer {

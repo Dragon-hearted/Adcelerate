@@ -37,6 +37,8 @@ export function useSocketBridge(): void {
     socket.on('board:update', (b) => useStore.getState().upsertBoard(b));
     // Envelope incompatibility (slice #33) — out-of-window reject → dismissible banner.
     socket.on('incompatibility', (s) => useStore.getState().addIncompatibility(s));
+    // Provider budget-trip (slice #38) — guard tripped at the serving provider → banner.
+    socket.on('budget-trip', (s) => useStore.getState().addBudgetTrip(s));
 
     if (socket.connected) onConnect();
 
@@ -55,6 +57,7 @@ export function useSocketBridge(): void {
       socket.off('step-graph:update');
       socket.off('board:update');
       socket.off('incompatibility');
+      socket.off('budget-trip');
     };
   }, []);
 }
