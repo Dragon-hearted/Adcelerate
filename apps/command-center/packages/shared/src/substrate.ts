@@ -136,6 +136,11 @@ export const stepEventSchema = z.object({
   // (first attempt). Part of the dedupe identity so a retried event (same state,
   // new attempt) is NOT mistaken for a duplicate. Optional on the wire.
   retryAttempt: z.number().int().nonnegative().optional(),
+  // Added in #34 (ADR-0008): the producer-declared upstream stepKeys this Step
+  // depends on. The fold draws dependency edges from THIS, not emission order.
+  // Additive optional → NO envelope-version bump (same pattern as producerVersion
+  // / slotId). Absent or empty = a Step with no declared deps (→ no inbound edges).
+  deps: z.array(z.string().min(1)).optional(),
 });
 export type StepEvent = z.infer<typeof stepEventSchema>;
 
@@ -336,6 +341,9 @@ interface BranchAcc {
   priority: readonly [number, number, number];
   artifactPriority: readonly [number, number, number] | null;
   sawNonTerminal: boolean;
+  // #34: the UNION of declared upstream stepKeys seen across this branch's step
+  // events (order-independent — a Set, so duplicate/out-of-order deps converge).
+  deps: Set<string>;
 }
 
 function eventPriority(state: StepState, retryAttempt: number): readonly [number, number, number] {
@@ -355,8 +363,9 @@ function gt(a: readonly [number, number, number], b: readonly [number, number, n
  * emitted in deterministic stepKey order (not arrival order) so the projection
  * is byte-stable under a shuffled log. Run lifecycle envelopes set graph metadata.
  *
- * Real lineage edges land in #41; until then edges are a deterministic linear
- * spine over the sorted nodes (the single-branch placeholder this slice hardens).
+ * Edges are the producer's DECLARED dependencies (#34, ADR-0008): the union of
+ * each Step's `deps` → `{ from: dep, to: stepKey }`, filtered to known nodes and
+ * sorted by (from, to). A run with no declared deps has no edges.
  */
 export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
   const runId = events[0]?.runId ?? '';
@@ -397,9 +406,13 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
             priority: prio,
             artifactPriority: null,
             sawNonTerminal: false,
+            deps: new Set<string>(),
           };
           branches.set(branchId, acc);
         }
+
+        // Accumulate the declared deps (union across all of this branch's events).
+        if (env.deps) for (const d of env.deps) acc.deps.add(d);
 
         // Monotonic: only a strictly-higher-priority event moves the node state.
         if (gt(prio, acc.priority)) {
@@ -428,9 +441,23 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
   // Deterministic stepKey order → byte-stable projection under a shuffled log.
   const sortedKeys = [...branches.keys()].sort();
   graph.nodes = sortedKeys.map((k) => branches.get(k)!.node);
-  for (let i = 1; i < sortedKeys.length; i++) {
-    graph.edges.push({ from: sortedKeys[i - 1]!, to: sortedKeys[i]! });
+
+  // Declared-dependency edges (ADR-0008): edge `{ from: dep, to: stepKey }` for
+  // each declared dep, kept ONLY when BOTH endpoints are known nodes (dangling
+  // deps to never-seen steps are dropped). Sorted by (from, to) so the projection
+  // stays byte-stable under a shuffled log.
+  // ponytail: no linear first-seen spine anymore — a run that declares no deps
+  // now has ZERO edges (correct per ADR-0008; edges reflect the real DAG, not
+  // emission order). `layout()` depth folds all such nodes to depth 0, fine.
+  const known = new Set(sortedKeys);
+  for (const stepKey of sortedKeys) {
+    for (const dep of branches.get(stepKey)!.deps) {
+      if (known.has(dep)) graph.edges.push({ from: dep, to: stepKey });
+    }
   }
+  graph.edges.sort((a, b) =>
+    a.from !== b.from ? (a.from < b.from ? -1 : 1) : a.to < b.to ? -1 : a.to > b.to ? 1 : 0,
+  );
 
   return graph;
 }

@@ -30,7 +30,7 @@ describe('projectStepGraph', () => {
     expect(g.edges).toHaveLength(0);
   });
 
-  test('multiple steps → nodes + chained edges in first-seen order', () => {
+  test('multiple steps with NO declared deps → nodes but ZERO edges (#34)', () => {
     const a = `${RUN}:plan`;
     const b = `${RUN}:render`;
     const g = projectStepGraph([
@@ -38,7 +38,70 @@ describe('projectStepGraph', () => {
       { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: b, state: 'running' },
     ]);
     expect(g.nodes.map((n) => n.stepKey)).toEqual([a, b]);
+    // No emission-order spine anymore — edges reflect declared deps only (ADR-0008).
+    expect(g.edges).toEqual([]);
+  });
+
+  test('declared deps → dependency edges { from: dep, to: stepKey } (#34)', () => {
+    const a = `${RUN}:plan`;
+    const b = `${RUN}:render`;
+    const g = projectStepGraph([
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: a, state: 'succeeded' },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: b, state: 'running', deps: [a] },
+    ]);
     expect(g.edges).toEqual([{ from: a, to: b }]);
+  });
+
+  test('dep pointing at an unknown node is filtered out (#34)', () => {
+    const a = `${RUN}:plan`;
+    const ghost = `${RUN}:never-seen`;
+    const g = projectStepGraph([
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: a, state: 'succeeded', deps: [ghost] },
+    ]);
+    expect(g.nodes.map((n) => n.stepKey)).toEqual([a]);
+    expect(g.edges).toEqual([]);
+  });
+
+  test('dep union across a branch + deterministic (from, to) sort (#34)', () => {
+    const a = `${RUN}:a`;
+    const b = `${RUN}:b`;
+    const c = `${RUN}:c`;
+    // c depends on a (declared on its queued event) and b (declared on running).
+    const g = projectStepGraph([
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: a, state: 'succeeded' },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: b, state: 'succeeded' },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: c, state: 'queued', deps: [a] },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: c, state: 'running', deps: [b] },
+    ]);
+    expect(g.edges).toEqual([
+      { from: a, to: c },
+      { from: b, to: c },
+    ]);
+  });
+
+  test('shuffled event order → DEEP-EQUAL graph incl. edges (#34)', () => {
+    const a = `${RUN}:a`;
+    const b = `${RUN}:b`;
+    const c = `${RUN}:c`;
+    const log: IngestEnvelope[] = [
+      { envelopeVersion: V, kind: 'run.started', runId: RUN, producerSystem: 'image-engine', startedAt: 1 },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: a, state: 'queued' },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: a, state: 'succeeded' },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: b, state: 'running', deps: [a] },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: b, state: 'succeeded', deps: [a] },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: c, state: 'running', deps: [a, b] },
+      { envelopeVersion: V, kind: 'step', runId: RUN, stepKey: c, state: 'succeeded', deps: [a, b] },
+      { envelopeVersion: V, kind: 'run.completed', runId: RUN, status: 'completed', completedAt: 9 },
+    ];
+    const reference = projectStepGraph(log);
+    expect(reference.edges).toEqual([
+      { from: a, to: b },
+      { from: a, to: c },
+      { from: b, to: c },
+    ]);
+    // Reversed and rotated arrival both converge to the SAME graph (edges incl.).
+    expect(projectStepGraph([...log].reverse())).toEqual(reference);
+    expect(projectStepGraph([...log.slice(4), ...log.slice(0, 4)])).toEqual(reference);
   });
 
   test('latest artifact is retained on the node', () => {

@@ -27,6 +27,7 @@ import { tokenRoutes } from './routes/tokens';
 import { fileRoutes } from './routes/files';
 import { githubRoutes } from './routes/github';
 import { ingestRoutes } from './routes/ingest';
+import { artifactsRoutes } from './routes/artifacts';
 import { boardRoutes } from './routes/boards';
 import { startTranscriptIngest } from './tokens/transcript-ingest';
 import { startFileWatcher } from './files/watcher';
@@ -81,6 +82,10 @@ async function buildServer() {
   // `step-graph:update` over Socket.IO via the EventBus (io attached in
   // registerGateway, before any ingest POST can land).
   await app.register(ingestRoutes);
+  // Substrate artifact byte-serve (slice #34 / ADR-0011): streams snapshotted
+  // artifact bytes from ARTIFACTS_DIR (captured at ingest), so Boards resolve a
+  // Substrate-owned url independent of the producing system.
+  await app.register(artifactsRoutes);
   // Board persistence + open-into-Board + slot projection (slice #36). Broadcasts
   // `board:update` over Socket.IO via the EventBus (same path as step-graph:update).
   await app.register(boardRoutes);

@@ -27,6 +27,7 @@ import {
 import { db } from '../db/client';
 import { events } from '../db/schema';
 import { eventBus } from '../bus/event-bus';
+import { snapshotArtifact } from '../artifacts/store';
 
 // kind → the synthetic CCEvent hook type it persists as.
 function hookTypeOf(kind: IngestEnvelope['kind']): EventType {
@@ -107,17 +108,30 @@ export async function ingestRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(200).send({ ok: true, deduped: true });
     }
 
+    // Snapshot-on-ingest (ADR-0011): when a Step reaches `succeeded` with an
+    // artifact, fetch its bytes ONCE and rewrite `artifact.url` to the
+    // Substrate-owned `/api/artifacts/...` BEFORE persisting — so both the stored
+    // envelope and the broadcast carry the durable url (a saved Board survives the
+    // source moving). On any fetch/write failure the artifact is returned
+    // unchanged (degraded source-url fallback) — snapshotArtifact never throws.
+    let toStore: IngestEnvelope = env;
+    if (env.kind === 'step' && env.state === 'succeeded' && env.artifact) {
+      const snapped = await snapshotArtifact(env.runId, env.stepKey, env.artifact);
+      toStore = { ...env, artifact: snapped };
+    }
+
     // Persist via the bus (persist-then-broadcast). The Run groups under
     // session_id; stepKey/summary are forwarded for cheap filtering.
     eventBus.emit({
-      session_id: env.runId,
-      hook_event_type: hookTypeOf(env.kind),
-      payload: env,
-      summary: env.kind === 'step' ? env.stepKey : env.kind,
+      session_id: toStore.runId,
+      hook_event_type: hookTypeOf(toStore.kind),
+      payload: toStore,
+      summary: toStore.kind === 'step' ? toStore.stepKey : toStore.kind,
     });
 
-    // Re-project the full run and push the live read-model to the Canvas.
-    const graph = projectStepGraph([...existing, env]);
+    // Re-project the full run and push the live read-model to the Canvas (with
+    // the rewritten Substrate artifact url).
+    const graph = projectStepGraph([...existing, toStore]);
     eventBus.emitStepGraphUpdate(graph);
 
     return reply.code(202).send({ ok: true, deduped: false });

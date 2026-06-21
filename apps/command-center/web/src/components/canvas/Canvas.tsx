@@ -36,9 +36,9 @@ function RunStatusBadge({ status }: { status?: RunStatus }) {
   );
 }
 
-// Left→right layout by topological depth. The substrate fold emits a linear
-// first-seen chain today, so depth = longest path from a source — no layout dep
-// needed for a chain (ponytail; dagre/elkjs can slot in here if branches land).
+// Left→right layout by topological depth over the declared-dependency DAG (#34).
+// depth = longest path from a source; a no-deps run has no edges and all nodes
+// sit at depth 0 (ponytail; dagre/elkjs can slot in here if the DAG gets dense).
 const COL = 220;
 const ROW = 90;
 
@@ -77,6 +77,10 @@ function layout(graph: StepGraph): { nodes: Node[]; edges: Edge[] } {
       stepKey: n.stepKey,
       state: n.state,
       hasArtifact: Boolean(n.artifact),
+      // #34: thread the snapshotted artifact url + mime onto the node so StepNode
+      // can render a thumbnail (url may be relative-snapshot or degraded-absolute).
+      artifactUrl: n.artifact?.url,
+      artifactMimeType: n.artifact?.mimeType,
       malformed: n.malformed,
     };
     return {
@@ -143,6 +147,8 @@ function SlotRow({ slot }: { slot: BoardSlot }) {
             edges={flow.edges}
             nodeTypes={nodeTypes}
             fitView
+            minZoom={0.2}
+            maxZoom={2}
             proOptions={{ hideAttribution: true }}
           >
             <Background />
@@ -362,6 +368,8 @@ export function Canvas() {
             edges={flow.edges}
             nodeTypes={nodeTypes}
             fitView
+            minZoom={0.2}
+            maxZoom={2}
             proOptions={{ hideAttribution: true }}
           >
             <Background />
