@@ -42,6 +42,17 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v node >/dev/null 2>&1 && node \"$CLAUDE_PROJECT_DIR/.claude/hooks/ponytail-activate.js\" || exit 0",
+            "timeout": 5,
+            "statusMessage": "Loading ponytail mode..."
+          }
+        ]
       }
     ],
     "SessionEnd": [
@@ -175,6 +186,11 @@
           {
             "type": "command",
             "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app adcelerate --event-type UserPromptSubmit --summarize"
+          },
+          {
+            "type": "command",
+            "command": "command -v node >/dev/null 2>&1 && node \"$CLAUDE_PROJECT_DIR/.claude/hooks/ponytail-mode-tracker.js\" || exit 0",
+            "timeout": 5
           }
         ]
       }
