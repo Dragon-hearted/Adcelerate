@@ -56,3 +56,30 @@ build:
 # Run unit tests.
 test:
     bun test
+
+# Verify the copied Emitter (ADR-0008) is byte-identical across submodules.
+# sha256 the canonical source in shared vs each submodule copy; exit non-zero on
+# drift (ADR-0020 — copies that fall out of sync are a contract break).
+emitter-checksum:
+    #!/usr/bin/env sh
+    set -eu
+    canonical="packages/shared/emitter.ts"
+    # Space-separated list of submodule copies to check (only image-engine today).
+    copies="../../systems/image-engine/src/lib/emitter.ts"
+    want=$(shasum -a 256 "$canonical" | cut -d' ' -f1)
+    printf 'canonical %s\n  sha256 %s\n' "$canonical" "$want"
+    drift=0
+    for copy in $copies; do
+        got=$(shasum -a 256 "$copy" | cut -d' ' -f1)
+        if [ "$got" = "$want" ]; then
+            printf '  [in-sync] %s\n' "$copy"
+        else
+            printf '  [DRIFT]   %s\n           sha256 %s\n' "$copy" "$got"
+            drift=1
+        fi
+    done
+    if [ "$drift" -ne 0 ]; then
+        echo "Emitter drift detected — re-copy the canonical source into the submodule." >&2
+        exit 1
+    fi
+    echo "all Emitter copies in sync"

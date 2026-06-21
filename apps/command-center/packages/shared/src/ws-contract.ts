@@ -18,6 +18,17 @@ export interface SnapshotPayload {
   approvals: ApprovalRequest[];
 }
 
+// Emitter envelope-version incompatibility (slice #33 / ADR-0020). Broadcast when
+// an out-of-window envelope is rejected at ingest (4xx, zero state mutation) so
+// the operator sees a producer is too old/new — NOT persisted as a CCEvent (a
+// rejected envelope mutates no projected state; this is a transient alarm).
+export interface IncompatibilitySignal {
+  producerSystem: string;
+  gotVersion: string;
+  supported: string; // human-readable supported window, e.g. ">=1.0.0 <2.0.0"
+  at: number;        // epoch ms the reject occurred
+}
+
 export interface ServerToClient {
   'event': (e: CCEvent) => void;                  // every normalized event (per-session room)
   'event:global': (e: CCEvent) => void;           // cross-session aggregate feed (all clients)
@@ -29,6 +40,7 @@ export interface ServerToClient {
   'github:update': (g: GitHubActivity) => void;
   'file:changed': (f: FileChange) => void;
   'step-graph:update': (g: StepGraphUpdate) => void;  // Substrate Run/Step graph (slice #31)
+  'incompatibility': (s: IncompatibilitySignal) => void;  // out-of-window envelope rejected (slice #33)
 }
 
 export interface ClientToServer {

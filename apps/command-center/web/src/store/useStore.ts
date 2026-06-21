@@ -8,6 +8,7 @@ import type {
   CCEvent,
   FileChange,
   GitHubActivity,
+  IncompatibilitySignal,
   SnapshotPayload,
   StepGraph,
   TokenTick,
@@ -54,6 +55,10 @@ interface StoreState {
   stepGraphs: Record<string, StepGraph>;
   selectedRunId: string | null;
 
+  // envelope incompatibility slice (slice #33) — transient out-of-window rejects,
+  // keyed for dismiss. NOT hydrated/persisted; a rejected envelope leaves no state.
+  incompatibilities: IncompatibilitySignal[];
+
   // actions
   setConnected: (v: boolean) => void;
   hydrate: (snap: SnapshotPayload) => void;
@@ -67,6 +72,8 @@ interface StoreState {
   setFileChanges: (f: FileChange[]) => void;
   upsertStepGraph: (g: StepGraph) => void;
   selectRun: (runId: string) => void;
+  addIncompatibility: (s: IncompatibilitySignal) => void;
+  dismissIncompatibility: (at: number, producerSystem: string) => void;
 }
 
 function eventKey(e: CCEvent): string {
@@ -124,6 +131,7 @@ export const useStore = create<StoreState>((set) => ({
   fileChanges: [],
   stepGraphs: {},
   selectedRunId: null,
+  incompatibilities: [],
 
   setConnected: (v) => set({ connected: v }),
 
@@ -221,4 +229,21 @@ export const useStore = create<StoreState>((set) => ({
     })),
 
   selectRun: (runId) => set({ selectedRunId: runId }),
+
+  // Newest-first; dedupe identical (producer, version) so a flapping producer
+  // doesn't stack duplicate banners. Cap the transient ring.
+  addIncompatibility: (s) =>
+    set((state) => {
+      const rest = state.incompatibilities.filter(
+        (x) => !(x.producerSystem === s.producerSystem && x.gotVersion === s.gotVersion),
+      );
+      return { incompatibilities: [s, ...rest].slice(0, 20) };
+    }),
+
+  dismissIncompatibility: (at, producerSystem) =>
+    set((state) => ({
+      incompatibilities: state.incompatibilities.filter(
+        (x) => !(x.at === at && x.producerSystem === producerSystem),
+      ),
+    })),
 }));

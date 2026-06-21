@@ -7,9 +7,11 @@
 //
 //   run.started → step(queued → running → succeeded|failed) → run.completed(status)
 //
-// Every envelope carries `envelopeVersion: "1.0"`. The Substrate folds the ordered
-// event log into a Step Graph on the READ side — no board tables, no upcaster, no
-// artifact snapshot (see the ponytail note at the foot of this file).
+// Every envelope carries a SemVer `envelopeVersion`. The orchestrator's CURRENT
+// version is `1.1.0`; the supported compat window is `[1.0.0, 2.0.0)` (ADR-0020).
+// Older-in-window envelopes are carried to current shape by a small upcaster
+// chain at ingest; out-of-window versions are rejected loudly (4xx). The
+// Substrate folds the ordered event log into a Step Graph on the READ side.
 //
 // `stepKey` convention: `<runId>:<stage>` (ADR-0006). The `stage` segment names the
 // pipeline stage; the runId prefix scopes it to one Run.
@@ -19,7 +21,16 @@
 
 import { z } from 'zod';
 
-export const ENVELOPE_VERSION = '1.0' as const;
+// The orchestrator's CURRENT envelope version. Producers may lag within the
+// supported window below; older-in-window envelopes are upcast at ingest.
+export const CURRENT_ENVELOPE_VERSION = '1.1.0' as const;
+
+// Back-compat alias — slice #31 referenced ENVELOPE_VERSION; it now tracks current.
+export const ENVELOPE_VERSION = CURRENT_ENVELOPE_VERSION;
+
+// Supported compat window: [1.0.0, 2.0.0). Older-in-window → upcast to current;
+// outside → loud 4xx reject (ADR-0020). Human-readable form for the reject signal.
+export const SUPPORTED_ENVELOPE_RANGE = '>=1.0.0 <2.0.0' as const;
 
 // ── lifecycle vocabularies ───────────────────────────────────────────────────
 
@@ -50,9 +61,11 @@ export const artifactSchema = z.object({
 export type Artifact = z.infer<typeof artifactSchema>;
 
 // ── envelopes ────────────────────────────────────────────────────────────────
-// `kind` is the discriminant. envelopeVersion is fixed at "1.0" for this slice.
+// `kind` is the discriminant. The validated schema pins `envelopeVersion` to the
+// CURRENT version — older-in-window envelopes are upcast to current BEFORE they
+// reach this schema (see `upcastEnvelope`).
 
-const envelopeVersion = z.literal(ENVELOPE_VERSION);
+const envelopeVersion = z.literal(CURRENT_ENVELOPE_VERSION);
 
 export const runStartedSchema = z.object({
   envelopeVersion,
@@ -60,6 +73,10 @@ export const runStartedSchema = z.object({
   runId: z.string().min(1),
   producerSystem: z.string().min(1),
   startedAt: z.number(),
+  // Added in 1.1: the producer's own version string (e.g. the system's git SHA
+  // or semver), so the freshness signal (ADR-0022 / #40) can flag a stale copy.
+  // Optional on the wire; the 1.0→1.1 upcaster defaults it to "unknown".
+  producerVersion: z.string().optional(),
 });
 export type RunStarted = z.infer<typeof runStartedSchema>;
 
@@ -88,6 +105,124 @@ export const ingestEnvelopeSchema = z.discriminatedUnion('kind', [
   stepEventSchema,
 ]);
 export type IngestEnvelope = z.infer<typeof ingestEnvelopeSchema>;
+
+// ── envelope versioning: window + upcaster registry ──────────────────────────
+// One ordered window + a tiny from-version-keyed upcaster chain (ADR-0020).
+// Not a plugin framework: the only real edge today is 1.0 → 1.1, which exists
+// because the live image-engine Emitter still stamps "1.0" and the orchestrator
+// has advanced to 1.1.0 — so 1.0 envelopes are the live upcast fixture.
+
+type RawEnvelope = Record<string, unknown>;
+
+/** Parse a lenient SemVer (`major.minor[.patch]`, e.g. "1.0" or "1.1.0"). */
+function parseSemver(v: string): { major: number; minor: number; patch: number } | null {
+  const m = /^(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v);
+  if (!m) return null;
+  return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3] ?? 0) };
+}
+
+const CURRENT_SEMVER = parseSemver(CURRENT_ENVELOPE_VERSION)!;
+
+/** In supported window `[1.0.0, 2.0.0)` — i.e. major === 1. */
+export function isVersionInWindow(version: string): boolean {
+  const s = parseSemver(version);
+  return s !== null && s.major === 1;
+}
+
+/** `major.minor` key for the upcaster registry (patch drift folds onto its minor). */
+function minorKey(s: { major: number; minor: number }): string {
+  return `${s.major}.${s.minor}`;
+}
+
+const CURRENT_MINOR_KEY = minorKey(CURRENT_SEMVER);
+
+/** 1.0 → 1.1: stamp current version, default the new optional `producerVersion`. */
+function upcastTo_1_1(raw: RawEnvelope): RawEnvelope {
+  const next: RawEnvelope = { ...raw, envelopeVersion: CURRENT_ENVELOPE_VERSION };
+  if (next.kind === 'run.started' && next.producerVersion === undefined) {
+    next.producerVersion = 'unknown';
+  }
+  return next;
+}
+
+// Keyed by the from-`major.minor`. Each entry advances one step toward current.
+const UPCASTERS: Record<string, (raw: RawEnvelope) => RawEnvelope> = {
+  '1.0': upcastTo_1_1,
+};
+
+export interface UpcastAccepted {
+  ok: true;
+  /**
+   * Version-normalized (current-shape) envelope. Still passed through the
+   * existing `ingestEnvelopeSchema` validate at the caller — this gate only
+   * decides the VERSION class, not structural validity.
+   */
+  envelope: IngestEnvelope;
+  /** True when an upcaster ran (older-in-window); false when already current. */
+  upcasted: boolean;
+}
+export interface UpcastRejected {
+  ok: false;
+  outOfWindow: true;
+  /**
+   * `out-of-window` — a parseable but unsupported SemVer (too old/new); surfaces
+   * as the loud 4xx + incompatibility signal. `unparseable` — no/garbage version;
+   * just a malformed body, left to the caller's existing structural 400.
+   */
+  reason: 'out-of-window' | 'unparseable';
+  /** The offending version exactly as it arrived (for the incompatibility signal). */
+  gotVersion: string;
+}
+export type UpcastResult = UpcastAccepted | UpcastRejected;
+
+/**
+ * Version-gate the raw ingest body BEFORE the existing structural validate:
+ *  - current (already 1.1) → accept as-is,
+ *  - older-in-window with an upcaster path (1.0) → run the chain to current,
+ *  - out-of-window / unparseable / in-band-but-no-path → reject (caller 4xx).
+ *
+ * This is purely the VERSION decision. The accepted envelope is re-validated by
+ * the caller's `ingestEnvelopeSchema.safeParse`, so a structurally-broken body
+ * still yields the existing 400 (distinct from this gate's 4xx version reject).
+ */
+export function upcastEnvelope(raw: unknown): UpcastResult {
+  const body = (raw ?? {}) as RawEnvelope;
+  const got = body.envelopeVersion;
+  const gotVersion = typeof got === 'string' ? got : String(got);
+
+  const sem = typeof got === 'string' ? parseSemver(got) : null;
+  // No/garbage version → not a version problem, just a malformed body. Leave it
+  // to the caller's structural validate (400), don't raise an incompatibility.
+  if (!sem) {
+    return { ok: false, outOfWindow: true, reason: 'unparseable', gotVersion };
+  }
+  // Parseable but outside [1.0.0, 2.0.0) → a real producer declaring an
+  // unsupported version: the loud 4xx + incompatibility alarm.
+  if (sem.major !== 1) {
+    return { ok: false, outOfWindow: true, reason: 'out-of-window', gotVersion };
+  }
+
+  // Walk the upcaster chain from the body's minor toward current.
+  let cur: RawEnvelope = body;
+  let key = minorKey(sem);
+  let upcasted = false;
+  let guard = 0;
+  while (key !== CURRENT_MINOR_KEY && UPCASTERS[key] && guard++ < 16) {
+    cur = UPCASTERS[key]!(cur);
+    const s = parseSemver(String(cur.envelopeVersion));
+    if (!s) break;
+    key = minorKey(s);
+    upcasted = true;
+  }
+
+  // In-window but no path to current (e.g. an unknown future 1.x minor) → reject
+  // loudly rather than silently mis-handle. Never trust, always validate.
+  if (key !== CURRENT_MINOR_KEY) {
+    return { ok: false, outOfWindow: true, reason: 'out-of-window', gotVersion };
+  }
+
+  return { ok: true, envelope: cur as unknown as IngestEnvelope, upcasted };
+}
 
 // ── dedupe key ───────────────────────────────────────────────────────────────
 // Idempotency is `(runId, stepKey, lifecycleState)`. Run lifecycle events have no
@@ -204,7 +339,7 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
 // reconciliation to get wrong.
 export type StepGraphUpdate = StepGraph;
 
-// ponytail: Board/slot merge + `(producerSystem, slotId)` is slice #36; the
-// envelope-version upcaster + out-of-window reject is slice #33; artifact
-// snapshot-on-ingest is slice #32. All deliberately deferred — this file is the
-// thin v1.0 spine those slices build on.
+// ponytail: Board/slot merge + `(producerSystem, slotId)` is slice #36; artifact
+// snapshot-on-ingest is slice #32 — both deliberately deferred. The envelope-
+// version window + upcaster + out-of-window reject (slice #33) landed above; it
+// stays one window + a one-entry registry, not a plugin framework.

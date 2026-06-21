@@ -32,6 +32,7 @@ import type {
   FileChange,
   GitHubActivity,
   StepGraphUpdate,
+  IncompatibilitySignal,
 } from '@command-center/shared';
 import { db } from '../db/client';
 import { events } from '../db/schema';
@@ -148,6 +149,23 @@ class EventBus {
   onStepGraphUpdate(listener: (graph: StepGraphUpdate) => void): () => void {
     this.emitter.on('step-graph:update', listener);
     return () => this.emitter.off('step-graph:update', listener);
+  }
+
+  /**
+   * Broadcast an envelope-version incompatibility (`incompatibility`) to all
+   * clients — drives the Console reject banner (slice #33 / ADR-0020). This is a
+   * TRANSIENT alarm, deliberately NOT persisted as a CCEvent: the rejected
+   * envelope mutates no projected state, so there is nothing durable to fold.
+   */
+  emitIncompatibility(signal: IncompatibilitySignal): void {
+    this.io?.emit('incompatibility', signal);
+    this.emitter.emit('incompatibility', signal);
+  }
+
+  /** Subscribe to incompatibility signals in-process (e.g. seam-2 tests). */
+  onIncompatibility(listener: (signal: IncompatibilitySignal) => void): () => void {
+    this.emitter.on('incompatibility', listener);
+    return () => this.emitter.off('incompatibility', listener);
   }
 
   /**

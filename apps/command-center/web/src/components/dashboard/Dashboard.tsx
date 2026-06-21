@@ -9,6 +9,7 @@ import { GitHubPanel } from '@/components/github/GitHubPanel';
 import { AgentStatusList } from '@/components/agents/AgentStatusList';
 import { FileChangePanel } from '@/components/files/FileChangePanel';
 import { Canvas } from '@/components/canvas/Canvas';
+import { IncompatibilityBanner } from '@/components/incompatibility/IncompatibilityBanner';
 
 /**
  * Top-level dashboard grid (the architecture diagram):
@@ -24,6 +25,9 @@ export function Dashboard() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <TopBar />
+
+      {/* Out-of-window envelope rejects (slice #33) — dismissible, off the socket. */}
+      <IncompatibilityBanner />
 
       <div className="flex min-h-0 flex-1">
         {/* Center column: pending approvals dock above the live timeline. */}

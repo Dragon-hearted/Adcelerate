@@ -33,6 +33,8 @@ export function useSocketBridge(): void {
     socket.on('file:changed', (f) => useStore.getState().addFileChange(f));
     // Substrate Run/Step graph (slice #31) — full graph each tick; just replace.
     socket.on('step-graph:update', (g) => useStore.getState().upsertStepGraph(g));
+    // Envelope incompatibility (slice #33) — out-of-window reject → dismissible banner.
+    socket.on('incompatibility', (s) => useStore.getState().addIncompatibility(s));
 
     if (socket.connected) onConnect();
 
@@ -49,6 +51,7 @@ export function useSocketBridge(): void {
       socket.off('github:update');
       socket.off('file:changed');
       socket.off('step-graph:update');
+      socket.off('incompatibility');
     };
   }, []);
 }
