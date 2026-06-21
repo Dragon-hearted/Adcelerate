@@ -1,5 +1,13 @@
 # Adcelerate — Project Documentation Index
 
+> **Canonical design docs (current — start here):**
+> - **[Product Requirements (PRD)](./prd.md)** — the Console (Canvas + Command Center): problem, flows, execution & editing model, distribution, v1 scope.
+> - **[Decision log (ADRs 0001–0025)](./adr/)** — every architectural "why", self-contained.
+> - **[Glossary / domain model](../CONTEXT.md)** — the 24 canonical terms; the PRD and ADRs use them verbatim.
+> - **[Release prep & checklist](./release-prep.md)** — distribution model and pre-publish gate.
+>
+> ⚠️ **The scan below is stale** (generated 2026-03-23, before the Console platform; it still describes the deprecated `obs-*` observability dashboard). Trust the canonical docs above. A setup-doc rewrite for the clone-light / lazy-init path is tracked in `release-prep.md`.
+
 **Generated:** 2026-03-23 | **Mode:** Initial Scan | **Scan Level:** Quick
 
 ## Project Overview
