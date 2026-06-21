@@ -25,6 +25,12 @@ export interface NormalizedEvent {
   payload: Record<string, unknown>;
   tool_name?: string;
   tool_use_id?: string;
+  // #35: the SDK-provided id of the tool_use that SPAWNED this one. A nested
+  // sub-agent's messages carry the spawning `Task` tool_use's id at the message
+  // top level (`msg.parent_tool_use_id`); forwarding it onto the tool events lets
+  // the Spawn-Tree fold nest session → Task (sub-agent) → nested tool-calls.
+  // null/absent = a top-level tool-use (child of its session root).
+  parent_tool_use_id?: string | null;
   summary?: string;
   model_name?: string;
   cost_usd?: number;
@@ -97,6 +103,9 @@ export function normalize(msg: SDKMessage, ctx: NormalizeCtx = {}): NormalizedEv
     case 'assistant': {
       const out: NormalizedEvent[] = [];
       const model = msg.message?.model;
+      // A nested sub-agent's assistant message carries the spawning Task's
+      // tool_use id here (top-level on the SDKMessage); null for the root agent.
+      const parentToolUseId = msg.parent_tool_use_id ?? null;
       const blocks = blocksOf(msg.message?.content);
       const textParts: string[] = [];
       for (const block of blocks) {
@@ -105,6 +114,7 @@ export function normalize(msg: SDKMessage, ctx: NormalizeCtx = {}): NormalizedEv
             hook_event_type: 'PreToolUse',
             tool_name: String(block.name ?? ''),
             tool_use_id: String(block.id ?? ''),
+            parent_tool_use_id: parentToolUseId,
             model_name: model,
             summary: `${block.name}`,
             payload: { tool_input: block.input ?? {} },
@@ -128,6 +138,8 @@ export function normalize(msg: SDKMessage, ctx: NormalizeCtx = {}): NormalizedEv
     // ── user → PostToolUse / PostToolUseFailure (+ cc.command.executed) ────────
     case 'user': {
       const out: NormalizedEvent[] = [];
+      // Same spawning-Task id as the PreToolUse so Pre/Post pair under one parent.
+      const parentToolUseId = msg.parent_tool_use_id ?? null;
       const blocks = blocksOf((msg.message as { content?: unknown })?.content);
       for (const block of blocks) {
         if (block.type !== 'tool_result') continue;
@@ -139,6 +151,7 @@ export function normalize(msg: SDKMessage, ctx: NormalizeCtx = {}): NormalizedEv
           hook_event_type: isError ? 'PostToolUseFailure' : 'PostToolUse',
           tool_name: resolved?.name,
           tool_use_id: toolUseId,
+          parent_tool_use_id: parentToolUseId,
           summary: resolved?.name ? `${resolved.name} ${isError ? 'failed' : 'ok'}` : undefined,
           payload: { is_error: isError, output },
         });
@@ -153,6 +166,7 @@ export function normalize(msg: SDKMessage, ctx: NormalizeCtx = {}): NormalizedEv
             hook_event_type: 'cc.command.executed',
             tool_name: 'Bash',
             tool_use_id: toolUseId,
+            parent_tool_use_id: parentToolUseId,
             summary: command ? truncate(command) : 'command',
             payload: {
               command,

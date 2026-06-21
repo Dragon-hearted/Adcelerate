@@ -1,0 +1,1 @@
+ALTER TABLE `events` ADD `parent_tool_use_id` text;

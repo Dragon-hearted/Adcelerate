@@ -35,6 +35,9 @@ export const events = sqliteTable(
     payload: text('payload', { mode: 'json' }).notNull(),
     toolName: text('tool_name'),
     toolUseId: text('tool_use_id'),
+    // #35: spawning Task's tool_use id (nullable) — mirrors toolUseId so the
+    // Spawn-Tree fold can nest sub-agent tool-calls under their parent on replay.
+    parentToolUseId: text('parent_tool_use_id'),
     summary: text('summary'),
     modelName: text('model_name'),
     costUsd: real('cost_usd'),

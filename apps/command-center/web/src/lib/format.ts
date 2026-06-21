@@ -14,6 +14,19 @@ export function formatTokens(n: number): string {
   return `${n}`;
 }
 
+/** Human-readable elapsed runtime from a millisecond span. */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return '0s';
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  const totalSec = Math.floor(ms / 1000);
+  if (totalSec < 60) return `${(ms / 1000).toFixed(1)}s`;
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m < 60) return `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
 export function formatTime(epochMs: number): string {
   if (!epochMs) return '';
   const d = new Date(epochMs);

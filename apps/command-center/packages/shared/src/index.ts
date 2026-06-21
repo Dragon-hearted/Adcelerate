@@ -5,6 +5,7 @@
 
 export * from './events';
 export * from './substrate';
+export * from './spawn-tree';
 export * from './approvals';
 export * from './agents';
 export * from './ws-contract';

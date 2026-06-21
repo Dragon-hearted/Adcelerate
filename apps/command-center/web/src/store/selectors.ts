@@ -1,8 +1,23 @@
 'use client';
 
-import type { AgentDescriptor, CCEvent } from '@command-center/shared';
+import type { AgentDescriptor, CCEvent, SpawnTreeNode } from '@command-center/shared';
+import { projectSpawnTree } from '@command-center/shared';
 import { BURN_WINDOW_MS } from '@/lib/config';
-import { useStore } from './useStore';
+import { useStore, type SessionTokens } from './useStore';
+
+/**
+ * The Spawn Tree forest — a pure projection of the already-live store slices
+ * (`sessions`/`events`/`tokensBySession`). `now` feeds open-tool runtime; callers
+ * pass `Date.now()` so an in-progress tool's runtime advances on each store tick.
+ */
+export function selectSpawnTree(
+  sessions: Record<string, AgentDescriptor>,
+  events: CCEvent[],
+  tokens: Record<string, SessionTokens>,
+  now: number = Date.now(),
+): SpawnTreeNode[] {
+  return projectSpawnTree(Object.values(sessions), events, tokens, now);
+}
 
 /** Δcost/min over the rolling burn window, derived from token:tick samples. */
 export function selectBurnRatePerMin(now: number = Date.now()): number {

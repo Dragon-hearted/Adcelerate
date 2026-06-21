@@ -33,6 +33,14 @@ export interface CCEvent {
   // Convenience top-level columns (forwarded for cheap filtering — mirrors send_event.py)
   tool_name?: string;
   tool_use_id?: string;
+  // #35: the SDK-provided id of the tool_use that SPAWNED this one (a sub-agent's
+  // tool-calls carry the spawning `Task` tool_use's id). The Spawn-Tree fold nests
+  // session → Task tool_use (sub-agent) → nested tool_uses by this. Optional; the
+  // orchestrator populates it (carried in payload and/or a column). null/absent =
+  // a top-level tool-use (child of its session root).
+  // ponytail: cross-session parent_session_id is deferred to lineage (#41) — within
+  // a session this id IS the agent → sub-agent → tool-call spawn hierarchy.
+  parent_tool_use_id?: string | null;
   summary?: string;
   model_name?: string;
   cost_usd?: number;
