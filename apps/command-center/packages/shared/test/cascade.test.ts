@@ -9,7 +9,7 @@ import {
   cascadePreview,
   blockedUpstreamStepKeys,
   leasedSlots,
-  ENVELOPE_VERSION,
+  CURRENT_ENVELOPE_VERSION,
   type CCEvent,
   type IngestEnvelope,
   type StepState,
@@ -23,7 +23,7 @@ const C = `${RUN}:publish`;
 // Minimal step envelope — only the fields the fold reads (edges come from `deps`).
 function step(stepKey: string, state: StepState, deps: string[] = []): IngestEnvelope {
   return {
-    envelopeVersion: ENVELOPE_VERSION,
+    envelopeVersion: CURRENT_ENVELOPE_VERSION,
     kind: 'step',
     runId: RUN,
     stepKey,

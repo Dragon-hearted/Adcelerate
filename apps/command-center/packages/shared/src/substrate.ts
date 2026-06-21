@@ -30,9 +30,6 @@ import type { CascadePreview, CascadeTarget } from './ws-contract';
 // supported window below; older-in-window envelopes are upcast at ingest.
 export const CURRENT_ENVELOPE_VERSION = '1.1.0' as const;
 
-// Back-compat alias — slice #31 referenced ENVELOPE_VERSION; it now tracks current.
-export const ENVELOPE_VERSION = CURRENT_ENVELOPE_VERSION;
-
 // Supported compat window: [1.0.0, 2.0.0). Older-in-window → upcast to current;
 // outside → loud 4xx reject (ADR-0020). Human-readable form for the reject signal.
 export const SUPPORTED_ENVELOPE_RANGE = '>=1.0.0 <2.0.0' as const;
@@ -282,24 +279,15 @@ export function upcastEnvelope(raw: unknown): UpcastResult {
 export const RUN_STEP_SENTINEL = '__run__';
 
 /**
- * The ROOT (original, agent-provenance) branch id for a step. The data-plane
- * Emitter knows nothing of forks, so its Step lifecycle events ALL describe this
- * one root branch; `projectBranches` likewise treats the parentless branch as the
- * root. Forks are a control-plane concept — they mint FRESH branch ids that never
- * appear in Emitter traffic. Root === stepKey keeps the dedupe key format stable.
+ * The ROOT (original, agent-provenance) branch id for a step — also the grain a
+ * Step LIFECYCLE event dedupes under (#32 idempotency). The data-plane Emitter
+ * knows nothing of forks, so its Step events ALL describe this one root branch;
+ * `projectBranches` likewise treats the parentless branch as the root. Forks are a
+ * control-plane concept — they mint FRESH branch ids that never appear in Emitter
+ * traffic. Root === stepKey keeps the dedupe key format stable.
  */
 export function rootBranchId(stepKey: string): string {
   return stepKey;
-}
-
-/**
- * The branch a Step LIFECYCLE event dedupes under (#32 idempotency grain). #41
- * retires the old `=> stepKey` stub: Emitter step events only ever describe the
- * step's ROOT branch (forks live on the control plane, never emitted), so this is
- * real resolution to `rootBranchId` — dedupe and `projectBranches` agree on it.
- */
-export function branchIdOf(stepKey: string): string {
-  return rootBranchId(stepKey);
 }
 
 export function dedupeKeyOf(env: IngestEnvelope): string {
@@ -309,7 +297,7 @@ export function dedupeKeyOf(env: IngestEnvelope): string {
   if (env.kind === 'run.completed') {
     return `${env.runId}::${RUN_STEP_SENTINEL}::${env.status}`;
   }
-  return `${branchIdOf(env.stepKey)}::${env.state}::${env.retryAttempt ?? 0}`;
+  return `${rootBranchId(env.stepKey)}::${env.state}::${env.retryAttempt ?? 0}`;
 }
 
 /** Derive the `<stage>` segment of a `<runId>:<stage>` stepKey (ADR-0006). */
@@ -347,7 +335,7 @@ export interface StepEdge {
 }
 
 export interface StepGraph {
-  envelopeVersion: typeof ENVELOPE_VERSION;
+  envelopeVersion: typeof CURRENT_ENVELOPE_VERSION;
   runId: string;
   producerSystem?: string;
   status?: RunStatus;
@@ -403,7 +391,7 @@ export function projectStepGraph(
 ): StepGraph {
   const runId = events[0]?.runId ?? '';
   const graph: StepGraph = {
-    envelopeVersion: ENVELOPE_VERSION,
+    envelopeVersion: CURRENT_ENVELOPE_VERSION,
     runId,
     nodes: [],
     edges: [],
@@ -422,7 +410,7 @@ export function projectStepGraph(
         graph.completedAt = env.completedAt;
         break;
       case 'step': {
-        const branchId = branchIdOf(env.stepKey);
+        const branchId = rootBranchId(env.stepKey);
         const attempt = env.retryAttempt ?? 0;
         const prio = eventPriority(env.state, attempt);
         const isNonTerminal = STATE_RANK[env.state] < TERMINAL_RANK;

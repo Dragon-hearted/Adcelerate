@@ -9,7 +9,6 @@ import {
   projectStepGraph,
   staleDownstream,
   diffSlots,
-  branchIdOf,
   rootBranchId,
   type CCEvent,
   type IngestEnvelope,
@@ -232,9 +231,8 @@ describe('projectStepGraph — derived overlay stamping (#41)', () => {
   }
 });
 
-describe('branchIdOf — retired stub, real root resolution (#41)', () => {
+describe('rootBranchId — dedupe grain = the step root branch (#41)', () => {
   test('dedupe grain resolves to the step root branch (root === stepKey)', () => {
     expect(rootBranchId(STEP_A)).toBe(STEP_A);
-    expect(branchIdOf(STEP_A)).toBe(rootBranchId(STEP_A));
   });
 });
