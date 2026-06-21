@@ -1,8 +1,7 @@
 // Small presentation helpers shared across dashboard components.
 
 export function formatCost(usd: number): string {
-  if (!Number.isFinite(usd)) return '$0.00';
-  if (usd === 0) return '$0.00';
+  if (!Number.isFinite(usd) || usd === 0) return '$0.00';
   if (Math.abs(usd) < 0.01) return `$${usd.toFixed(4)}`;
   return `$${usd.toFixed(2)}`;
 }

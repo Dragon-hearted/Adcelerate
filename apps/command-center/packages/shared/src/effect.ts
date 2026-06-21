@@ -30,16 +30,15 @@ function paths(input: unknown): string[] {
   if (!input || typeof input !== 'object') return [];
   const o = input as Record<string, unknown>;
   const out: string[] = [];
-  for (const k of ['file_path', 'path', 'notebook_path', 'filePath']) {
+  // Direct path-ish fields + a generic Bash command string.
+  for (const k of ['file_path', 'path', 'notebook_path', 'filePath', 'command']) {
     if (typeof o[k] === 'string') out.push(o[k] as string);
   }
-  // MultiEdit-style edits[].file_path, and a generic command string for Bash.
-  if (typeof o.command === 'string') out.push(o.command as string);
+  // MultiEdit-style edits[].file_path.
   if (Array.isArray(o.edits)) {
     for (const e of o.edits) {
-      if (e && typeof e === 'object' && typeof (e as Record<string, unknown>).file_path === 'string') {
-        out.push((e as Record<string, unknown>).file_path as string);
-      }
+      const fp = (e as Record<string, unknown> | null)?.file_path;
+      if (typeof fp === 'string') out.push(fp);
     }
   }
   return out;

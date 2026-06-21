@@ -107,7 +107,7 @@ export async function boardRoutes(app: FastifyInstance): Promise<void> {
       const paramSlotId = typeof req.body?.slotId === 'string' && req.body.slotId.length > 0
         ? req.body.slotId
         : undefined;
-      const declaredSlotId = started?.kind === 'run.started' ? started.slotId : undefined;
+      const declaredSlotId = started?.slotId;
       const slotId = paramSlotId ?? declaredSlotId ?? runId;
 
       // Idempotent join: UNIQUE(boardId, runId) → re-opening the same Run is a no-op.

@@ -1,11 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { Boxes, CheckCircle2, Download, AlertTriangle } from 'lucide-react';
 import type { SystemFreshness } from '@command-center/shared';
 import { useStore } from '@/store/useStore';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/utils';
 
 /**
  * System catalog + two-tier freshness signal (slice #40 / ADR-0021,0022). Systems
@@ -122,36 +121,31 @@ export function SystemCatalogPanel() {
   );
 }
 
-function TierBadge({ tier }: { tier: Tier }) {
-  if (tier === 'too-old') {
-    // Hard tier — reuse the #33 IncompatibilityBanner destructive language.
-    return (
-      <span className="flex shrink-0 items-center gap-1 rounded bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive-foreground">
-        <AlertTriangle className="size-3 text-destructive" /> too old
-      </span>
-    );
-  }
-  if (tier === 'update-available') {
-    return (
-      <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
-        update available
-      </span>
-    );
-  }
-  if (tier === 'not-installed') {
-    return (
-      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        not installed
-      </span>
-    );
-  }
-  return (
-    <span
-      className={cn(
-        'flex shrink-0 items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-success',
-      )}
-    >
+// Exhaustive per-tier badge — keyed so a new Tier is a compile error, not a
+// silent fallthrough. `too-old` reuses the #33 IncompatibilityBanner language.
+const TIER_BADGE: Record<Tier, ReactElement> = {
+  'too-old': (
+    <span className="flex shrink-0 items-center gap-1 rounded bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive-foreground">
+      <AlertTriangle className="size-3 text-destructive" /> too old
+    </span>
+  ),
+  'update-available': (
+    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
+      update available
+    </span>
+  ),
+  'not-installed': (
+    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      not installed
+    </span>
+  ),
+  'up-to-date': (
+    <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-success">
       <CheckCircle2 className="size-3" /> up to date
     </span>
-  );
+  ),
+};
+
+function TierBadge({ tier }: { tier: Tier }) {
+  return TIER_BADGE[tier];
 }
