@@ -17,15 +17,18 @@
 // executor's, not the Console's), so no re-fold/broadcast.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import {
   projectStepGraph,
   projectBranches,
   cascadePreview,
+  leasedSlots,
   type CascadePreview,
   type BudgetHeadroom,
 } from '@command-center/shared';
 import { eventBus, budgetTripCache } from '../bus/event-bus';
+import { approvalBus } from '../bus/approval-bus';
 import { loadRunEnvelopes } from './ingest';
 import { loadRunControlEvents } from './branches';
 
@@ -66,8 +69,20 @@ export async function cascadeRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/runs/:runId/cascade — record the operator's durable cascade intent as
-  // EXACTLY ONE `cc.cascade.requested` event. Returns the target stepKeys.
+  // POST /api/runs/:runId/cascade — the durable SPEND + LEASE gate (#43, ADR-0024).
+  // Computes the cascade `targets` (provenance-aware preview), then TRIPS a durable,
+  // no-timeout approval iff ANY of (ADR-0024 §3, "one rule"):
+  //   • count > threshold(2)                         — a large cascade,
+  //   • a budget-line is crossed                     — a cached trip spentUsd>=limitUsd,
+  //   • a target ∈ leasedSlots                       — driving into a mid-flight slot.
+  // On trip: park on the ApprovalBus (the Run stays plain `running` — the approval is
+  // a control-plane checkpoint, NOT a Step/Run state), await the operator → on APPROVE
+  // emit EXACTLY ONE `cc.cascade.requested` (the #42 emission; Step born only here);
+  // on DENY emit nothing (the queued tail is never dispatched). No trip → the #42
+  // silent dispatch. This folds #42's client-only ">2 confirm modal" into the server.
+  // Response: { status:'dispatched', requested } | { status:'pending-approval', approvalId }
+  //           | { status:'denied' }. (pending-approval is reserved for a non-blocking
+  // client view; this handler awaits and resolves to dispatched/denied.)
   app.post<{ Params: { runId: string }; Body: { stepKey?: unknown } }>(
     '/api/runs/:runId/cascade',
     async (req, reply) => {
@@ -83,16 +98,62 @@ export async function cascadeRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const branchProj = projectBranches(loadRunControlEvents(runId));
-      const targets = cascadePreview(graph, branchProj, stepKey).targets.map((t) => t.stepKey);
+      const preview = cascadePreview(graph, branchProj, stepKey);
+      const targets = preview.targets.map((t) => t.stepKey);
+      const { threshold } = preview;
 
-      eventBus.emit({
+      // ── trip conditions (each contributes an honest reason fragment) ──────────
+      const leased = leasedSlots(graph);
+      const leasedTargets = targets.filter((k) => leased.has(k));
+      // A budget-line is crossed when ANY cached provider trip has spent >= limit.
+      // We cannot map a cascade target to "its" provider (the graph carries
+      // producerSystem, the cache is keyed by provider — distinct namespaces), so
+      // v1 gates conservatively on any crossed line and names the real provider(s)
+      // in `reason` — honest, never a fabricated $ total (ADR-0009/0016).
+      // ponytail: any-crossed-line gates more (never less) = fail-safe; the narrower
+      // per-target-provider rule lands when the envelope carries provider per step
+      // (same missing field as #42's per-step provider — absent on the wire today).
+      const crossedLines = [...budgetTripCache.values()].filter((t) => t.spentUsd >= t.limitUsd);
+
+      const reasons: string[] = [];
+      if (targets.length > threshold) reasons.push(`${targets.length} > ${threshold} nodes`);
+      for (const t of crossedLines) reasons.push(`${t.provider} $${t.spentUsd}/${t.limitUsd}`);
+      for (const k of leasedTargets) reasons.push(`slot ${k} busy`);
+
+      const dispatch = () =>
+        eventBus.emit({
+          session_id: runId,
+          hook_event_type: 'cc.cascade.requested',
+          payload: { editedStepKey: stepKey, targets },
+          summary: `cascade.requested ${stepKey}`,
+        });
+
+      // No trip → the #42 silent dispatch.
+      if (reasons.length === 0) {
+        dispatch();
+        return reply.code(200).send({ status: 'dispatched', requested: targets });
+      }
+
+      // Trip → durable spend+lease approval (no timeout; Run stays `running`). Await
+      // the operator: APPROVE dispatches (Step born), DENY emits nothing.
+      const approvalId = randomUUID();
+      const decision = await approvalBus.request({
+        id: approvalId,
         session_id: runId,
-        hook_event_type: 'cc.cascade.requested',
-        payload: { editedStepKey: stepKey, targets },
-        summary: `cascade.requested ${stepKey}`,
+        kind: 'permission',
+        effectClass: 'spend',
+        reason: reasons.join('; '),
+        runId,
+        stepKeys: targets,
+        createdAt: Date.now(),
+        status: 'pending',
       });
 
-      return reply.code(200).send({ requested: targets });
+      if (decision.decision === 'approve' || decision.decision === 'modify') {
+        dispatch();
+        return reply.code(200).send({ status: 'dispatched', requested: targets });
+      }
+      return reply.code(200).send({ status: 'denied' });
     },
   );
 }

@@ -2,10 +2,11 @@
 
 import { memo, useEffect, useState } from 'react';
 import { Handle, Position, useViewport, type NodeProps } from '@xyflow/react';
-import type { BranchInfo, CascadePreview, StepState } from '@command-center/shared';
+import type { BranchInfo, StepState } from '@command-center/shared';
 import { api } from '@/lib/api';
 import { ORCH_URL } from '@/lib/config';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/store/useStore';
 
 // The data React Flow carries for a substrate step node.
 export interface StepNodeData {
@@ -34,6 +35,14 @@ export interface StepNodeData {
   runId?: string;
   branches?: BranchInfo[];
   activeBranchId?: string;
+  // #43: DERIVED awaiting-approval overlay — this node's stepKey ∈ a pending durable
+  // approval's `stepKeys` (matched in Canvas `layout()` against the approvals store).
+  // NON-interactive: the badge DEEP-LINKS to ApprovalsPanel (never approves). `ghost`
+  // marks a transient node injected for a fresh-dispatch approval with no Step yet
+  // (dotted, no artifact); the real Step replaces it on approve. RESTYLE, never hide.
+  awaitingApproval?: boolean;
+  approvalId?: string;
+  ghost?: boolean;
   [key: string]: unknown;
 }
 
@@ -73,6 +82,12 @@ const ORPHANED_OVERLAY = 'opacity-40 grayscale';
 // hide). Consistent with the #41 stale/orphaned overlay approach above.
 const BLOCKED_UPSTREAM_OVERLAY = '!border-solid !border-amber-500 ring-1 ring-amber-500/40';
 
+// #43 awaiting-approval overlay — a durable approval gates this node. Violet ring +
+// solid border to read as "paused, pending your decision" (distinct from amber
+// blocked/stale). Same overlay-on-top-of-state approach (restyle, never hide). The
+// ⏸ badge is a deep-link to ApprovalsPanel, NOT an approve button (no Canvas approve).
+const AWAITING_APPROVAL_OVERLAY = '!border-solid !border-violet-500 ring-1 ring-violet-500/50';
+
 // A short, human-scannable label for a Branch in the active-branch selector.
 function branchLabel(b: BranchInfo): string {
   const short = b.branchId.length > 8 ? `${b.branchId.slice(0, 8)}…` : b.branchId;
@@ -94,11 +109,11 @@ function StepNodeComponent({ data }: NodeProps) {
   const [ref, setRef] = useState(active?.payload?.ref ?? '');
   const [busy, setBusy] = useState(false);
 
-  // #42 cascade gate state — after a fork stales downstream, the preview decides:
-  // `toast` is the transient inline "regenerating N…" (silent path, ≤ threshold);
-  // `cascade` holds the preview for the confirm overlay (> threshold).
+  // #42→#43 cascade gate state — `toast` is the transient inline "cascade requested
+  // N…" confirmation. The ">2 confirm modal" was REMOVED in #43: the durable server
+  // gate (POST /cascade) now decides dispatch-vs-approval (count>2 / budget-line /
+  // leased slot); if gated, it surfaces in ApprovalsPanel + a Canvas ⏸ overlay.
   const [toast, setToast] = useState<string | null>(null);
-  const [cascade, setCascade] = useState<CascadePreview | null>(null);
 
   // Auto-dismiss the inline toast (transient, like the #41 fire-and-forget edits).
   useEffect(() => {
@@ -121,22 +136,20 @@ function StepNodeComponent({ data }: NodeProps) {
         ref: ref || undefined,
       });
       setForking(false);
-      // #42 cascade gate — a fork stales the agent-authored downstream set. Preview
-      // it (REST req/resp, no socket) and gate: nothing downstream → no-op; ≤
-      // threshold → silent dispatch + inline toast; > threshold → confirm overlay.
-      // Never an implicit dispatch above the threshold (ADR-0016).
+      // #42→#43 cascade gate — a fork stales the agent-authored downstream set. The
+      // cheap preview only short-circuits the no-op case (nothing downstream). For
+      // any real cascade we POST and let the DURABLE SERVER GATE decide: silent
+      // dispatch (≤2 ∧ no budget-line ∧ unleased) vs a pending approval (count>2 /
+      // budget-line crossed / leased slot). No client confirm modal (#43 trim) — a
+      // gated cascade surfaces in ApprovalsPanel + a ⏸ Canvas overlay.
       try {
         const preview = await api.getCascadePreview(d.runId, d.stepKey);
-        if (preview.count === 0) {
-          /* no agent-authored downstream → nothing to regenerate */
-        } else if (preview.count <= preview.threshold) {
+        if (preview.count > 0) {
           await api.requestCascade(d.runId, d.stepKey);
-          setToast(`regenerating ${preview.count}…`);
-        } else {
-          setCascade(preview);
+          setToast(`cascade requested · ${preview.count}`);
         }
       } catch {
-        /* preview is best-effort; the fork already landed */
+        /* preview/request is best-effort; the fork already landed */
       }
     } catch {
       /* fire-and-forget; the broadcast is the source of truth */
@@ -145,20 +158,11 @@ function StepNodeComponent({ data }: NodeProps) {
     }
   }
 
-  // #42 Confirm seam — POST the cascade request, then close the overlay. Cancel
-  // simply closes (NO POST), the demoable cancel-before-it-runs (ADR-0016).
-  async function confirmCascade() {
-    if (!d.runId || !cascade || busy) return;
-    setBusy(true);
-    try {
-      await api.requestCascade(d.runId, cascade.editedStepKey);
-      setToast(`regenerating ${cascade.count}…`);
-    } catch {
-      /* fire-and-forget; the executor (#39) owns the run lifecycle */
-    } finally {
-      setBusy(false);
-      setCascade(null);
-    }
+  // #43 deep-link — a ⏸ overlay click focuses the matching ApprovalsPanel card
+  // (scroll + highlight). This is the ONLY Canvas affordance for a gated node; the
+  // approve/deny action lives exclusively in ApprovalCard.
+  function openApproval() {
+    if (d.approvalId) useStore.getState().focusApproval(d.approvalId);
   }
 
   async function activate(branchId: string) {
@@ -182,6 +186,29 @@ function StepNodeComponent({ data }: NodeProps) {
       : d.artifactUrl
     : undefined;
 
+  // #43 GHOST node — a transient placeholder for a fresh-dispatch approval whose
+  // stepKey has no Step yet (injected by Canvas `layout()` from the approval store,
+  // NO event/projection). Dotted, no artifact, "⏸ pending"; the ⏸ deep-links to the
+  // approval card. On approve the real Step is emitted and this ghost is replaced.
+  if (d.ghost) {
+    return (
+      <div className="min-w-[140px] rounded-lg border-2 border-dashed border-violet-500 bg-violet-500/10 px-3 py-2 text-violet-300 shadow-sm">
+        <Handle type="target" position={Position.Left} className="!bg-border" />
+        <div className="text-sm font-medium leading-tight">{d.stage}</div>
+        <div className="font-mono text-[10px] leading-tight opacity-70">{d.stepKey}</div>
+        <button
+          type="button"
+          onClick={openApproval}
+          className="nodrag nopan mt-1 rounded border border-violet-500 px-1.5 py-0.5 text-[10px] font-mono text-violet-300 hover:bg-violet-500/15"
+          title="Awaiting approval — open the approval card (not an approve button)"
+        >
+          ⏸ pending — review
+        </button>
+        <Handle type="source" position={Position.Right} className="!bg-border" />
+      </div>
+    );
+  }
+
   if (coarse) {
     // COARSE (zoomed out): stage label + a small status-colored dot. ponytail:
     // image-engine is flat (one Step per generation, ADR-0008) so "Op-level" = the
@@ -196,6 +223,7 @@ function StepNodeComponent({ data }: NodeProps) {
           d.stale && STALE_OVERLAY,
           d.orphaned && ORPHANED_OVERLAY,
           d.blockedUpstream && BLOCKED_UPSTREAM_OVERLAY,
+          d.awaitingApproval && AWAITING_APPROVAL_OVERLAY,
         )}
       >
         <Handle type="target" position={Position.Left} className="!bg-border" />
@@ -203,6 +231,17 @@ function StepNodeComponent({ data }: NodeProps) {
         <span className="text-sm font-medium leading-tight">{d.stage}</span>
         {d.blockedUpstream ? (
           <span className="text-amber-300" aria-label="blocked: upstream failed" title="Blocked — a transitive upstream Step failed">🔒</span>
+        ) : null}
+        {d.awaitingApproval ? (
+          <button
+            type="button"
+            onClick={openApproval}
+            className="nodrag nopan text-violet-300 hover:text-violet-200"
+            aria-label="awaiting approval — open the approval card"
+            title="Awaiting approval — open the approval card (not an approve button)"
+          >
+            ⏸
+          </button>
         ) : null}
         <Handle type="source" position={Position.Right} className="!bg-border" />
       </div>
@@ -222,6 +261,8 @@ function StepNodeComponent({ data }: NodeProps) {
         d.orphaned && ORPHANED_OVERLAY,
         // #42 derived blocked-upstream overlay (queued ∧ upstream failed).
         d.blockedUpstream && BLOCKED_UPSTREAM_OVERLAY,
+        // #43 derived awaiting-approval overlay (stepKey ∈ a pending approval).
+        d.awaitingApproval && AWAITING_APPROVAL_OVERLAY,
       )}
     >
       <Handle type="target" position={Position.Left} className="!bg-border" />
@@ -258,6 +299,17 @@ function StepNodeComponent({ data }: NodeProps) {
           <span className="text-amber-300" aria-label="blocked: upstream failed" title="Blocked — a transitive upstream Step failed; this Step can't run">
             ·&nbsp;🔒 blocked: upstream failed
           </span>
+        ) : null}
+        {d.awaitingApproval ? (
+          <button
+            type="button"
+            onClick={openApproval}
+            className="nodrag nopan rounded border border-violet-500 px-1 text-violet-300 hover:bg-violet-500/15"
+            aria-label="awaiting approval — open the approval card"
+            title="Awaiting approval — open the approval card (not an approve button)"
+          >
+            ·&nbsp;⏸ awaiting approval
+          </button>
         ) : null}
       </div>
 
@@ -339,102 +391,6 @@ function StepNodeComponent({ data }: NodeProps) {
       ) : null}
 
       <Handle type="source" position={Position.Right} className="!bg-border" />
-
-      {/* #42 confirm overlay (> threshold) — reuses the DiffViewer fixed-overlay
-          pattern (fixed inset-0 z-50 backdrop + centered card), NO modal lib. Lists
-          count, affected stages, excluded human-edited steps, and budget headroom.
-          Cancel closes WITHOUT a POST; Confirm POSTs the cascade request. */}
-      {cascade ? (
-        <div
-          className="nodrag nopan fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
-          onClick={() => setCascade(null)}
-        >
-          <div
-            className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-              <span className="text-sm font-semibold text-foreground">Regenerate downstream?</span>
-              <span className="ml-auto rounded border border-amber-500 bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-amber-300">
-                {cascade.count} step{cascade.count === 1 ? '' : 's'}
-              </span>
-            </header>
-
-            <div className="min-h-0 flex-1 overflow-auto px-4 py-3 text-xs text-foreground">
-              <p className="text-muted-foreground">
-                Editing <span className="font-mono text-foreground">{cascade.editedStepKey}</span> will
-                regenerate {cascade.count} agent-authored downstream step
-                {cascade.count === 1 ? '' : 's'}:
-              </p>
-              <ul className="mt-1.5 flex flex-wrap gap-1">
-                {cascade.targets.map((t) => (
-                  <li
-                    key={t.stepKey}
-                    className="rounded border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[10px]"
-                    title={t.stepKey}
-                  >
-                    {t.stage}
-                  </li>
-                ))}
-              </ul>
-
-              {cascade.excludedHumanStepKeys.length > 0 ? (
-                <div className="mt-3">
-                  <p className="text-muted-foreground">
-                    Kept — human-edited, left Stale (never overridden):
-                  </p>
-                  <ul className="mt-1.5 flex flex-wrap gap-1">
-                    {cascade.excludedHumanStepKeys.map((k) => (
-                      <li
-                        key={k}
-                        className="rounded border border-amber-500/60 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-300"
-                      >
-                        🧑 {k}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {cascade.budgetHeadroom.length > 0 ? (
-                <div className="mt-3">
-                  <p className="text-muted-foreground">Budget headroom:</p>
-                  <ul className="mt-1.5 flex flex-col gap-1">
-                    {cascade.budgetHeadroom.map((b) => (
-                      <li
-                        key={`${b.provider} ${b.model}`}
-                        className="rounded border border-red-500/60 bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] text-red-300"
-                      >
-                        ⚠ {b.provider} at ${Math.max(0, b.limitUsd - b.spentUsd).toFixed(2)} remaining
-                        <span className="opacity-70"> (${b.spentUsd.toFixed(2)}/${b.limitUsd.toFixed(2)})</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-
-            <footer className="flex items-center justify-end gap-2 border-t border-border px-4 py-2.5">
-              <button
-                type="button"
-                onClick={() => setCascade(null)}
-                disabled={busy}
-                className="rounded border border-border px-2 py-1 text-[11px] font-mono text-muted-foreground hover:text-foreground disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmCascade}
-                disabled={busy}
-                className="rounded border border-emerald-500 px-2 py-1 text-[11px] font-mono text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
-              >
-                Confirm — regenerate {cascade.count}
-              </button>
-            </footer>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

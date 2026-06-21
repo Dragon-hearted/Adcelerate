@@ -42,6 +42,10 @@ interface StoreState {
 
   // approvals slice — only pending/active requests live here
   approvals: Record<string, ApprovalRequest>;
+  // #43: deep-link target — a Canvas ⏸ overlay click sets this so ApprovalsPanel
+  // scrolls/highlights the matching card. Transient (cleared after the scroll); the
+  // approve/deny action itself stays ONLY in ApprovalCard (Canvas never approves).
+  focusedApprovalId: string | null;
 
   // tokens slice
   tokensBySession: Record<string, SessionTokens>;
@@ -86,6 +90,7 @@ interface StoreState {
   setAgentState: (a: AgentDescriptor) => void;
   upsertApproval: (r: ApprovalRequest) => void;
   resolveApproval: (d: ApprovalResolvedPayload) => void;
+  focusApproval: (id: string | null) => void;
   addTokenTick: (t: TokenTick) => void;
   setGithub: (g: GitHubActivity) => void;
   addFileChange: (f: FileChange) => void;
@@ -150,6 +155,7 @@ export const useStore = create<StoreState>((set) => ({
   eventKeys: new Set(),
   sessions: {},
   approvals: {},
+  focusedApprovalId: null,
   tokensBySession: {},
   costSamples: [],
   github: null,
@@ -212,8 +218,12 @@ export const useStore = create<StoreState>((set) => ({
       if (!state.approvals[d.id]) return {};
       const next = { ...state.approvals };
       delete next[d.id];
-      return { approvals: next };
+      // Clear the deep-link focus if it pointed at the now-resolved approval.
+      const focusedApprovalId = state.focusedApprovalId === d.id ? null : state.focusedApprovalId;
+      return { approvals: next, focusedApprovalId };
     }),
+
+  focusApproval: (id) => set({ focusedApprovalId: id }),
 
   addTokenTick: (t) =>
     set((state) => {

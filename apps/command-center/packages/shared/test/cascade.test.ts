@@ -8,6 +8,7 @@ import {
   projectBranches,
   cascadePreview,
   blockedUpstreamStepKeys,
+  leasedSlots,
   ENVELOPE_VERSION,
   type CCEvent,
   type IngestEnvelope,
@@ -131,5 +132,27 @@ describe('blockedUpstreamStepKeys — derived view state (#42, ADR-0009/0016 §4
     // The failed node itself is not "queued" → never in the set.
     expect(blocked.has(A)).toBe(false);
     expect([...blocked].sort()).toEqual([B, C].sort());
+  });
+});
+
+describe('leasedSlots — derived execution lease (#43, ADR-0025 §5)', () => {
+  test('queued/running/retrying are busy; succeeded/failed are free', () => {
+    const D = `${RUN}:fetch`;
+    const E = `${RUN}:crop`;
+    const graph = projectStepGraph([
+      step(A, 'queued'),
+      step(B, 'running'),
+      step(C, 'retrying'),
+      step(D, 'succeeded'),
+      step(E, 'failed'),
+    ]);
+
+    const leased = leasedSlots(graph);
+    expect(leased.has(A)).toBe(true);  // queued holds the slot
+    expect(leased.has(B)).toBe(true);  // running
+    expect(leased.has(C)).toBe(true);  // retrying
+    expect(leased.has(D)).toBe(false); // terminal → free
+    expect(leased.has(E)).toBe(false); // terminal → free
+    expect([...leased].sort()).toEqual([A, B, C].sort());
   });
 });

@@ -10,7 +10,13 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { blockedUpstreamStepKeys } from '@command-center/shared';
-import type { BoardSlot, BranchProjection, RunStatus, StepGraph } from '@command-center/shared';
+import type {
+  ApprovalRequest,
+  BoardSlot,
+  BranchProjection,
+  RunStatus,
+  StepGraph,
+} from '@command-center/shared';
 import { useStore } from '@/store/useStore';
 import { api, type BoardListItem } from '@/lib/api';
 import { StepNode, type StepNodeData } from './StepNode';
@@ -43,7 +49,11 @@ function RunStatusBadge({ status }: { status?: RunStatus }) {
 const COL = 220;
 const ROW = 90;
 
-function layout(graph: StepGraph, branchProj?: BranchProjection): { nodes: Node[]; edges: Edge[] } {
+function layout(
+  graph: StepGraph,
+  branchProj?: BranchProjection,
+  pendingApprovals: ApprovalRequest[] = [],
+): { nodes: Node[]; edges: Edge[] } {
   const adjacency = new Map<string, string[]>();
   const indegree = new Map<string, number>();
   for (const n of graph.nodes) indegree.set(n.stepKey, 0);
@@ -71,6 +81,17 @@ function layout(graph: StepGraph, branchProj?: BranchProjection): { nodes: Node[
   // upstream. Pure (emits nothing, ADR-0009/0016 §4); restyles the node, never hides.
   const blocked = blockedUpstreamStepKeys(graph);
 
+  // #43: DERIVED awaiting-approval linkage — map each stepKey gated by a pending
+  // durable approval → that approval's id (the deep-link target). Scoped by runId so
+  // a sibling run's approval doesn't bleed overlays across graphs; only `permission`
+  // approvals gate Canvas nodes. NO new event/projection — read straight off the store.
+  const awaitingByKey = new Map<string, string>();
+  for (const p of pendingApprovals) {
+    if (p.kind !== 'permission') continue;
+    if (p.runId && p.runId !== graph.runId) continue;
+    for (const k of p.stepKeys ?? []) awaitingByKey.set(k, p.id);
+  }
+
   // Stack nodes that share a depth column vertically.
   const rowByDepth = new Map<number, number>();
   const nodes: Node[] = graph.nodes.map((n) => {
@@ -95,6 +116,9 @@ function layout(graph: StepGraph, branchProj?: BranchProjection): { nodes: Node[
       orphaned: n.orphaned,
       // #42: derived "blocked: upstream failed" view state (not a wire lifecycle).
       blockedUpstream: blocked.has(n.stepKey),
+      // #43: derived awaiting-approval overlay (stepKey ∈ a pending approval).
+      awaitingApproval: awaitingByKey.has(n.stepKey),
+      approvalId: awaitingByKey.get(n.stepKey),
       runId: graph.runId,
       branches: lineage?.branches,
       activeBranchId: lineage?.activeBranchId,
@@ -106,6 +130,36 @@ function layout(graph: StepGraph, branchProj?: BranchProjection): { nodes: Node[
       data,
     };
   });
+
+  // #43: TRANSIENT ghost nodes — a pending approval may gate a fresh-dispatch stepKey
+  // that has no Step yet (e.g. a cascade target queued behind the gate). Inject a
+  // dotted "⏸ pending" placeholder derived purely from the approval store (NO event/
+  // projection); on approve the real Step is emitted and replaces it. Parked in a
+  // trailing column so they don't collide with the laid-out DAG.
+  const existing = new Set(graph.nodes.map((n) => n.stepKey));
+  const cols = [...depth.values()];
+  const ghostCol = (cols.length ? Math.max(...cols) : -1) + 1;
+  let ghostRow = 0;
+  for (const [stepKey, approvalId] of awaitingByKey) {
+    if (existing.has(stepKey)) continue;
+    const data: StepNodeData = {
+      stage: 'pending',
+      stepKey,
+      state: 'queued',
+      hasArtifact: false,
+      ghost: true,
+      awaitingApproval: true,
+      approvalId,
+      runId: graph.runId,
+    };
+    nodes.push({
+      id: stepKey,
+      type: 'step',
+      position: { x: ghostCol * COL, y: ghostRow * ROW },
+      data,
+    });
+    ghostRow += 1;
+  }
 
   const edges: Edge[] = graph.edges.map((e) => ({
     id: `${e.from}->${e.to}`,
@@ -131,9 +185,11 @@ function SlotRow({ slot }: { slot: BoardSlot }) {
   // #41: pull this Run's Branch lineage so the slot's Canvas gets fork/active-branch
   // controls + overlays. Subscribed per-runId so only the shown run re-renders.
   const branchProj = useStore((s) => (graph ? s.branchProjections[graph.runId] : undefined));
+  // #43: pending durable approvals feed the awaiting-approval overlay + ghost nodes.
+  const approvals = useStore((s) => s.approvals);
   const flow = useMemo(
-    () => (graph ? layout(graph, branchProj) : { nodes: [], edges: [] }),
-    [graph, branchProj],
+    () => (graph ? layout(graph, branchProj, Object.values(approvals)) : { nodes: [], edges: [] }),
+    [graph, branchProj, approvals],
   );
 
   return (
@@ -202,6 +258,8 @@ export function Canvas() {
   const board = selectedBoardId ? boards[selectedBoardId] : undefined;
   // #41: the selected Run's Branch lineage feeds the editing controls + overlays.
   const branchProj = useStore((s) => (selectedRunId ? s.branchProjections[selectedRunId] : undefined));
+  // #43: pending durable approvals feed the awaiting-approval overlay + ghost nodes.
+  const approvals = useStore((s) => s.approvals);
 
   // Available boards for the selector / open-into-Board target.
   const [boardList, setBoardList] = useState<BoardListItem[]>([]);
@@ -273,8 +331,8 @@ export function Canvas() {
   }, [selectedRunId, branchProj]);
 
   const flow = useMemo(
-    () => (graph ? layout(graph, branchProj) : { nodes: [], edges: [] }),
-    [graph, branchProj],
+    () => (graph ? layout(graph, branchProj, Object.values(approvals)) : { nodes: [], edges: [] }),
+    [graph, branchProj, approvals],
   );
 
   function onSelectBoard(value: string) {

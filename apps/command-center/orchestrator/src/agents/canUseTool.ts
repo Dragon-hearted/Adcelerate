@@ -7,41 +7,47 @@
 //   modify  → { behavior: 'allow', updatedInput }     (SDK has no 'modify' arm)
 //   approve → { behavior: 'allow', updatedInput: input }
 //
-// Default-risky tools (Bash, file writes, network) require approval; everything
-// else (Read/Grep/Glob/the ask_human MCP tool, …) is auto-allowed so we don't
-// double-prompt. Operators can later opt specific tools into auto-approve.
+// #43: the gate predicate is now the shared `classifyEffect` effect-class
+// (read / spend / irreversible) rather than a local tool-identity set — a
+// FORMALIZATION, not a loosening: `read` (Read/Grep/Glob/LS) auto-allows exactly
+// as before, while `irreversible`/`spend` and any unknown tool gate (fail-safe).
+// The raised ApprovalRequest carries `effectClass` + `reason` for the Canvas
+// overlay/ghost-node linkage (#43 web).
+//
+// seam: session-death re-arm (ADR-0024 §4) — re-arming this in-memory park after a
+// session restart is a deferred follow-on; the approval events are already durable
+// on the log, so nothing is lost, only the in-proc wait would need re-attaching.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'node:crypto';
 import type { CanUseTool, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
+import { classifyEffect } from '@command-center/shared';
 import type { AgentSession } from './session';
 import { approvalBus } from '../bus/approval-bus';
 
-// Tools that mutate the filesystem, run shell, or hit the network. The MCP
-// `ask_human` tool (mcp__human__ask_human) is intentionally NOT here — it has
-// its own human round-trip and must not be gated by a permission prompt.
-const RISKY_TOOLS = new Set<string>([
-  'Bash',
-  'Write',
-  'Edit',
-  'MultiEdit',
-  'NotebookEdit',
-  'WebFetch',
-  'WebSearch',
-]);
+// The MCP `ask_human` tool has its OWN human round-trip and must never be gated by
+// a permission prompt (it would double-prompt / deadlock). It is auto-allowed
+// regardless of its fail-safe effect class.
+const ASK_HUMAN_TOOL = 'mcp__human__ask_human';
 
-export function requiresApproval(toolName: string): boolean {
-  if (RISKY_TOOLS.has(toolName)) return true;
-  // Any MCP network/proxy tool that smells like an outbound call.
-  if (/(^|__)(fetch|curl|http|request|post|put|delete)(__|$)/i.test(toolName)) return true;
-  return false;
+/**
+ * Does this tool invocation need an approval gate? `read` (and the ask_human MCP
+ * tool) auto-allow; everything else — `irreversible`, `spend`, and any unknown
+ * tool (fail-safe) — gates. Thin wrapper over the shared `classifyEffect`.
+ */
+export function requiresApproval(toolName: string, input?: unknown): boolean {
+  if (toolName === ASK_HUMAN_TOOL) return false;
+  return classifyEffect(toolName, input) !== 'read';
 }
 
 export function makeCanUseTool(session: AgentSession): CanUseTool {
   return async (toolName, input, options): Promise<PermissionResult> => {
-    if (!requiresApproval(toolName)) {
+    if (!requiresApproval(toolName, input)) {
       return { behavior: 'allow', updatedInput: input };
     }
+
+    const effectClass = classifyEffect(toolName, input);
+    const reason = `${toolName} is ${effectClass} — requires approval`;
 
     session.setState('awaiting_approval');
     const decision = await approvalBus.request({
@@ -51,6 +57,8 @@ export function makeCanUseTool(session: AgentSession): CanUseTool {
       kind: 'permission',
       tool_name: toolName,
       tool_input: input,
+      effectClass,
+      reason,
       suggestions: options.suggestions,
       createdAt: Date.now(),
       status: 'pending',

@@ -847,6 +847,28 @@ export function blockedUpstreamStepKeys(graph: StepGraph): Set<string> {
   return blocked;
 }
 
+/**
+ * Execution Lease (#43, ADR-0025 §5) — DERIVED, emits nothing: the stepKeys whose
+ * node is mid-flight (state ∈ {queued, running, retrying}) and therefore "holds" a
+ * slot. A cascade dispatch into a leased slot trips the durable approval gate.
+ * No new state / lock — a soft read over the existing Step lifecycle, mirroring how
+ * `blockedUpstreamStepKeys` reads node state off the graph.
+ *
+ * ponytail: v1 keys by `stepKey` within the active run graph — correct under the v1
+ * one-run-per-board invariant. The cross-run `(producerSystem, slot-id)` refinement
+ * (ADR-0025 §3) is correct-but-rarely-exercised here; add it when many-runs-per-board
+ * is actually exercised.
+ */
+export function leasedSlots(graph: StepGraph): Set<string> {
+  const busy = new Set<string>();
+  for (const node of graph.nodes) {
+    if (node.state === 'queued' || node.state === 'running' || node.state === 'retrying') {
+      busy.add(node.stepKey);
+    }
+  }
+  return busy;
+}
+
 // ── Board projection (#36) ────────────────────────────────────────────────────
 // A Board is the unit of persistence: a grouping over already-persisted Runs.
 // Cross-Run stacking is a READ-side projection keyed on `(producerSystem, slotId)`
