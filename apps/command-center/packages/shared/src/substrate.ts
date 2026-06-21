@@ -51,6 +51,35 @@ export const STEP_STATES = [
 ] as const;
 export type StepState = (typeof STEP_STATES)[number];
 
+// ── lifecycle ordering (#32) ─────────────────────────────────────────────────
+// A total order over Step states drives the MONOTONIC fold: the highest-rank
+// event seen for a branch wins, so out-of-order arrival converges. Terminals
+// (succeeded/failed) outrank progress (running/retrying) outrank queued.
+//   queued(0) → running(1) = retrying(1) → succeeded(2) = failed(2)
+const STATE_RANK: Record<StepState, number> = {
+  queued: 0,
+  running: 1,
+  retrying: 1,
+  succeeded: 2,
+  failed: 2,
+};
+/** Lifecycle rank: terminal(2) > progress(1) > queued(0). */
+export function stateRank(state: StepState): number {
+  return STATE_RANK[state];
+}
+const TERMINAL_RANK = 2;
+
+// Strict tiebreak WITHIN an equal (rank, retryAttempt) — keeps the fold a total
+// order so it stays order-independent. `retrying` beats `running` (more recent
+// lifecycle); `failed` beats `succeeded` (surface failure conservatively).
+const STATE_TIEBREAK: Record<StepState, number> = {
+  queued: 0,
+  running: 1,
+  retrying: 2,
+  succeeded: 3,
+  failed: 4,
+};
+
 // ── artifact ─────────────────────────────────────────────────────────────────
 // A produced output reference. Snapshot-on-ingest is deferred (#32) — for now the
 // envelope just carries the URL + mime so the Canvas can preview it live.
@@ -96,6 +125,10 @@ export const stepEventSchema = z.object({
   stepKey: z.string().min(1),
   state: z.enum(STEP_STATES),
   artifact: artifactSchema.optional(),
+  // Added in #32: which retry attempt this lifecycle event belongs to. Default 0
+  // (first attempt). Part of the dedupe identity so a retried event (same state,
+  // new attempt) is NOT mistaken for a duplicate. Optional on the wire.
+  retryAttempt: z.number().int().nonnegative().optional(),
 });
 export type StepEvent = z.infer<typeof stepEventSchema>;
 
@@ -225,10 +258,20 @@ export function upcastEnvelope(raw: unknown): UpcastResult {
 }
 
 // ── dedupe key ───────────────────────────────────────────────────────────────
-// Idempotency is `(runId, stepKey, lifecycleState)`. Run lifecycle events have no
-// stepKey, so they fold onto a per-run sentinel and use the run state as the
-// lifecycle component.
+// Idempotency is `(branchId, lifecycleState, retryAttempt)` (#32). A retried
+// event (same state, new attempt) is therefore NOT collapsed into a duplicate.
+// Run lifecycle events have no stepKey, so they fold onto a per-run sentinel and
+// use the run state as the lifecycle component (retryAttempt N/A there).
 export const RUN_STEP_SENTINEL = '__run__';
+
+/**
+ * The branch a Step lifecycle event belongs to. Branches do not exist until #41
+ * (Branch/Lineage); today a branch IS a step, so this is the stepKey. #41 swaps
+ * a real branch id in HERE without touching the dedupe key or the fold.
+ */
+export function branchIdOf(stepKey: string): string {
+  return stepKey;
+}
 
 export function dedupeKeyOf(env: IngestEnvelope): string {
   if (env.kind === 'run.started') {
@@ -237,7 +280,7 @@ export function dedupeKeyOf(env: IngestEnvelope): string {
   if (env.kind === 'run.completed') {
     return `${env.runId}::${RUN_STEP_SENTINEL}::${env.status}`;
   }
-  return `${env.runId}::${env.stepKey}::${env.state}`;
+  return `${branchIdOf(env.stepKey)}::${env.state}::${env.retryAttempt ?? 0}`;
 }
 
 /** Derive the `<stage>` segment of a `<runId>:<stage>` stepKey (ADR-0006). */
@@ -254,6 +297,11 @@ export interface StepNode {
   stage: string;
   state: StepState;
   artifact?: Artifact;
+  // #32: the branch reached a terminal state without ever emitting a non-terminal
+  // (queued/running/retrying) lifecycle event — i.e. a terminal-only Step. Valid
+  // Steps carry ≥2 lifecycle events (ADR-0009); the Canvas flags this one. Cleared
+  // automatically if an earlier-lifecycle event later arrives (order-tolerant).
+  malformed?: boolean;
 }
 
 export interface StepEdge {
@@ -272,14 +320,36 @@ export interface StepGraph {
   edges: StepEdge[];
 }
 
+// The fold's per-branch accumulator. `priority` is the (rank, retryAttempt,
+// tiebreak) tuple of the winning event; `artifactPriority` tracks the best
+// artifact-bearing event separately so an artifact on a non-winning event is not
+// lost. `sawNonTerminal` drives the terminal-only `malformed` flag.
+interface BranchAcc {
+  node: StepNode;
+  priority: readonly [number, number, number];
+  artifactPriority: readonly [number, number, number] | null;
+  sawNonTerminal: boolean;
+}
+
+function eventPriority(state: StepState, retryAttempt: number): readonly [number, number, number] {
+  return [STATE_RANK[state], retryAttempt, STATE_TIEBREAK[state]];
+}
+
+/** Lexicographic compare of two (rank, attempt, tiebreak) tuples. a > b ? */
+function gt(a: readonly [number, number, number], b: readonly [number, number, number]): boolean {
+  return a[0] !== b[0] ? a[0] > b[0] : a[1] !== b[1] ? a[1] > b[1] : a[2] > b[2];
+}
+
 /**
- * PURE fold: ordered envelopes → StepGraph. Group by `(runId, stepKey)`,
- * latest-state-wins per step. Nodes are steps; edges chain steps in first-seen
- * (declared/source) order. Run lifecycle envelopes set graph-level metadata.
+ * PURE, ORDER-INDEPENDENT fold: envelopes → StepGraph (#32). Per branch
+ * (branchId = stepKey), keep the event with the highest `(rank, retryAttempt,
+ * tiebreak)` — a monotonic max-fold — so duplicate, out-of-order, and retried
+ * events all converge to the SAME graph regardless of arrival order. Nodes are
+ * emitted in deterministic stepKey order (not arrival order) so the projection
+ * is byte-stable under a shuffled log. Run lifecycle envelopes set graph metadata.
  *
- * Envelopes are assumed chronological (the ingest log is append-ordered); the
- * last state seen for a stepKey wins. Mixed-run input is grouped by the first
- * envelope's runId — callers pass one run's events.
+ * Real lineage edges land in #41; until then edges are a deterministic linear
+ * spine over the sorted nodes (the single-branch placeholder this slice hardens).
  */
 export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
   const runId = events[0]?.runId ?? '';
@@ -290,8 +360,7 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
     edges: [],
   };
 
-  const nodeIndex = new Map<string, StepNode>();
-  const order: string[] = []; // stepKeys in first-seen order
+  const branches = new Map<string, BranchAcc>();
 
   for (const env of events) {
     switch (env.kind) {
@@ -304,30 +373,56 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
         graph.completedAt = env.completedAt;
         break;
       case 'step': {
-        let node = nodeIndex.get(env.stepKey);
-        if (!node) {
-          node = {
-            runId: env.runId,
-            stepKey: env.stepKey,
-            stage: stageOf(env.runId, env.stepKey),
-            state: env.state,
+        const branchId = branchIdOf(env.stepKey);
+        const attempt = env.retryAttempt ?? 0;
+        const prio = eventPriority(env.state, attempt);
+        const isNonTerminal = STATE_RANK[env.state] < TERMINAL_RANK;
+
+        let acc = branches.get(branchId);
+        if (!acc) {
+          acc = {
+            node: {
+              runId: env.runId,
+              stepKey: env.stepKey,
+              stage: stageOf(env.runId, env.stepKey),
+              state: env.state,
+            },
+            priority: prio,
+            artifactPriority: null,
+            sawNonTerminal: false,
           };
-          nodeIndex.set(env.stepKey, node);
-          order.push(env.stepKey);
+          branches.set(branchId, acc);
         }
-        // latest-state-wins; keep the most recent artifact if supplied.
-        node.state = env.state;
-        if (env.artifact) node.artifact = env.artifact;
+
+        // Monotonic: only a strictly-higher-priority event moves the node state.
+        if (gt(prio, acc.priority)) {
+          acc.node.state = env.state;
+          acc.priority = prio;
+        }
+        // Best-artifact wins independently — highest-priority event that carries one.
+        if (env.artifact && (acc.artifactPriority === null || gt(prio, acc.artifactPriority))) {
+          acc.node.artifact = env.artifact;
+          acc.artifactPriority = prio;
+        }
+        if (isNonTerminal) acc.sawNonTerminal = true;
         break;
       }
     }
   }
 
-  graph.nodes = order.map((k) => nodeIndex.get(k)!);
-  // Edges chain steps in declared/source order — the spine of a linear pipeline.
-  // Branch/lineage edges are a later slice; first-seen order is the contract here.
-  for (let i = 1; i < order.length; i++) {
-    graph.edges.push({ from: order[i - 1]!, to: order[i]! });
+  // Terminal-only normalization: a branch that reached terminal but never saw a
+  // non-terminal lifecycle event is malformed (<2 lifecycle events, ADR-0009).
+  for (const acc of branches.values()) {
+    if (!acc.sawNonTerminal && STATE_RANK[acc.node.state] === TERMINAL_RANK) {
+      acc.node.malformed = true;
+    }
+  }
+
+  // Deterministic stepKey order → byte-stable projection under a shuffled log.
+  const sortedKeys = [...branches.keys()].sort();
+  graph.nodes = sortedKeys.map((k) => branches.get(k)!.node);
+  for (let i = 1; i < sortedKeys.length; i++) {
+    graph.edges.push({ from: sortedKeys[i - 1]!, to: sortedKeys[i]! });
   }
 
   return graph;

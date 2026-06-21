@@ -9,13 +9,32 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { StepGraph } from '@command-center/shared';
+import type { RunStatus, StepGraph } from '@command-center/shared';
 import { useStore } from '@/store/useStore';
 import { api } from '@/lib/api';
 import { StepNode, type StepNodeData } from './StepNode';
 
 // Stable nodeTypes reference (React Flow warns on inline object identity churn).
 const nodeTypes = { step: StepNode };
+
+// Non-binary run status (#32 / ADR-0014). `completed-with-failures` surfaces as a
+// distinct "partial" badge — succeeded / partial / failed / cancelled, not binary.
+const RUN_STATUS_BADGE: Record<RunStatus, { label: string; className: string }> = {
+  'completed': { label: 'completed', className: 'border-emerald-500 bg-emerald-500/15 text-emerald-300' },
+  'completed-with-failures': { label: 'partial', className: 'border-amber-500 bg-amber-500/15 text-amber-300' },
+  'failed': { label: 'failed', className: 'border-red-500 bg-red-500/15 text-red-300' },
+  'cancelled': { label: 'cancelled', className: 'border-border bg-muted/40 text-muted-foreground' },
+};
+
+function RunStatusBadge({ status }: { status?: RunStatus }) {
+  if (!status) return null;
+  const b = RUN_STATUS_BADGE[status];
+  return (
+    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide ${b.className}`}>
+      {b.label}
+    </span>
+  );
+}
 
 // Left→right layout by topological depth. The substrate fold emits a linear
 // first-seen chain today, so depth = longest path from a source — no layout dep
@@ -58,6 +77,7 @@ function layout(graph: StepGraph): { nodes: Node[]; edges: Edge[] } {
       stepKey: n.stepKey,
       state: n.state,
       hasArtifact: Boolean(n.artifact),
+      malformed: n.malformed,
     };
     return {
       id: n.stepKey,
@@ -109,9 +129,12 @@ export function Canvas() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Run Canvas
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Run Canvas
+          </h2>
+          <RunStatusBadge status={graph?.status} />
+        </div>
         {runIds.length > 0 ? (
           <select
             value={selectedRunId ?? ''}

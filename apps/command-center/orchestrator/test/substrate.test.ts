@@ -60,10 +60,14 @@ describe('projectStepGraph', () => {
 });
 
 describe('dedupeKeyOf', () => {
-  test('step key is (runId, stepKey, state)', () => {
+  test('step key is (branchId=stepKey, state, retryAttempt)', () => {
     expect(
       dedupeKeyOf({ envelopeVersion: V, kind: 'step', runId: RUN, stepKey: STEP, state: 'running' }),
-    ).toBe(`${RUN}::${STEP}::running`);
+    ).toBe(`${STEP}::running::0`);
+    // retryAttempt is part of the identity — a retry is NOT a duplicate.
+    expect(
+      dedupeKeyOf({ envelopeVersion: V, kind: 'step', runId: RUN, stepKey: STEP, state: 'running', retryAttempt: 1 }),
+    ).toBe(`${STEP}::running::1`);
   });
 
   test('run.started and run.completed fold onto the run sentinel with run state', () => {

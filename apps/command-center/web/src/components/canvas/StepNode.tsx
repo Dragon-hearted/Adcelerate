@@ -11,6 +11,8 @@ export interface StepNodeData {
   stepKey: string;
   state: StepState;
   hasArtifact: boolean;
+  // #32: terminal-only step (reached succeeded/failed without queued/running).
+  malformed?: boolean;
   [key: string]: unknown;
 }
 
@@ -31,6 +33,8 @@ function StepNodeComponent({ data }: NodeProps) {
       className={cn(
         'min-w-[140px] rounded-lg border px-3 py-2 shadow-sm transition-colors',
         STATE_STYLES[d.state],
+        // Terminal-only step → ringed amber so it reads as "needs attention".
+        d.malformed && 'ring-2 ring-amber-400/70',
       )}
     >
       <Handle type="target" position={Position.Left} className="!bg-border" />
@@ -38,6 +42,11 @@ function StepNodeComponent({ data }: NodeProps) {
       <div className="mt-1 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wide opacity-80">
         <span>{d.state}</span>
         {d.hasArtifact ? <span aria-label="has artifact">·&nbsp;artifact</span> : null}
+        {d.malformed ? (
+          <span className="text-amber-300" aria-label="malformed: terminal-only step" title="Terminal-only — no queued/running observed">
+            ·&nbsp;⚠ malformed
+          </span>
+        ) : null}
       </div>
       <Handle type="source" position={Position.Right} className="!bg-border" />
     </div>
