@@ -31,6 +31,18 @@ export function useSocketBridge(): void {
     socket.on('token:tick', (t) => useStore.getState().addTokenTick(t));
     socket.on('github:update', (g) => useStore.getState().setGithub(g));
     socket.on('file:changed', (f) => useStore.getState().addFileChange(f));
+    // Substrate Run/Step graph (slice #31) — full graph each tick; just replace.
+    socket.on('step-graph:update', (g) => useStore.getState().upsertStepGraph(g));
+    // Board slot projection (slice #36) — full projection each tick; just replace.
+    socket.on('board:update', (b) => useStore.getState().upsertBoard(b));
+    // Branch/Lineage projection (slice #41) — full projection each tick; just replace.
+    // ponytail: no-new-socket-event-beyond-branch-update — fork/activate/replan all
+    // re-project server-side and ride this single broadcast (no per-op event).
+    socket.on('branch:update', (p) => useStore.getState().upsertBranchProjection(p));
+    // Envelope incompatibility (slice #33) — out-of-window reject → dismissible banner.
+    socket.on('incompatibility', (s) => useStore.getState().addIncompatibility(s));
+    // Provider budget-trip (slice #38) — guard tripped at the serving provider → banner.
+    socket.on('budget-trip', (s) => useStore.getState().addBudgetTrip(s));
 
     if (socket.connected) onConnect();
 
@@ -46,6 +58,11 @@ export function useSocketBridge(): void {
       socket.off('token:tick');
       socket.off('github:update');
       socket.off('file:changed');
+      socket.off('step-graph:update');
+      socket.off('board:update');
+      socket.off('branch:update');
+      socket.off('incompatibility');
+      socket.off('budget-trip');
     };
   }, []);
 }

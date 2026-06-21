@@ -273,6 +273,11 @@ QilinAI/
 !apps/command-center/packages/**
 !apps/command-center/web/src/lib/
 !apps/command-center/web/src/lib/**
+!apps/command-center/orchestrator/src/lib/
+!apps/command-center/orchestrator/src/lib/**
 
 # Local product-marketing working context (references client/ brand; not for the public repo)
 .agents/product-marketing-context.md
+
+# Regenerable Claude Code doc cache — rebuild locally via /load_ai_docs (not committed)
+ai_docs/

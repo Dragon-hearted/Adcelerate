@@ -22,6 +22,14 @@ export interface ApprovalRequest {
   createdAt: number;
   timeoutMs?: number;
   status: ApprovalStatus;
+  // #43: effect-class + lease linkage. ALL optional → back-compat (existing
+  // callers omit them). `effectClass`/`reason` ride INSIDE the cc.approval.requested
+  // payload (no new EventType). `runId`/`stepKeys` link the durable approval to the
+  // Canvas nodes it gates (overlay + ghost-node lineage).
+  effectClass?: 'read' | 'spend' | 'irreversible';
+  reason?: string;             // honest human text; NEVER a fabricated $ total (ADR-0009/0016)
+  runId?: string;
+  stepKeys?: string[];         // affected Canvas nodes (overlay linkage); plural for cascade
 }
 
 export interface ApprovalDecision {

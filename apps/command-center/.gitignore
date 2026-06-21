@@ -13,6 +13,9 @@ build/
 *.db-shm
 command-center.db*
 
+# Substrate artifact store (ADR-0011): snapshotted artifact bytes (runtime, never committed)
+artifacts/
+
 # env
 .env
 .env.local

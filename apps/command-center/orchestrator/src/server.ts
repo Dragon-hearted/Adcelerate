@@ -22,10 +22,18 @@ import { registerGateway } from './ws/gateway';
 import { wireAgentEngine } from './agents/registry';
 import { wireApprovalEngine } from './agents/approval-engine';
 import { sessionRoutes } from './routes/sessions';
+import { driveRoutes } from './routes/drive';
 import { approvalRoutes } from './routes/approvals';
 import { tokenRoutes } from './routes/tokens';
 import { fileRoutes } from './routes/files';
 import { githubRoutes } from './routes/github';
+import { ingestRoutes } from './routes/ingest';
+import { artifactsRoutes } from './routes/artifacts';
+import { boardRoutes } from './routes/boards';
+import { branchRoutes } from './routes/branches';
+import { cascadeRoutes } from './routes/cascade';
+import { budgetRoutes } from './routes/budget';
+import { systemsRoutes } from './routes/systems';
 import { startTranscriptIngest } from './tokens/transcript-ingest';
 import { startFileWatcher } from './files/watcher';
 import { startGithubPoller } from './github/poller';
@@ -71,10 +79,48 @@ async function buildServer() {
   });
 
   await app.register(sessionRoutes);
+  // Drive-mode dispatch (slice #39 / ADR-0002). POST /api/drive spawns a session
+  // with the adcelerate-execute skill loaded (via a repo-local plugin, settingSources:[]
+  // preserved), emits ONE cc.drive.requested, and prompts the session to route+run the
+  // task. Registered AFTER sessionRoutes (reuses SessionRegistry.create + prompt path).
+  await app.register(driveRoutes);
   await app.register(approvalRoutes);
   await app.register(tokenRoutes);
   await app.register(fileRoutes);
   await app.register(githubRoutes);
+  // Substrate Run/Step ingest + Step-Graph read (slice #31). Broadcasts
+  // `step-graph:update` over Socket.IO via the EventBus (io attached in
+  // registerGateway, before any ingest POST can land).
+  await app.register(ingestRoutes);
+  // Substrate artifact byte-serve (slice #34 / ADR-0011): streams snapshotted
+  // artifact bytes from ARTIFACTS_DIR (captured at ingest), so Boards resolve a
+  // Substrate-owned url independent of the producing system.
+  await app.register(artifactsRoutes);
+  // Board persistence + open-into-Board + slot projection (slice #36). Broadcasts
+  // `board:update` over Socket.IO via the EventBus (same path as step-graph:update).
+  await app.register(boardRoutes);
+  // Branch/Lineage editing — Console-as-control-plane ingress (slice #41 / ADR-0015).
+  // Forks a Step into an immutable human Branch (event-sourced + human-sticky active),
+  // FLAGS declared-downstream Steps Stale, and orphans re-plan-dropped slots. Persists
+  // `cc.branch.*` CCEvents on the existing log (no branches table) and broadcasts
+  // `branch:update` + `step-graph:update` over Socket.IO via the EventBus.
+  await app.register(branchRoutes);
+  // Provenance-aware cascade preview + request (slice #42 / ADR-0003/0016). GET
+  // /api/runs/:runId/cascade-preview folds the run's graph+branches and returns the
+  // agent-authored downstream target set (human-active excluded) + cached
+  // budget-headroom; POST /api/runs/:runId/cascade persists ONE cc.cascade.requested
+  // (durable intent — no projection consumes it yet). Registered AFTER branchRoutes.
+  await app.register(cascadeRoutes);
+  // Provider-scoped budget-guard trip ingress (slice #38 / ADR-0007). image-engine
+  // POSTs a trip when a serving provider crosses its budget-line; this broadcasts
+  // `budget-trip` over the socket (transient signal, not a persisted CCEvent).
+  await app.register(budgetRoutes);
+  // System distribution + version-drift catalog (slice #40 / ADR-0021, ADR-0022).
+  // GET /api/systems reads delivery facts off `git submodule status`; POST
+  // /api/systems/:name/ensure does the ADR-0021 gated lazy-init. Delivery facts
+  // only — the soft/hard freshness tier is fused client-side (drift → soft; a
+  // live #33 incompatibility → hard), no new socket event.
+  await app.register(systemsRoutes);
 
   // Catch-all error handler. Client errors (4xx, e.g. validation) keep their
   // message; anything 5xx/unknown collapses to a generic 500 — never leak

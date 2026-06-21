@@ -18,7 +18,23 @@ export type EventType =
   | 'cc.question.asked'   | 'cc.question.answered'
   | 'cc.file.changed'     | 'cc.command.executed'
   | 'cc.agent.state'      | 'cc.token.tick'
-  | 'cc.agent.message';
+  | 'cc.agent.message'
+  // Substrate Run/Step ingest (slice #31) — folded read-side into a Step Graph.
+  | 'cc.run.started'      | 'cc.run.completed' | 'cc.step'
+  // Branch/Lineage control-plane (slice #41, ADR-0003/0005/0015). Branches are an
+  // EVENT-LOG FOLD (no SQL table) — these three CCEvents ARE the branch substrate;
+  // `projectBranches` derives the lineage tree + human-sticky active pointer +
+  // stale/orphaned overlays from them. ponytail: no-branches-table-fold-instead.
+  | 'cc.branch.created'   | 'cc.branch.activated' | 'cc.branch.staled'
+  // Provenance-aware cascade request (slice #42, ADR-0003/0016). Durable intent:
+  // Confirm in the Console → POST /api/runs/:runId/cascade emits this ONE event
+  // carrying { editedStepKey, targets: stepKey[] }. The #39 executor consumes it;
+  // #42 emits it but folds nothing from it (control-plane request seam only).
+  | 'cc.cascade.requested'
+  // Drive-mode dispatch (slice #39, ADR-0002). Durable control-plane record:
+  // POST /api/drive emits this ONE event carrying { task, systemHint? }; the Drive
+  // session spawns with skills:['adcelerate-execute']. Emit-path seam only (no fold).
+  | 'cc.drive.requested';
 
 export interface CCEvent {
   id?: number;
@@ -31,6 +47,14 @@ export interface CCEvent {
   // Convenience top-level columns (forwarded for cheap filtering — mirrors send_event.py)
   tool_name?: string;
   tool_use_id?: string;
+  // #35: the SDK-provided id of the tool_use that SPAWNED this one (a sub-agent's
+  // tool-calls carry the spawning `Task` tool_use's id). The Spawn-Tree fold nests
+  // session → Task tool_use (sub-agent) → nested tool_uses by this. Optional; the
+  // orchestrator populates it (carried in payload and/or a column). null/absent =
+  // a top-level tool-use (child of its session root).
+  // ponytail: cross-session parent_session_id is deferred to lineage (#41) — within
+  // a session this id IS the agent → sub-agent → tool-call spawn hierarchy.
+  parent_tool_use_id?: string | null;
   summary?: string;
   model_name?: string;
   cost_usd?: number;
@@ -72,6 +96,10 @@ export const CC_SYNTHETIC_EVENT_TYPES = [
   'cc.file.changed', 'cc.command.executed',
   'cc.agent.state', 'cc.token.tick',
   'cc.agent.message',
+  'cc.run.started', 'cc.run.completed', 'cc.step',
+  'cc.branch.created', 'cc.branch.activated', 'cc.branch.staled',
+  'cc.cascade.requested',
+  'cc.drive.requested',
 ] as const satisfies readonly EventType[];
 
 export const ALL_EVENT_TYPES = [

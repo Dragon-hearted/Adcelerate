@@ -35,6 +35,9 @@ export const events = sqliteTable(
     payload: text('payload', { mode: 'json' }).notNull(),
     toolName: text('tool_name'),
     toolUseId: text('tool_use_id'),
+    // #35: spawning Task's tool_use id (nullable) — mirrors toolUseId so the
+    // Spawn-Tree fold can nest sub-agent tool-calls under their parent on replay.
+    parentToolUseId: text('parent_tool_use_id'),
     summary: text('summary'),
     modelName: text('model_name'),
     costUsd: real('cost_usd'),
@@ -84,6 +87,37 @@ export const approvals = sqliteTable(
   (t) => ({
     bySession: index('idx_approvals_session').on(t.sessionId),
     byStatus: index('idx_approvals_status').on(t.status),
+  }),
+);
+
+// ── boards ────────────────────────────────────────────────────────────────────
+// A Board is the unit of persistence (#36, ADR-0010/0025): a grouping over
+// already-persisted Runs. The table is intentionally minimal — Run membership
+// lives in `board_runs`, so a Board "holds many Runs" naturally (v1 defaults to
+// one-Run-per-board, not enforced into the schema).
+export const boards = sqliteTable('boards', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  createdAt: integer('created_at').notNull(), // epoch ms
+});
+
+// ── board_runs ──────────────────────────────────────────────────────────────
+// Join over already-persisted Runs. Slot Identity `(producerSystem, slotId)` is
+// captured here at open-into-Board time; the read-side `projectBoard` fold groups
+// memberships by that composite so re-generating the same slot stacks in one
+// Board position. UNIQUE(boardId, runId) makes open-into-Board idempotent.
+export const boardRuns = sqliteTable(
+  'board_runs',
+  {
+    boardId: text('board_id').notNull(),
+    runId: text('run_id').notNull(),
+    producerSystem: text('producer_system').notNull(),
+    slotId: text('slot_id').notNull(),
+    joinedAt: integer('joined_at').notNull(), // epoch ms
+  },
+  (t) => ({
+    uniqueMembership: unique('uq_board_runs_board_run').on(t.boardId, t.runId),
+    byBoard: index('idx_board_runs_board').on(t.boardId),
   }),
 );
 
@@ -199,6 +233,10 @@ export type SessionRow = typeof sessions.$inferSelect;
 export type NewSessionRow = typeof sessions.$inferInsert;
 export type ApprovalRow = typeof approvals.$inferSelect;
 export type NewApprovalRow = typeof approvals.$inferInsert;
+export type BoardRow = typeof boards.$inferSelect;
+export type NewBoardRow = typeof boards.$inferInsert;
+export type BoardRunRow = typeof boardRuns.$inferSelect;
+export type NewBoardRunRow = typeof boardRuns.$inferInsert;
 export type TokenEventRow = typeof tokenEvents.$inferSelect;
 export type NewTokenEventRow = typeof tokenEvents.$inferInsert;
 export type TranscriptOffsetRow = typeof transcriptOffsets.$inferSelect;

@@ -1,8 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, Send } from 'lucide-react';
-import { AGENT_ROLES, type AgentRole } from '@command-center/shared';
+import { Loader2, Plus, Send, Zap } from 'lucide-react';
+import {
+  AGENT_ROLES,
+  type AgentRole,
+  type SystemFreshness,
+} from '@command-center/shared';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +34,28 @@ export function PromptConsole() {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState<AgentRole>('generalist');
+
+  // Drive-mode form state (slice #39). A control-plane command (task + optional
+  // target system) routed by adcelerate-execute — distinct from the free-form
+  // Reflect prompt below. Systems feed the optional hint dropdown (#40).
+  const [driveTask, setDriveTask] = useState('');
+  const [driveSystem, setDriveSystem] = useState('');
+  const [systems, setSystems] = useState<SystemFreshness[]>([]);
+
+  // Load the system list once for the optional Drive hint dropdown. Best-effort:
+  // the hint is optional, so a failed fetch just leaves an empty dropdown.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .listSystems()
+      .then((rows) => {
+        if (!cancelled) setSystems(rows);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Default the picker to the first session once any exist.
   useEffect(() => {
@@ -68,6 +94,27 @@ export function PromptConsole() {
       setNewName('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create session');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Drive: POST /api/drive → control-plane command. On success, subscribe the
+  // returned sessionId (the same `session:subscribe` room-join SessionView uses)
+  // and select it in the picker, so its Run streams live onto the Canvas. The
+  // free-form Reflect path (submitPrompt) is untouched.
+  async function submitDrive() {
+    const task = driveTask.trim();
+    if (!task) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { sessionId } = await api.drive(task, driveSystem || undefined);
+      getSocket().emit('session:subscribe', sessionId);
+      setSelected(sessionId);
+      setDriveTask('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to dispatch Drive command');
     } finally {
       setBusy(false);
     }
@@ -130,11 +177,57 @@ export function PromptConsole() {
         </div>
       )}
 
+      {/* Drive: control-plane command (REST). Routed by adcelerate-execute to a
+          targeted system; the returned session's Run streams onto the Canvas.
+          Distinct from the free-form Reflect prompt below. */}
+      <div className="mb-2 rounded-md border border-primary/40 bg-primary/5 p-2">
+        <div className="mb-1 flex items-center gap-1.5">
+          <Zap className="size-3.5 text-primary" />
+          <span className="text-xs font-medium uppercase tracking-wide text-primary">
+            Drive
+          </span>
+          <span className="text-xs text-muted-foreground">command → system Run</span>
+        </div>
+        <div className="flex items-end gap-2">
+          <input
+            value={driveTask}
+            onChange={(e) => setDriveTask(e.target.value)}
+            placeholder="Command a system to run a task…  (Enter to drive)"
+            className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void submitDrive();
+              }
+            }}
+          />
+          <Select
+            value={driveSystem}
+            onChange={(e) => setDriveSystem(e.target.value)}
+            className="max-w-[180px]"
+          >
+            <option value="">auto-route</option>
+            {systems.map((s) => (
+              <option key={s.name} value={s.name}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
+          <Button onClick={submitDrive} disabled={busy || !driveTask.trim()}>
+            {busy ? <Loader2 className="animate-spin" /> : <Zap />} Drive
+          </Button>
+        </div>
+      </div>
+
+      {/* Reflect: free-form prompt to the selected agent (socket session:prompt). */}
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Reflect
+      </div>
       <div className="flex items-end gap-2">
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Send a prompt to the selected agent…  (⌘/Ctrl+Enter to send)"
+          placeholder="Send a free-form prompt to the selected agent…  (⌘/Ctrl+Enter to send)"
           rows={2}
           className="flex-1 font-mono"
           onKeyDown={(e) => {

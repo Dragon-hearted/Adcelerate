@@ -31,6 +31,11 @@ import type {
   ApprovalResolvedPayload,
   FileChange,
   GitHubActivity,
+  StepGraphUpdate,
+  BoardProjection,
+  BranchProjection,
+  IncompatibilitySignal,
+  BudgetTripSignal,
 } from '@command-center/shared';
 import { db } from '../db/client';
 import { events } from '../db/schema';
@@ -40,6 +45,13 @@ export type TypedServer = Server<ClientToServer, ServerToClient>;
 
 /** Socket.IO room name for a session's scoped event stream. */
 export const room = (sessionId: string): string => `session:${sessionId}`;
+
+// Latest-per-provider budget trip (slice #42). The trip signal is otherwise
+// broadcast-only/transient (emitBudgetTrip → socket); the cascade preview route
+// reads the most recent trip per provider for its honest `budgetHeadroom`.
+// ponytail: in-memory, lost on restart — trips are transient anyway; persist only
+// if a slice needs trip history.
+export const budgetTripCache = new Map<string, BudgetTripSignal>();
 
 // Everything a caller supplies; `seq` is bus-assigned, `source_app`/`timestamp`
 // default. The id is DB-assigned on insert.
@@ -130,6 +142,96 @@ class EventBus {
   onGithubUpdate(listener: (activity: GitHubActivity) => void): () => void {
     this.emitter.on('github:update', listener);
     return () => this.emitter.off('github:update', listener);
+  }
+
+  /**
+   * Broadcast a re-projected Step Graph (`step-graph:update`) to all clients —
+   * drives the Console Canvas (slice #31). The persisted Run/Step events flow
+   * through `emit()` separately (persist-then-broadcast); this is the live
+   * read-model push the Canvas subscribes to.
+   */
+  emitStepGraphUpdate(graph: StepGraphUpdate): void {
+    this.io?.emit('step-graph:update', graph);
+    this.emitter.emit('step-graph:update', graph);
+  }
+
+  /** Subscribe to Step Graph updates in-process. */
+  onStepGraphUpdate(listener: (graph: StepGraphUpdate) => void): () => void {
+    this.emitter.on('step-graph:update', listener);
+    return () => this.emitter.off('step-graph:update', listener);
+  }
+
+  /**
+   * Broadcast a re-projected Board slot projection (`board:update`) to all
+   * clients — drives the Console Board view (slice #36). Mirrors
+   * `emitStepGraphUpdate`: the membership/Run events persist separately; this is
+   * the live read-model push the Canvas subscribes to on open-into-Board.
+   */
+  emitBoardUpdate(board: BoardProjection): void {
+    this.io?.emit('board:update', board);
+    this.emitter.emit('board:update', board);
+  }
+
+  /** Subscribe to Board projection updates in-process. */
+  onBoardUpdate(listener: (board: BoardProjection) => void): () => void {
+    this.emitter.on('board:update', listener);
+    return () => this.emitter.off('board:update', listener);
+  }
+
+  /**
+   * Broadcast a re-folded Branch/Lineage projection (`branch:update`) to all
+   * clients — drives the Console Canvas editing surface (slice #41 / ADR-0015).
+   * Mirrors `emitBoardUpdate`: the `cc.branch.*` control events persist separately
+   * via `emit()` (event-sourced truth); this is the live read-model push the
+   * Canvas replaces its view from (no delta to mis-merge).
+   */
+  emitBranchUpdate(branch: BranchProjection): void {
+    this.io?.emit('branch:update', branch);
+    this.emitter.emit('branch:update', branch);
+  }
+
+  /** Subscribe to Branch projection updates in-process (e.g. route tests). */
+  onBranchUpdate(listener: (branch: BranchProjection) => void): () => void {
+    this.emitter.on('branch:update', listener);
+    return () => this.emitter.off('branch:update', listener);
+  }
+
+  /**
+   * Broadcast an envelope-version incompatibility (`incompatibility`) to all
+   * clients — drives the Console reject banner (slice #33 / ADR-0020). This is a
+   * TRANSIENT alarm, deliberately NOT persisted as a CCEvent: the rejected
+   * envelope mutates no projected state, so there is nothing durable to fold.
+   */
+  emitIncompatibility(signal: IncompatibilitySignal): void {
+    this.io?.emit('incompatibility', signal);
+    this.emitter.emit('incompatibility', signal);
+  }
+
+  /** Subscribe to incompatibility signals in-process (e.g. seam-2 tests). */
+  onIncompatibility(listener: (signal: IncompatibilitySignal) => void): () => void {
+    this.emitter.on('incompatibility', listener);
+    return () => this.emitter.off('incompatibility', listener);
+  }
+
+  /**
+   * Broadcast a provider-scoped budget-guard trip (`budget-trip`) to all clients
+   * — drives the Console BudgetTripBanner (slice #38 / ADR-0007). Like the #33
+   * incompatibility signal this is a TRANSIENT alarm pushed by image-engine over
+   * a thin POST, deliberately NOT persisted as a CCEvent (the Emitter carries no
+   * cost; the block lives at the serving provider in image-engine).
+   */
+  emitBudgetTrip(signal: BudgetTripSignal): void {
+    // Cache the latest trip per provider so the cascade preview (#42) can surface
+    // honest budget-headroom from the last known trip (not a predicted total).
+    budgetTripCache.set(signal.provider, signal);
+    this.io?.emit('budget-trip', signal);
+    this.emitter.emit('budget-trip', signal);
+  }
+
+  /** Subscribe to budget-trip signals in-process (e.g. route tests). */
+  onBudgetTrip(listener: (signal: BudgetTripSignal) => void): () => void {
+    this.emitter.on('budget-trip', listener);
+    return () => this.emitter.off('budget-trip', listener);
   }
 
   /**

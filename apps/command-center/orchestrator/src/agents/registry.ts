@@ -10,7 +10,7 @@
 // `setAgentHooks` so every new session is gated.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { CanUseTool, McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
+import type { CanUseTool, McpServerConfig, Options } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentDescriptor, AgentRole } from '@command-center/shared';
 import { config } from '../config';
 import { eventBus } from '../bus/event-bus';
@@ -59,6 +59,11 @@ export class SessionRegistry implements SessionEngine {
     role: AgentRole;
     model?: string;
     cwd?: string;
+    // Skill loading (slice #39). Drive sessions pass skills:['adcelerate-execute']
+    // + the repo-local drive-plugin; settingSources:[] stays. Optional → other
+    // session kinds (Reflect, multi-agent) are unaffected.
+    skills?: Options['skills'];
+    plugins?: Options['plugins'];
   }): Promise<AgentDescriptor> {
     // Reject duplicate names while a session of that name is still active.
     const existing = this.byName.get(input.name);
@@ -74,6 +79,8 @@ export class SessionRegistry implements SessionEngine {
         model: input.model ?? config.DEFAULT_MODEL,
         cwd: input.cwd ?? config.REPO_ROOT,
         systemPromptAppend: ROLE_PRESETS[role] ?? ROLE_PRESETS.generalist,
+        skills: input.skills,
+        plugins: input.plugins,
       },
       {
         makeCanUseTool: this.hooks.makeCanUseTool,

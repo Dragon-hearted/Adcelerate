@@ -79,6 +79,20 @@ sub-init:
 sub-update:
   git submodule update --remote --merge
 
+# Gated lazy-init of a single system submodule (ADR-0021 pre-flight). No-op if
+# already populated; else `git submodule update --init systems/<name>`.
+# e.g. `just sub-ensure image-engine`
+sub-ensure *args:
+  #!/usr/bin/env sh
+  set -eu
+  name="$1"
+  if [ -z "$name" ]; then echo "usage: just sub-ensure <name>" >&2; exit 2; fi
+  if [ -n "$(ls -A "systems/$name" 2>/dev/null)" ]; then
+    echo "✓ systems/$name already populated"
+  else
+    git submodule update --init "systems/$name"
+  fi
+
 # Run a just recipe in a submodule (e.g., just sub pinboard start)
 sub project +recipe:
   cd {{project}} && just {{recipe}}

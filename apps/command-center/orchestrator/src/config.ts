@@ -3,6 +3,7 @@
 // Bind everything to 127.0.0.1; the approval engine is the safety boundary.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { resolve } from 'node:path';
 import { z } from 'zod';
 
 // Coerce a possibly-undefined string env var into an int with a default.
@@ -39,6 +40,16 @@ const ConfigSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.length > 0 ? v : './command-center.db')),
+
+  // Substrate artifact store (ADR-0011): snapshotted artifact bytes live here,
+  // keyed `<runId>/<sanitized-stepKey>.<ext>`. Default `<orchestrator>/artifacts`
+  // (config.ts lives at orchestrator/src, so `..` → orchestrator/). Always an
+  // absolute path so it's cwd-independent; an explicit relative override is
+  // resolved against cwd. Gitignored (runtime bytes, never committed).
+  ARTIFACTS_DIR: z
+    .string()
+    .optional()
+    .transform((v) => resolve(v && v.length > 0 ? v : resolve(import.meta.dir, '..', 'artifacts'))),
 
   // GitHub poller interval (ms).
   GH_POLL_MS: intFromEnv(30000),

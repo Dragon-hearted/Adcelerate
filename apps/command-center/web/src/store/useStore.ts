@@ -5,10 +5,15 @@ import type {
   AgentDescriptor,
   ApprovalRequest,
   ApprovalResolvedPayload,
+  BoardProjection,
+  BranchProjection,
+  BudgetTripSignal,
   CCEvent,
   FileChange,
   GitHubActivity,
+  IncompatibilitySignal,
   SnapshotPayload,
+  StepGraph,
   TokenTick,
 } from '@command-center/shared';
 import { BURN_WINDOW_MS, MAX_EVENTS } from '@/lib/config';
@@ -37,6 +42,10 @@ interface StoreState {
 
   // approvals slice — only pending/active requests live here
   approvals: Record<string, ApprovalRequest>;
+  // #43: deep-link target — a Canvas ⏸ overlay click sets this so ApprovalsPanel
+  // scrolls/highlights the matching card. Transient (cleared after the scroll); the
+  // approve/deny action itself stays ONLY in ApprovalCard (Canvas never approves).
+  focusedApprovalId: string | null;
 
   // tokens slice
   tokensBySession: Record<string, SessionTokens>;
@@ -48,6 +57,32 @@ interface StoreState {
   // file changes slice (used by Phase 7 panels)
   fileChanges: FileChange[];
 
+  // substrate Step-Graph slice (slice #31) — runId → latest projected graph,
+  // fed by the `step-graph:update` broadcast and the GET hydration snapshot.
+  stepGraphs: Record<string, StepGraph>;
+  selectedRunId: string | null;
+
+  // Board persistence slice (slice #36) — boardId → latest projection, fed by the
+  // `board:update` broadcast and GET hydration. `selectedBoardId` mirrors
+  // localStorage so closing/reopening the Console restores the same Canvas.
+  boards: Record<string, BoardProjection>;
+  selectedBoardId: string | null;
+
+  // Branch/Lineage projection slice (slice #41) — runId → latest BranchProjection,
+  // fed by the `branch:update` broadcast and GET hydration. Mirrors `stepGraphs`:
+  // the broadcast carries the FULL projection each tick → just replace. NO new
+  // persistence (the truth is the event log; this is a live read-model cache).
+  branchProjections: Record<string, BranchProjection>;
+
+  // envelope incompatibility slice (slice #33) — transient out-of-window rejects,
+  // keyed for dismiss. NOT hydrated/persisted; a rejected envelope leaves no state.
+  incompatibilities: IncompatibilitySignal[];
+
+  // provider budget-trip slice (slice #38) — transient guard trips pushed by
+  // image-engine, keyed for dismiss. NOT hydrated/persisted; a trip is a signal,
+  // the block + cost data live at the serving provider in image-engine.
+  budgetTrips: BudgetTripSignal[];
+
   // actions
   setConnected: (v: boolean) => void;
   hydrate: (snap: SnapshotPayload) => void;
@@ -55,10 +90,20 @@ interface StoreState {
   setAgentState: (a: AgentDescriptor) => void;
   upsertApproval: (r: ApprovalRequest) => void;
   resolveApproval: (d: ApprovalResolvedPayload) => void;
+  focusApproval: (id: string | null) => void;
   addTokenTick: (t: TokenTick) => void;
   setGithub: (g: GitHubActivity) => void;
   addFileChange: (f: FileChange) => void;
   setFileChanges: (f: FileChange[]) => void;
+  upsertStepGraph: (g: StepGraph) => void;
+  selectRun: (runId: string) => void;
+  upsertBoard: (b: BoardProjection) => void;
+  selectBoard: (id: string) => void;
+  upsertBranchProjection: (p: BranchProjection) => void;
+  addIncompatibility: (s: IncompatibilitySignal) => void;
+  dismissIncompatibility: (at: number, producerSystem: string) => void;
+  addBudgetTrip: (s: BudgetTripSignal) => void;
+  dismissBudgetTrip: (at: number, provider: string, model: string) => void;
 }
 
 function eventKey(e: CCEvent): string {
@@ -110,10 +155,18 @@ export const useStore = create<StoreState>((set) => ({
   eventKeys: new Set(),
   sessions: {},
   approvals: {},
+  focusedApprovalId: null,
   tokensBySession: {},
   costSamples: [],
   github: null,
   fileChanges: [],
+  stepGraphs: {},
+  selectedRunId: null,
+  boards: {},
+  selectedBoardId: null,
+  branchProjections: {},
+  incompatibilities: [],
+  budgetTrips: [],
 
   setConnected: (v) => set({ connected: v }),
 
@@ -165,8 +218,12 @@ export const useStore = create<StoreState>((set) => ({
       if (!state.approvals[d.id]) return {};
       const next = { ...state.approvals };
       delete next[d.id];
-      return { approvals: next };
+      // Clear the deep-link focus if it pointed at the now-resolved approval.
+      const focusedApprovalId = state.focusedApprovalId === d.id ? null : state.focusedApprovalId;
+      return { approvals: next, focusedApprovalId };
     }),
+
+  focusApproval: (id) => set({ focusedApprovalId: id }),
 
   addTokenTick: (t) =>
     set((state) => {
@@ -200,5 +257,70 @@ export const useStore = create<StoreState>((set) => ({
     set(() => ({
       // Newest first; REST hydration replaces the slice.
       fileChanges: [...f].sort((a, b) => b.timestamp - a.timestamp).slice(0, 500),
+    })),
+
+  // The broadcast/hydration payload is the FULL graph each time → just replace.
+  // Auto-follow the most recently updated run unless the user has pinned another.
+  upsertStepGraph: (g) =>
+    set((state) => ({
+      stepGraphs: { ...state.stepGraphs, [g.runId]: g },
+      selectedRunId: state.selectedRunId ?? g.runId,
+    })),
+
+  selectRun: (runId) => set({ selectedRunId: runId }),
+
+  // The broadcast/hydration payload is the FULL projection each time → just replace.
+  upsertBoard: (b) =>
+    set((state) => ({ boards: { ...state.boards, [b.boardId]: b } })),
+
+  // ponytail: persist the selection in localStorage (native) so reopening restores
+  // the same Canvas — no extra "last board" endpoint. Guard SSR (typeof window).
+  selectBoard: (id) =>
+    set(() => {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('console.selectedBoardId', id);
+      }
+      return { selectedBoardId: id };
+    }),
+
+  // The broadcast/hydration payload is the FULL projection each time → just replace
+  // (mirrors upsertStepGraph/upsertBoard). NO new persistence.
+  upsertBranchProjection: (p) =>
+    set((state) => ({
+      branchProjections: { ...state.branchProjections, [p.runId]: p },
+    })),
+
+  // Newest-first; dedupe identical (producer, version) so a flapping producer
+  // doesn't stack duplicate banners. Cap the transient ring.
+  addIncompatibility: (s) =>
+    set((state) => {
+      const rest = state.incompatibilities.filter(
+        (x) => !(x.producerSystem === s.producerSystem && x.gotVersion === s.gotVersion),
+      );
+      return { incompatibilities: [s, ...rest].slice(0, 20) };
+    }),
+
+  dismissIncompatibility: (at, producerSystem) =>
+    set((state) => ({
+      incompatibilities: state.incompatibilities.filter(
+        (x) => !(x.at === at && x.producerSystem === producerSystem),
+      ),
+    })),
+
+  // Newest-first; dedupe identical (provider, model) so a provider stuck over its
+  // line doesn't stack duplicate banners. Cap the transient ring (mirrors #33).
+  addBudgetTrip: (s) =>
+    set((state) => {
+      const rest = state.budgetTrips.filter(
+        (x) => !(x.provider === s.provider && x.model === s.model),
+      );
+      return { budgetTrips: [s, ...rest].slice(0, 20) };
+    }),
+
+  dismissBudgetTrip: (at, provider, model) =>
+    set((state) => ({
+      budgetTrips: state.budgetTrips.filter(
+        (x) => !(x.at === at && x.provider === provider && x.model === model),
+      ),
     })),
 }));

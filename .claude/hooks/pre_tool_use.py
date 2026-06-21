@@ -69,59 +69,69 @@ def _strip_quotes(s):
     return s
 
 
+def _path_is_dangerous(path):
+    """
+    A single rm target path is dangerous if it can reach OUTSIDE the project
+    tree or hit a catastrophic / unrecoverable target. Plain project-relative
+    paths (e.g. logs/, graphify-out/) are SAFE — recoverable cleanup, which is
+    explicitly allowed. The danger lives in the target, not in the -rf flag.
+    """
+    p = path.strip().strip('\'"')
+    if not p:
+        return False
+    # Flags (e.g. -rf, --recursive), not paths
+    if p.startswith('-'):
+        return False
+    # Absolute paths (e.g. /var/folders/.../Screenshot.png, /, /usr, /etc)
+    if p.startswith('/'):
+        return True
+    # Home-directory targets
+    if p.startswith('~'):
+        return True
+    # Variable / command expansion — can resolve anywhere
+    if '$' in p or '`' in p:
+        return True
+    # Shell globs — scope is unpredictable, deny to be safe
+    if any(ch in p for ch in ('*', '?', '[')):
+        return True
+    # Bare dangerous tokens
+    if p in ('.', '..', '/'):
+        return True
+    # Parent-directory traversal can escape the project tree
+    if p.startswith('../') or '/../' in p or p.endswith('/..'):
+        return True
+    # Never allow deleting the git database
+    base = p[2:] if p.startswith('./') else p
+    if base == '.git' or base.startswith('.git/'):
+        return True
+    return False
+
+
 def _contains_dangerous_rm(segment, allowed_dirs=None):
     """
-    Check a single command segment (no pipes/semicolons) for dangerous rm usage.
-    Returns True if dangerous rm is found.
+    Check a single command segment (no pipes/semicolons) for a dangerous rm.
+
+    Policy: an rm is blocked only when one of its TARGET paths is dangerous
+    (absolute, home, glob, parent-escape, .git, or shell expansion) — NOT
+    merely because it uses -rf. Project-relative deletes are allowed so routine,
+    recoverable cleanup works; deletes that can reach outside the tree or nuke
+    the repo are denied.
     """
-    if allowed_dirs is None:
-        allowed_dirs = []
+    normalized = segment.strip()
 
-    # Normalize by removing extra spaces and converting to lowercase
-    normalized = ' '.join(segment.lower().split())
-
-    # Pattern 1: Standard rm -rf variations
-    patterns = [
-        r'\brm\s+.*-[a-z]*r[a-z]*f',  # rm -rf, rm -fr, rm -Rf, etc.
-        r'\brm\s+.*-[a-z]*f[a-z]*r',  # rm -fr variations
-        r'\brm\s+--recursive\s+--force',  # rm --recursive --force
-        r'\brm\s+--force\s+--recursive',  # rm --force --recursive
-        r'\brm\s+-r\s+.*-f',  # rm -r ... -f
-        r'\brm\s+-f\s+.*-r',  # rm -f ... -r
-    ]
-
-    is_potentially_dangerous = False
-    for pattern in patterns:
-        if re.search(pattern, normalized):
-            is_potentially_dangerous = True
-            break
-
-    if not is_potentially_dangerous:
-        dangerous_paths = [
-            r'/',           # Root directory
-            r'/\*',         # Root with wildcard
-            r'~',           # Home directory
-            r'~/',          # Home directory path
-            r'\$HOME',      # Home environment variable
-            r'\.\.',        # Parent directory references
-            r'\*',          # Wildcards in general rm -rf context
-            r'\.',          # Current directory
-            r'\.\s*$',      # Current directory at end of command
-        ]
-
-        if re.search(r'\brm\s+.*-[a-z]*r', normalized):
-            for path in dangerous_paths:
-                if re.search(path, normalized):
-                    is_potentially_dangerous = True
-                    break
-
-    if not is_potentially_dangerous:
+    # Locate an `rm` invocation (whole word; ignores rmdir, npm, term, etc.)
+    m = re.search(r'(?:^|\s)rm\b(.*)$', normalized, re.IGNORECASE)
+    if not m:
         return False
 
-    if allowed_dirs and is_path_in_allowed_directory(segment, allowed_dirs):
-        return False
+    targets = [t for t in m.group(1).split() if not t.startswith('-')]
+    if not targets:
+        return False  # `rm` with no operand — harmless
 
-    return True
+    for t in targets:
+        if _path_is_dangerous(t):
+            return True
+    return False
 
 
 def is_dangerous_rm_command(command, allowed_dirs=None):
@@ -373,11 +383,15 @@ def main():
         if tool_name == 'Bash':
             command = tool_input.get('command', '')
 
-            # Block rm -rf commands unless they target allowed directories
+            # Block rm only when a target can escape the project tree or hit an
+            # unrecoverable target (absolute path, ~, $/`, glob, .. escape, .git).
+            # Project-relative deletes are allowed so routine cleanup works.
             if is_dangerous_rm_command(command, ALLOWED_RM_DIRECTORIES):
                 deny_tool(
-                    f"Dangerous rm command detected and prevented. "
-                    f"rm -rf is only allowed in these directories: {', '.join(ALLOWED_RM_DIRECTORIES)}"
+                    "Dangerous rm command detected and prevented. "
+                    "rm is blocked when a target is an absolute path, a home (~) path, "
+                    "a shell glob/expansion, a parent-directory escape, or the .git database. "
+                    "Project-relative deletes (e.g. rm -rf logs/) are allowed."
                 )
 
         # Extract session_id
