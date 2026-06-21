@@ -35,6 +35,10 @@ export function useSocketBridge(): void {
     socket.on('step-graph:update', (g) => useStore.getState().upsertStepGraph(g));
     // Board slot projection (slice #36) — full projection each tick; just replace.
     socket.on('board:update', (b) => useStore.getState().upsertBoard(b));
+    // Branch/Lineage projection (slice #41) — full projection each tick; just replace.
+    // ponytail: no-new-socket-event-beyond-branch-update — fork/activate/replan all
+    // re-project server-side and ride this single broadcast (no per-op event).
+    socket.on('branch:update', (p) => useStore.getState().upsertBranchProjection(p));
     // Envelope incompatibility (slice #33) — out-of-window reject → dismissible banner.
     socket.on('incompatibility', (s) => useStore.getState().addIncompatibility(s));
     // Provider budget-trip (slice #38) — guard tripped at the serving provider → banner.
@@ -56,6 +60,7 @@ export function useSocketBridge(): void {
       socket.off('file:changed');
       socket.off('step-graph:update');
       socket.off('board:update');
+      socket.off('branch:update');
       socket.off('incompatibility');
       socket.off('budget-trip');
     };

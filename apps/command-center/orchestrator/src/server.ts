@@ -29,6 +29,7 @@ import { githubRoutes } from './routes/github';
 import { ingestRoutes } from './routes/ingest';
 import { artifactsRoutes } from './routes/artifacts';
 import { boardRoutes } from './routes/boards';
+import { branchRoutes } from './routes/branches';
 import { budgetRoutes } from './routes/budget';
 import { systemsRoutes } from './routes/systems';
 import { startTranscriptIngest } from './tokens/transcript-ingest';
@@ -91,6 +92,12 @@ async function buildServer() {
   // Board persistence + open-into-Board + slot projection (slice #36). Broadcasts
   // `board:update` over Socket.IO via the EventBus (same path as step-graph:update).
   await app.register(boardRoutes);
+  // Branch/Lineage editing — Console-as-control-plane ingress (slice #41 / ADR-0015).
+  // Forks a Step into an immutable human Branch (event-sourced + human-sticky active),
+  // FLAGS declared-downstream Steps Stale, and orphans re-plan-dropped slots. Persists
+  // `cc.branch.*` CCEvents on the existing log (no branches table) and broadcasts
+  // `branch:update` + `step-graph:update` over Socket.IO via the EventBus.
+  await app.register(branchRoutes);
   // Provider-scoped budget-guard trip ingress (slice #38 / ADR-0007). image-engine
   // POSTs a trip when a serving provider crosses its budget-line; this broadcasts
   // `budget-trip` over the socket (transient signal, not a persisted CCEvent).

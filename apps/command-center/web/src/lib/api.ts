@@ -6,6 +6,7 @@ import type {
   AgentRole,
   ApprovalDecision,
   BoardProjection,
+  BranchProjection,
   CCEvent,
   FileChange,
   GitHubActivity,
@@ -113,6 +114,33 @@ export const api = {
     }),
   getBoard: (boardId: string) =>
     request<BoardProjection>(`/api/boards/${encodeURIComponent(boardId)}`),
+
+  // Branch/Lineage editing (slice #41) — control-plane ingress (ADR-0015). All
+  // four reuse `request`'s ORCH_URL base-resolution (no hardcoded host); the three
+  // mutating routes broadcast `branch:update` server-side, so callers don't merge
+  // a response into the store — the socket bridge replaces the projection slice.
+  forkBranch: (
+    runId: string,
+    stepKey: string,
+    payload?: { ref?: string; text?: string },
+    parentBranchId?: string,
+  ) =>
+    request<{ branchId: string }>('/api/branches', {
+      method: 'POST',
+      body: JSON.stringify({ runId, stepKey, payload, parentBranchId }),
+    }),
+  activateBranch: (branchId: string, runId: string, stepKey: string) =>
+    request<{ ok: true }>(`/api/branches/${encodeURIComponent(branchId)}/activate`, {
+      method: 'POST',
+      body: JSON.stringify({ runId, stepKey }),
+    }),
+  replan: (runId: string, slotIds: string[]) =>
+    request<{ orphaned: string[] }>(
+      `/api/runs/${encodeURIComponent(runId)}/replan`,
+      { method: 'POST', body: JSON.stringify({ slotIds }) },
+    ),
+  getBranches: (runId: string) =>
+    request<BranchProjection>(`/api/runs/${encodeURIComponent(runId)}/branches`),
 
   // System distribution + SHA-pin freshness (slice #40). Delivery facts only;
   // the soft/hard tier is fused client-side against the #33 incompatibilities slice.

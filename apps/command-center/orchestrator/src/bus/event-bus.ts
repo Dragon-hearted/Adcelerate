@@ -33,6 +33,7 @@ import type {
   GitHubActivity,
   StepGraphUpdate,
   BoardProjection,
+  BranchProjection,
   IncompatibilitySignal,
   BudgetTripSignal,
 } from '@command-center/shared';
@@ -168,6 +169,24 @@ class EventBus {
   onBoardUpdate(listener: (board: BoardProjection) => void): () => void {
     this.emitter.on('board:update', listener);
     return () => this.emitter.off('board:update', listener);
+  }
+
+  /**
+   * Broadcast a re-folded Branch/Lineage projection (`branch:update`) to all
+   * clients — drives the Console Canvas editing surface (slice #41 / ADR-0015).
+   * Mirrors `emitBoardUpdate`: the `cc.branch.*` control events persist separately
+   * via `emit()` (event-sourced truth); this is the live read-model push the
+   * Canvas replaces its view from (no delta to mis-merge).
+   */
+  emitBranchUpdate(branch: BranchProjection): void {
+    this.io?.emit('branch:update', branch);
+    this.emitter.emit('branch:update', branch);
+  }
+
+  /** Subscribe to Branch projection updates in-process (e.g. route tests). */
+  onBranchUpdate(listener: (branch: BranchProjection) => void): () => void {
+    this.emitter.on('branch:update', listener);
+    return () => this.emitter.off('branch:update', listener);
   }
 
   /**

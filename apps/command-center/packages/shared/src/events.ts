@@ -20,7 +20,12 @@ export type EventType =
   | 'cc.agent.state'      | 'cc.token.tick'
   | 'cc.agent.message'
   // Substrate Run/Step ingest (slice #31) — folded read-side into a Step Graph.
-  | 'cc.run.started'      | 'cc.run.completed' | 'cc.step';
+  | 'cc.run.started'      | 'cc.run.completed' | 'cc.step'
+  // Branch/Lineage control-plane (slice #41, ADR-0003/0005/0015). Branches are an
+  // EVENT-LOG FOLD (no SQL table) — these three CCEvents ARE the branch substrate;
+  // `projectBranches` derives the lineage tree + human-sticky active pointer +
+  // stale/orphaned overlays from them. ponytail: no-branches-table-fold-instead.
+  | 'cc.branch.created'   | 'cc.branch.activated' | 'cc.branch.staled';
 
 export interface CCEvent {
   id?: number;
@@ -83,6 +88,7 @@ export const CC_SYNTHETIC_EVENT_TYPES = [
   'cc.agent.state', 'cc.token.tick',
   'cc.agent.message',
   'cc.run.started', 'cc.run.completed', 'cc.step',
+  'cc.branch.created', 'cc.branch.activated', 'cc.branch.staled',
 ] as const satisfies readonly EventType[];
 
 export const ALL_EVENT_TYPES = [

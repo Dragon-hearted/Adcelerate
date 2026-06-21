@@ -20,6 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { z } from 'zod';
+import type { CCEvent } from './events';
 
 // The orchestrator's CURRENT envelope version. Producers may lag within the
 // supported window below; older-in-window envelopes are upcast at ingest.
@@ -277,12 +278,24 @@ export function upcastEnvelope(raw: unknown): UpcastResult {
 export const RUN_STEP_SENTINEL = '__run__';
 
 /**
- * The branch a Step lifecycle event belongs to. Branches do not exist until #41
- * (Branch/Lineage); today a branch IS a step, so this is the stepKey. #41 swaps
- * a real branch id in HERE without touching the dedupe key or the fold.
+ * The ROOT (original, agent-provenance) branch id for a step. The data-plane
+ * Emitter knows nothing of forks, so its Step lifecycle events ALL describe this
+ * one root branch; `projectBranches` likewise treats the parentless branch as the
+ * root. Forks are a control-plane concept — they mint FRESH branch ids that never
+ * appear in Emitter traffic. Root === stepKey keeps the dedupe key format stable.
+ */
+export function rootBranchId(stepKey: string): string {
+  return stepKey;
+}
+
+/**
+ * The branch a Step LIFECYCLE event dedupes under (#32 idempotency grain). #41
+ * retires the old `=> stepKey` stub: Emitter step events only ever describe the
+ * step's ROOT branch (forks live on the control plane, never emitted), so this is
+ * real resolution to `rootBranchId` — dedupe and `projectBranches` agree on it.
  */
 export function branchIdOf(stepKey: string): string {
-  return stepKey;
+  return rootBranchId(stepKey);
 }
 
 export function dedupeKeyOf(env: IngestEnvelope): string {
@@ -314,6 +327,14 @@ export interface StepNode {
   // Steps carry ≥2 lifecycle events (ADR-0009); the Canvas flags this one. Cleared
   // automatically if an earlier-lifecycle event later arrives (order-tolerant).
   malformed?: boolean;
+  // #41: DERIVED overlay flags, stamped by `projectStepGraph`'s optional overlay
+  // arg from the branch fold — NOT lifecycle states. `stale` = an upstream Step was
+  // edited (downstream via declared `deps`); `orphaned` = a re-plan dropped this
+  // Step's slot. The Emitter NEVER emits these — they are absent (= false) on the
+  // wire and added read-side. ponytail: overlays-not-lifecycle-states — deliberately
+  // kept OFF the STEP_STATES wire enum so the byte-identical Emitter pair is untouched.
+  stale?: boolean;
+  orphaned?: boolean;
 }
 
 export interface StepEdge {
@@ -366,8 +387,16 @@ function gt(a: readonly [number, number, number], b: readonly [number, number, n
  * Edges are the producer's DECLARED dependencies (#34, ADR-0008): the union of
  * each Step's `deps` → `{ from: dep, to: stepKey }`, filtered to known nodes and
  * sorted by (from, to). A run with no declared deps has no edges.
+ *
+ * #41: an OPTIONAL `overlays` arg stamps DERIVED `stale`/`orphaned` flags onto the
+ * matching nodes (computed by the control plane from the branch fold + declared
+ * deps — see `projectBranches`/`staleDownstream`). Composable: callers that don't
+ * care about editing pass nothing and get the unchanged projection.
  */
-export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
+export function projectStepGraph(
+  events: IngestEnvelope[],
+  overlays?: { stale?: Iterable<string>; orphaned?: Iterable<string> },
+): StepGraph {
   const runId = events[0]?.runId ?? '';
   const graph: StepGraph = {
     envelopeVersion: ENVELOPE_VERSION,
@@ -459,6 +488,20 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
     a.from !== b.from ? (a.from < b.from ? -1 : 1) : a.to < b.to ? -1 : a.to > b.to ? 1 : 0,
   );
 
+  // #41: stamp derived stale/orphaned overlays onto matching nodes (PRESERVE the
+  // existing lifecycle state — overlays sit ON TOP of `succeeded`/etc., they never
+  // replace it, and never hide/delete a node). Absent overlays → no-op.
+  if (overlays) {
+    const staleSet = overlays.stale ? new Set(overlays.stale) : null;
+    const orphanedSet = overlays.orphaned ? new Set(overlays.orphaned) : null;
+    if (staleSet || orphanedSet) {
+      for (const node of graph.nodes) {
+        if (staleSet?.has(node.stepKey)) node.stale = true;
+        if (orphanedSet?.has(node.stepKey)) node.orphaned = true;
+      }
+    }
+  }
+
   return graph;
 }
 
@@ -467,6 +510,262 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
 // broadcasts the whole graph. The Canvas just replaces its view — no delta
 // reconciliation to get wrong.
 export type StepGraphUpdate = StepGraph;
+
+// ── Branch / Lineage projection (#41, ADR-0003/0005/0015) ─────────────────────
+// ponytail: no-branches-table-fold-instead. ADR-0015 supersedes ADR-0005's mutable
+// `active`/`stale` columns: the active pointer is EVENT-SOURCED, folded in ingest
+// order, human-sticky. We persist `cc.branch.*` CCEvents on the existing events log
+// (truth + audit + Board-reopen restore) and DERIVE everything here — no branches
+// table, no migration. ADR-0005's table stays the upgrade path only if branch-event
+// volume makes this per-ingest fold measurably slow. [FLAGGED for user veto.]
+
+/** Who authored a Branch: the agent (auto) or a human operator (control-plane edit). */
+export type Provenance = 'agent' | 'human';
+
+/**
+ * One immutable Branch of a Step (ADR-0003/0005). Lineage is the `parentBranchId`
+ * chain (null = the root/original). `active`/`stale` are DERIVED overlays from the
+ * fold, not stored. `payload` carries the human edit (a swapped `ref` and/or `text`).
+ */
+export interface BranchInfo {
+  branchId: string;
+  parentBranchId: string | null;
+  provenance: Provenance;
+  payload?: { ref?: string; text?: string };
+  createdAt: number;
+  active: boolean;
+  stale: boolean;
+}
+
+/**
+ * The folded Branch/Lineage view of a Run: per stepKey, the lineage of Branches +
+ * the single human-sticky active pointer; plus the Run's orphaned Steps (slots
+ * dropped on re-plan, PRESERVED never deleted).
+ */
+export interface BranchProjection {
+  runId: string;
+  steps: Record<string /*stepKey*/, { branches: BranchInfo[]; activeBranchId: string }>;
+  orphanedStepKeys: string[];
+}
+
+/**
+ * Transitive DOWNSTREAM stepKeys of a set of edited Steps, following declared
+ * `deps` edges (#34, ADR-0008): every Step that directly or transitively declares
+ * a dep on an edited Step. The edited Steps themselves are EXCLUDED — an edit
+ * stales what is below it, not itself. Pure + order-independent; the control plane
+ * uses this to decide which Steps to emit `cc.branch.staled` for, and to build the
+ * stale set passed to `projectStepGraph` overlays.
+ * ponytail: generation-tag-is-ordering — plain reachability over edges, no vector clock.
+ */
+export function staleDownstream(edges: StepEdge[], editedStepKeys: Iterable<string>): Set<string> {
+  // adjacency: upstream `from` → downstream `to`s (edge = dep→dependent).
+  const downstream = new Map<string, string[]>();
+  for (const e of edges) {
+    const list = downstream.get(e.from);
+    if (list) list.push(e.to);
+    else downstream.set(e.from, [e.to]);
+  }
+  const edited = new Set(editedStepKeys);
+  const stale = new Set<string>();
+  const stack = [...edited];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const next of downstream.get(cur) ?? []) {
+      if (!stale.has(next)) {
+        stale.add(next);
+        stack.push(next);
+      }
+    }
+  }
+  // Sources are not stale themselves (an edit only stales DOWNSTREAM).
+  for (const k of edited) stale.delete(k);
+  return stale;
+}
+
+/**
+ * Re-plan slot diff (ADR-0018): classify the prior Slot-Identity set against the
+ * next one so stable slots keep their Steps and only changed slots churn.
+ *  - `kept`     — in BOTH (stable slot retains its Steps/Branches),
+ *  - `added`    — in `next` only (a new slot),
+ *  - `orphaned` — in `prior` only (a dropped slot → its Steps are Orphaned, PRESERVED).
+ * Pure set diff: de-duplicated and order-independent (every list sorted).
+ * ponytail: explicit-replan-diff — explicit slot set IN, slot diff OUT, no plan inference.
+ */
+export function diffSlots(
+  prior: string[],
+  next: string[],
+): { kept: string[]; added: string[]; orphaned: string[] } {
+  const priorSet = new Set(prior);
+  const nextSet = new Set(next);
+  const kept: string[] = [];
+  const added: string[] = [];
+  const orphaned: string[] = [];
+  for (const s of new Set(prior)) if (nextSet.has(s)) kept.push(s);
+  for (const s of new Set(next)) if (!priorSet.has(s)) added.push(s);
+  for (const s of new Set(prior)) if (!nextSet.has(s)) orphaned.push(s);
+  kept.sort();
+  added.sort();
+  orphaned.sort();
+  return { kept, added, orphaned };
+}
+
+// The fold's per-step accumulator. `order` preserves branch insertion order for a
+// deterministic `branches` list; the active resolution is human-sticky (ADR-0015).
+interface StepBranchAcc {
+  order: string[];
+  branches: Map<string, BranchInfo>;
+  rootBranchId: string | null; // first parentless branch — the active fallback
+  activeBranchId: string | null;
+  lastHumanGeneration: number; // generation of the most recent HUMAN activation
+  staleBranchIds: Set<string>;
+  staleActive: boolean; // a staled event arrived without an explicit branchId
+}
+
+/** Read a number from a CCEvent payload, else a fallback (defensive — payloads are `unknown`). */
+function numField(p: Record<string, unknown>, key: string, fallback: number): number {
+  const v = p[key];
+  return typeof v === 'number' ? v : fallback;
+}
+
+/** Read a string field, else null. */
+function strField(p: Record<string, unknown>, key: string): string | null {
+  const v = p[key];
+  return typeof v === 'string' ? v : null;
+}
+
+/**
+ * PURE fold: `cc.branch.*` CCEvents → BranchProjection. Folded in ingest order
+ * (seq ascending, timestamp tiebreak) so the result is order-independent under a
+ * shuffled log. Only `cc.branch.*` events are considered; everything else ignored.
+ *
+ *  - `cc.branch.created`   → a BranchInfo under steps[stepKey].branches. Lineage is
+ *    the `parentBranchId` chain (the tree is reconstructable from the pointers).
+ *  - `cc.branch.activated` → resolves the single `activeBranchId` per stepKey,
+ *    HUMAN-STICKY (ADR-0015 §2): an agent/cascade activation tagged with generation
+ *    G does NOT override a human activation recorded at-or-after G — the regenerated
+ *    agent branch still lands in lineage, just non-active.
+ *    ponytail: generation-tag-is-ordering-not-vectorclock — a cascade carries the
+ *    triggering edit's generation; humans stamp their own. We compare those numbers.
+ *  - `cc.branch.staled`    → marks a branch stale (overlay), OR — when payload
+ *    `orphaned === true` — records the stepKey as Orphaned (re-plan dropped its
+ *    slot). Both PRESERVED, never deleted. ponytail: overlays-not-lifecycle-states.
+ *
+ * #41 FLAGS stale/orphaned only — the provenance-aware regeneration cascade is #42.
+ * ponytail: flag-not-cascade.
+ */
+export function projectBranches(events: CCEvent[]): BranchProjection {
+  const branchEvents = events
+    .filter((e) => e.hook_event_type.startsWith('cc.branch.'))
+    .sort((a, b) => (a.seq !== b.seq ? a.seq - b.seq : a.timestamp - b.timestamp));
+
+  const runId =
+    (branchEvents.length
+      ? strField(branchEvents[0]!.payload, 'runId')
+      : null) ?? '';
+
+  const steps = new Map<string, StepBranchAcc>();
+  const orphaned = new Set<string>();
+
+  const accFor = (stepKey: string): StepBranchAcc => {
+    let acc = steps.get(stepKey);
+    if (!acc) {
+      acc = {
+        order: [],
+        branches: new Map(),
+        rootBranchId: null,
+        activeBranchId: null,
+        lastHumanGeneration: Number.NEGATIVE_INFINITY,
+        staleBranchIds: new Set(),
+        staleActive: false,
+      };
+      steps.set(stepKey, acc);
+    }
+    return acc;
+  };
+
+  for (const ev of branchEvents) {
+    const p = ev.payload;
+    const stepKey = strField(p, 'stepKey');
+    if (!stepKey) continue; // a branch event with no stepKey is meaningless — skip
+    const branchId = strField(p, 'branchId');
+
+    switch (ev.hook_event_type) {
+      case 'cc.branch.created': {
+        if (!branchId) break;
+        const acc = accFor(stepKey);
+        if (acc.branches.has(branchId)) break; // idempotent — first create wins
+        const parentBranchId = strField(p, 'parentBranchId'); // null = root
+        const provenance: Provenance = strField(p, 'provenance') === 'human' ? 'human' : 'agent';
+        const rawPayload = (p.payload ?? undefined) as { ref?: string; text?: string } | undefined;
+        const info: BranchInfo = {
+          branchId,
+          parentBranchId,
+          provenance,
+          createdAt: numField(p, 'createdAt', ev.timestamp),
+          active: false,
+          stale: false,
+        };
+        if (rawPayload && (rawPayload.ref !== undefined || rawPayload.text !== undefined)) {
+          info.payload = {
+            ...(rawPayload.ref !== undefined ? { ref: rawPayload.ref } : {}),
+            ...(rawPayload.text !== undefined ? { text: rawPayload.text } : {}),
+          };
+        }
+        acc.branches.set(branchId, info);
+        acc.order.push(branchId);
+        if (parentBranchId === null && acc.rootBranchId === null) acc.rootBranchId = branchId;
+        break;
+      }
+      case 'cc.branch.activated': {
+        if (!branchId) break;
+        const acc = accFor(stepKey);
+        const provenance: Provenance = strField(p, 'provenance') === 'human' ? 'human' : 'agent';
+        const generation = numField(p, 'generation', ev.seq);
+        if (provenance === 'human') {
+          // Human pick always wins and stamps the sticky generation watermark.
+          acc.activeBranchId = branchId;
+          acc.lastHumanGeneration = generation;
+        } else if (acc.lastHumanGeneration < generation) {
+          // Agent/cascade only wins when NO human pick at-or-after its generation.
+          acc.activeBranchId = branchId;
+        }
+        break;
+      }
+      case 'cc.branch.staled': {
+        const acc = accFor(stepKey);
+        if (p.orphaned === true) {
+          orphaned.add(stepKey); // re-plan dropped this Step's slot
+          break;
+        }
+        if (branchId) acc.staleBranchIds.add(branchId);
+        else acc.staleActive = true; // stale "the active branch", resolved post-fold
+        break;
+      }
+    }
+  }
+
+  // Resolve active + stamp active/stale onto each step's branches.
+  const out: BranchProjection = { runId, steps: {}, orphanedStepKeys: [] };
+  for (const [stepKey, acc] of steps) {
+    if (acc.order.length === 0) continue; // staled/orphaned-only step → no branch list
+    const activeBranchId = acc.activeBranchId ?? acc.rootBranchId ?? acc.order[0]!;
+    if (acc.staleActive) acc.staleBranchIds.add(activeBranchId);
+    const branches = acc.order.map((id) => {
+      const b = acc.branches.get(id)!;
+      b.active = id === activeBranchId;
+      b.stale = acc.staleBranchIds.has(id);
+      return b;
+    });
+    out.steps[stepKey] = { branches, activeBranchId };
+  }
+  out.orphanedStepKeys = [...orphaned].sort();
+  return out;
+}
+
+// ── branch:update broadcast payload ───────────────────────────────────────────
+// Mirrors `StepGraphUpdate` (#31): every control-plane edit re-folds + broadcasts
+// the whole BranchProjection; the Canvas replaces its view (no delta to mis-merge).
+export type BranchUpdate = BranchProjection;
 
 // ── Board projection (#36) ────────────────────────────────────────────────────
 // A Board is the unit of persistence: a grouping over already-persisted Runs.

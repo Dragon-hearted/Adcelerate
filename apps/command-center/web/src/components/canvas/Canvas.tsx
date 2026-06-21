@@ -9,7 +9,7 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { BoardSlot, RunStatus, StepGraph } from '@command-center/shared';
+import type { BoardSlot, BranchProjection, RunStatus, StepGraph } from '@command-center/shared';
 import { useStore } from '@/store/useStore';
 import { api, type BoardListItem } from '@/lib/api';
 import { StepNode, type StepNodeData } from './StepNode';
@@ -42,7 +42,7 @@ function RunStatusBadge({ status }: { status?: RunStatus }) {
 const COL = 220;
 const ROW = 90;
 
-function layout(graph: StepGraph): { nodes: Node[]; edges: Edge[] } {
+function layout(graph: StepGraph, branchProj?: BranchProjection): { nodes: Node[]; edges: Edge[] } {
   const adjacency = new Map<string, string[]>();
   const indegree = new Map<string, number>();
   for (const n of graph.nodes) indegree.set(n.stepKey, 0);
@@ -72,6 +72,10 @@ function layout(graph: StepGraph): { nodes: Node[]; edges: Edge[] } {
     const col = depth.get(n.stepKey) ?? 0;
     const row = rowByDepth.get(col) ?? 0;
     rowByDepth.set(col, row + 1);
+    // #41: the editing surface — DERIVED stale/orphaned overlays ride the StepGraph
+    // node (stamped by the orchestrator re-projection); lineage (branches +
+    // activeBranchId) comes from the BranchProjection slice. Both feed StepNode.
+    const lineage = branchProj?.steps[n.stepKey];
     const data: StepNodeData = {
       stage: n.stage,
       stepKey: n.stepKey,
@@ -82,6 +86,11 @@ function layout(graph: StepGraph): { nodes: Node[]; edges: Edge[] } {
       artifactUrl: n.artifact?.url,
       artifactMimeType: n.artifact?.mimeType,
       malformed: n.malformed,
+      stale: n.stale,
+      orphaned: n.orphaned,
+      runId: graph.runId,
+      branches: lineage?.branches,
+      activeBranchId: lineage?.activeBranchId,
     };
     return {
       id: n.stepKey,
@@ -112,7 +121,13 @@ function SlotRow({ slot }: { slot: BoardSlot }) {
   const [idx, setIdx] = useState(0);
   const i = slot.runs.length ? idx % slot.runs.length : 0;
   const graph = slot.runs[i];
-  const flow = useMemo(() => (graph ? layout(graph) : { nodes: [], edges: [] }), [graph]);
+  // #41: pull this Run's Branch lineage so the slot's Canvas gets fork/active-branch
+  // controls + overlays. Subscribed per-runId so only the shown run re-renders.
+  const branchProj = useStore((s) => (graph ? s.branchProjections[graph.runId] : undefined));
+  const flow = useMemo(
+    () => (graph ? layout(graph, branchProj) : { nodes: [], edges: [] }),
+    [graph, branchProj],
+  );
 
   return (
     <div className="flex min-h-[14rem] flex-col border-b border-border">
@@ -178,6 +193,8 @@ export function Canvas() {
   const runIds = useMemo(() => Object.keys(stepGraphs), [stepGraphs]);
   const graph = selectedRunId ? stepGraphs[selectedRunId] : undefined;
   const board = selectedBoardId ? boards[selectedBoardId] : undefined;
+  // #41: the selected Run's Branch lineage feeds the editing controls + overlays.
+  const branchProj = useStore((s) => (selectedRunId ? s.branchProjections[selectedRunId] : undefined));
 
   // Available boards for the selector / open-into-Board target.
   const [boardList, setBoardList] = useState<BoardListItem[]>([]);
@@ -232,7 +249,26 @@ export function Canvas() {
     };
   }, [selectedRunId, stepGraphs]);
 
-  const flow = useMemo(() => (graph ? layout(graph) : { nodes: [], edges: [] }), [graph]);
+  // #41: one-shot Branch-projection hydration when a run is selected but its lineage
+  // isn't in the store yet (page loaded mid-run). Live `branch:update` takes over.
+  useEffect(() => {
+    if (!selectedRunId || branchProj) return;
+    let cancelled = false;
+    api
+      .getBranches(selectedRunId)
+      .then((p) => {
+        if (!cancelled && p.runId) useStore.getState().upsertBranchProjection(p);
+      })
+      .catch(() => {/* fire-and-forget; live broadcast will fill in */});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRunId, branchProj]);
+
+  const flow = useMemo(
+    () => (graph ? layout(graph, branchProj) : { nodes: [], edges: [] }),
+    [graph, branchProj],
+  );
 
   function onSelectBoard(value: string) {
     if (!value) {

@@ -28,6 +28,10 @@ import { db } from '../db/client';
 import { events } from '../db/schema';
 import { eventBus } from '../bus/event-bus';
 import { snapshotArtifact } from '../artifacts/store';
+// #41 overlay stamping — fold the run's control events for stale/orphaned sets so a
+// live ingest preserves the editing flags. (Cycle is benign: branches.ts uses
+// loadRunEnvelopes only inside function bodies, resolved via ESM live bindings.)
+import { loadRunControlEvents, overlaySetsFromControl } from './branches';
 
 // kind → the synthetic CCEvent hook type it persists as.
 function hookTypeOf(kind: IngestEnvelope['kind']): EventType {
@@ -130,16 +134,23 @@ export async function ingestRoutes(app: FastifyInstance): Promise<void> {
     });
 
     // Re-project the full run and push the live read-model to the Canvas (with
-    // the rewritten Substrate artifact url).
-    const graph = projectStepGraph([...existing, toStore]);
+    // the rewritten Substrate artifact url). #41: stamp the CURRENT stale/orphaned
+    // overlays — folded from the run's `cc.branch.*` control events — so a live
+    // data-plane ingest PRESERVES the editing flags instead of clobbering them.
+    const { stale, orphaned } = overlaySetsFromControl(loadRunControlEvents(toStore.runId));
+    const graph = projectStepGraph([...existing, toStore], { stale, orphaned });
     eventBus.emitStepGraphUpdate(graph);
 
     return reply.code(202).send({ ok: true, deduped: false });
   });
 
-  // GET /api/runs/:runId/graph — StepGraph snapshot for Canvas hydration.
+  // GET /api/runs/:runId/graph — StepGraph snapshot for Canvas hydration. #41:
+  // stamp the same stale/orphaned overlays the live push carries, so a page reload
+  // (hydrate-via-GET) preserves the editing flags instead of dropping them until
+  // the next ingest.
   app.get<{ Params: { runId: string } }>('/api/runs/:runId/graph', async (req) => {
     const { runId } = req.params;
-    return projectStepGraph(loadRunEnvelopes(runId));
+    const { stale, orphaned } = overlaySetsFromControl(loadRunControlEvents(runId));
+    return projectStepGraph(loadRunEnvelopes(runId), { stale, orphaned });
   });
 }

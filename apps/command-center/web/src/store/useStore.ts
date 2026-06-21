@@ -6,6 +6,7 @@ import type {
   ApprovalRequest,
   ApprovalResolvedPayload,
   BoardProjection,
+  BranchProjection,
   BudgetTripSignal,
   CCEvent,
   FileChange,
@@ -63,6 +64,12 @@ interface StoreState {
   boards: Record<string, BoardProjection>;
   selectedBoardId: string | null;
 
+  // Branch/Lineage projection slice (slice #41) — runId → latest BranchProjection,
+  // fed by the `branch:update` broadcast and GET hydration. Mirrors `stepGraphs`:
+  // the broadcast carries the FULL projection each tick → just replace. NO new
+  // persistence (the truth is the event log; this is a live read-model cache).
+  branchProjections: Record<string, BranchProjection>;
+
   // envelope incompatibility slice (slice #33) — transient out-of-window rejects,
   // keyed for dismiss. NOT hydrated/persisted; a rejected envelope leaves no state.
   incompatibilities: IncompatibilitySignal[];
@@ -87,6 +94,7 @@ interface StoreState {
   selectRun: (runId: string) => void;
   upsertBoard: (b: BoardProjection) => void;
   selectBoard: (id: string) => void;
+  upsertBranchProjection: (p: BranchProjection) => void;
   addIncompatibility: (s: IncompatibilitySignal) => void;
   dismissIncompatibility: (at: number, producerSystem: string) => void;
   addBudgetTrip: (s: BudgetTripSignal) => void;
@@ -150,6 +158,7 @@ export const useStore = create<StoreState>((set) => ({
   selectedRunId: null,
   boards: {},
   selectedBoardId: null,
+  branchProjections: {},
   incompatibilities: [],
   budgetTrips: [],
 
@@ -263,6 +272,13 @@ export const useStore = create<StoreState>((set) => ({
       }
       return { selectedBoardId: id };
     }),
+
+  // The broadcast/hydration payload is the FULL projection each time → just replace
+  // (mirrors upsertStepGraph/upsertBoard). NO new persistence.
+  upsertBranchProjection: (p) =>
+    set((state) => ({
+      branchProjections: { ...state.branchProjections, [p.runId]: p },
+    })),
 
   // Newest-first; dedupe identical (producer, version) so a flapping producer
   // doesn't stack duplicate banners. Cap the transient ring.
