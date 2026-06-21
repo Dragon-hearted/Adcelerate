@@ -8,6 +8,7 @@ import { PromptConsole } from '@/components/console/PromptConsole';
 import { GitHubPanel } from '@/components/github/GitHubPanel';
 import { AgentStatusList } from '@/components/agents/AgentStatusList';
 import { FileChangePanel } from '@/components/files/FileChangePanel';
+import { Canvas } from '@/components/canvas/Canvas';
 
 /**
  * Top-level dashboard grid (the architecture diagram):
@@ -28,8 +29,14 @@ export function Dashboard() {
         {/* Center column: pending approvals dock above the live timeline. */}
         <main className="flex min-w-0 flex-1 flex-col">
           <ApprovalsPanel />
-          <div className="min-h-0 flex-1">
-            <LiveTimeline />
+          <div className="flex min-h-0 flex-1">
+            <div className="min-w-0 flex-1">
+              <LiveTimeline />
+            </div>
+            {/* Right zone beside the timeline: the live Run Canvas (slice #31). */}
+            <div className="min-w-0 flex-1 border-l border-border">
+              <Canvas />
+            </div>
           </div>
         </main>
 

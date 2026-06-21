@@ -9,6 +9,7 @@ import type {
   FileChange,
   GitHubActivity,
   SnapshotPayload,
+  StepGraph,
   TokenTick,
 } from '@command-center/shared';
 import { BURN_WINDOW_MS, MAX_EVENTS } from '@/lib/config';
@@ -48,6 +49,11 @@ interface StoreState {
   // file changes slice (used by Phase 7 panels)
   fileChanges: FileChange[];
 
+  // substrate Step-Graph slice (slice #31) — runId → latest projected graph,
+  // fed by the `step-graph:update` broadcast and the GET hydration snapshot.
+  stepGraphs: Record<string, StepGraph>;
+  selectedRunId: string | null;
+
   // actions
   setConnected: (v: boolean) => void;
   hydrate: (snap: SnapshotPayload) => void;
@@ -59,6 +65,8 @@ interface StoreState {
   setGithub: (g: GitHubActivity) => void;
   addFileChange: (f: FileChange) => void;
   setFileChanges: (f: FileChange[]) => void;
+  upsertStepGraph: (g: StepGraph) => void;
+  selectRun: (runId: string) => void;
 }
 
 function eventKey(e: CCEvent): string {
@@ -114,6 +122,8 @@ export const useStore = create<StoreState>((set) => ({
   costSamples: [],
   github: null,
   fileChanges: [],
+  stepGraphs: {},
+  selectedRunId: null,
 
   setConnected: (v) => set({ connected: v }),
 
@@ -201,4 +211,14 @@ export const useStore = create<StoreState>((set) => ({
       // Newest first; REST hydration replaces the slice.
       fileChanges: [...f].sort((a, b) => b.timestamp - a.timestamp).slice(0, 500),
     })),
+
+  // The broadcast/hydration payload is the FULL graph each time → just replace.
+  // Auto-follow the most recently updated run unless the user has pinned another.
+  upsertStepGraph: (g) =>
+    set((state) => ({
+      stepGraphs: { ...state.stepGraphs, [g.runId]: g },
+      selectedRunId: state.selectedRunId ?? g.runId,
+    })),
+
+  selectRun: (runId) => set({ selectedRunId: runId }),
 }));

@@ -31,6 +31,8 @@ export function useSocketBridge(): void {
     socket.on('token:tick', (t) => useStore.getState().addTokenTick(t));
     socket.on('github:update', (g) => useStore.getState().setGithub(g));
     socket.on('file:changed', (f) => useStore.getState().addFileChange(f));
+    // Substrate Run/Step graph (slice #31) — full graph each tick; just replace.
+    socket.on('step-graph:update', (g) => useStore.getState().upsertStepGraph(g));
 
     if (socket.connected) onConnect();
 
@@ -46,6 +48,7 @@ export function useSocketBridge(): void {
       socket.off('token:tick');
       socket.off('github:update');
       socket.off('file:changed');
+      socket.off('step-graph:update');
     };
   }, []);
 }

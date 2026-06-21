@@ -8,6 +8,7 @@ import type {
   CCEvent,
   FileChange,
   GitHubActivity,
+  StepGraph,
   SummaryResponse,
 } from '@command-center/shared';
 
@@ -83,4 +84,8 @@ export const api = {
 
   // GitHub insights (sub-stream A). `activity` returns the full bundle.
   githubActivity: () => request<GitHubActivity>('/api/github/activity'),
+
+  // Substrate Step-Graph snapshot for Canvas hydration (slice #31).
+  getRunGraph: (runId: string) =>
+    request<StepGraph>(`/api/runs/${encodeURIComponent(runId)}/graph`),
 };
