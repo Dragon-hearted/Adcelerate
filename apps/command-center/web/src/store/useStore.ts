@@ -5,6 +5,7 @@ import type {
   AgentDescriptor,
   ApprovalRequest,
   ApprovalResolvedPayload,
+  BoardProjection,
   CCEvent,
   FileChange,
   GitHubActivity,
@@ -55,6 +56,12 @@ interface StoreState {
   stepGraphs: Record<string, StepGraph>;
   selectedRunId: string | null;
 
+  // Board persistence slice (slice #36) — boardId → latest projection, fed by the
+  // `board:update` broadcast and GET hydration. `selectedBoardId` mirrors
+  // localStorage so closing/reopening the Console restores the same Canvas.
+  boards: Record<string, BoardProjection>;
+  selectedBoardId: string | null;
+
   // envelope incompatibility slice (slice #33) — transient out-of-window rejects,
   // keyed for dismiss. NOT hydrated/persisted; a rejected envelope leaves no state.
   incompatibilities: IncompatibilitySignal[];
@@ -72,6 +79,8 @@ interface StoreState {
   setFileChanges: (f: FileChange[]) => void;
   upsertStepGraph: (g: StepGraph) => void;
   selectRun: (runId: string) => void;
+  upsertBoard: (b: BoardProjection) => void;
+  selectBoard: (id: string) => void;
   addIncompatibility: (s: IncompatibilitySignal) => void;
   dismissIncompatibility: (at: number, producerSystem: string) => void;
 }
@@ -131,6 +140,8 @@ export const useStore = create<StoreState>((set) => ({
   fileChanges: [],
   stepGraphs: {},
   selectedRunId: null,
+  boards: {},
+  selectedBoardId: null,
   incompatibilities: [],
 
   setConnected: (v) => set({ connected: v }),
@@ -229,6 +240,20 @@ export const useStore = create<StoreState>((set) => ({
     })),
 
   selectRun: (runId) => set({ selectedRunId: runId }),
+
+  // The broadcast/hydration payload is the FULL projection each time → just replace.
+  upsertBoard: (b) =>
+    set((state) => ({ boards: { ...state.boards, [b.boardId]: b } })),
+
+  // ponytail: persist the selection in localStorage (native) so reopening restores
+  // the same Canvas — no extra "last board" endpoint. Guard SSR (typeof window).
+  selectBoard: (id) =>
+    set(() => {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('console.selectedBoardId', id);
+      }
+      return { selectedBoardId: id };
+    }),
 
   // Newest-first; dedupe identical (producer, version) so a flapping producer
   // doesn't stack duplicate banners. Cap the transient ring.

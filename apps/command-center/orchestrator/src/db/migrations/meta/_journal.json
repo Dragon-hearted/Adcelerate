@@ -15,6 +15,13 @@
       "when": 1780853702602,
       "tag": "0001_nice_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1782039305260,
+      "tag": "0002_sudden_manta",
+      "breakpoints": true
     }
   ]
 }

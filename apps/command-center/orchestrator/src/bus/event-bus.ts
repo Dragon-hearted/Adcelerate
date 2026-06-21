@@ -32,6 +32,7 @@ import type {
   FileChange,
   GitHubActivity,
   StepGraphUpdate,
+  BoardProjection,
   IncompatibilitySignal,
 } from '@command-center/shared';
 import { db } from '../db/client';
@@ -149,6 +150,23 @@ class EventBus {
   onStepGraphUpdate(listener: (graph: StepGraphUpdate) => void): () => void {
     this.emitter.on('step-graph:update', listener);
     return () => this.emitter.off('step-graph:update', listener);
+  }
+
+  /**
+   * Broadcast a re-projected Board slot projection (`board:update`) to all
+   * clients — drives the Console Board view (slice #36). Mirrors
+   * `emitStepGraphUpdate`: the membership/Run events persist separately; this is
+   * the live read-model push the Canvas subscribes to on open-into-Board.
+   */
+  emitBoardUpdate(board: BoardProjection): void {
+    this.io?.emit('board:update', board);
+    this.emitter.emit('board:update', board);
+  }
+
+  /** Subscribe to Board projection updates in-process. */
+  onBoardUpdate(listener: (board: BoardProjection) => void): () => void {
+    this.emitter.on('board:update', listener);
+    return () => this.emitter.off('board:update', listener);
   }
 
   /**

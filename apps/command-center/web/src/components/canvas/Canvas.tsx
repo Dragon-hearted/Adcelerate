@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -9,9 +9,9 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { RunStatus, StepGraph } from '@command-center/shared';
+import type { BoardSlot, RunStatus, StepGraph } from '@command-center/shared';
 import { useStore } from '@/store/useStore';
-import { api } from '@/lib/api';
+import { api, type BoardListItem } from '@/lib/api';
 import { StepNode, type StepNodeData } from './StepNode';
 
 // Stable nodeTypes reference (React Flow warns on inline object identity churn).
@@ -97,16 +97,118 @@ function layout(graph: StepGraph): { nodes: Node[]; edges: Edge[] } {
   return { nodes, edges };
 }
 
+const selectCls =
+  'rounded border border-border bg-card px-2 py-0.5 font-mono text-xs text-muted-foreground';
+
+// One Board position: the LATEST Run's StepGraph with a "N runs" badge and a flip
+// control to cycle the stack. ponytail: NOT a 2D multi-graph board canvas — one
+// slot's graph shown at a time with a slot list + stack flip; the rich 2D board is
+// deferred to later fidelity slices.
+function SlotRow({ slot }: { slot: BoardSlot }) {
+  const [idx, setIdx] = useState(0);
+  const i = slot.runs.length ? idx % slot.runs.length : 0;
+  const graph = slot.runs[i];
+  const flow = useMemo(() => (graph ? layout(graph) : { nodes: [], edges: [] }), [graph]);
+
+  return (
+    <div className="flex min-h-[14rem] flex-col border-b border-border">
+      <div className="flex items-center justify-between bg-card/40 px-3 py-1.5">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-foreground">{slot.slotId}</span>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {slot.producerSystem}
+          </span>
+          <RunStatusBadge status={graph?.status} />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+            {slot.runs.length} {slot.runs.length === 1 ? 'run' : 'runs'}
+          </span>
+          {slot.runs.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => setIdx((p) => p + 1)}
+              className={`${selectCls} hover:text-foreground`}
+              title="Cycle the stacked runs"
+            >
+              {i + 1}/{slot.runs.length} ›
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className="relative min-h-0 flex-1">
+        {graph && flow.nodes.length > 0 ? (
+          <ReactFlow
+            nodes={flow.nodes}
+            edges={flow.edges}
+            nodeTypes={nodeTypes}
+            fitView
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background />
+            <Controls showInteractive={false} />
+          </ReactFlow>
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+            No steps yet for this slot.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
- * The Console Canvas — a React Flow view of one Run's Step Graph. Hydrates the
- * selected run from `GET /api/runs/:runId/graph` on mount, then re-renders live
- * as `step-graph:update` broadcasts replace the store's graph for that run.
+ * The Console Canvas — a React Flow view of one Run's Step Graph, or a Board's slot
+ * projection (slice #36). Hydrates the selected run from `GET /api/runs/:runId/graph`;
+ * a Board is restored from `localStorage` + `GET /api/boards/:id` on mount and kept
+ * live via the `board:update` broadcast. No board selected → single-Run behavior.
  */
 export function Canvas() {
   const selectedRunId = useStore((s) => s.selectedRunId);
   const stepGraphs = useStore((s) => s.stepGraphs);
+  const selectedBoardId = useStore((s) => s.selectedBoardId);
+  const boards = useStore((s) => s.boards);
   const runIds = useMemo(() => Object.keys(stepGraphs), [stepGraphs]);
   const graph = selectedRunId ? stepGraphs[selectedRunId] : undefined;
+  const board = selectedBoardId ? boards[selectedBoardId] : undefined;
+
+  // Available boards for the selector / open-into-Board target.
+  const [boardList, setBoardList] = useState<BoardListItem[]>([]);
+  // open-into-Board mini-form.
+  const [opening, setOpening] = useState(false);
+  const [openTarget, setOpenTarget] = useState(''); // boardId or '__new__'
+  const [openSlot, setOpenSlot] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+
+  const refreshBoards = () =>
+    api.listBoards().then(setBoardList).catch(() => {/* fire-and-forget */});
+
+  // Fetch the board list on mount.
+  useEffect(() => {
+    refreshBoards();
+  }, []);
+
+  // Restore on mount: read the persisted selection and re-fetch its projection so
+  // closing/reopening the Console restores the same Canvas. Mirrors run hydration.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = window.localStorage.getItem('console.selectedBoardId');
+    if (!saved) return;
+    let cancelled = false;
+    api
+      .getBoard(saved)
+      .then((b) => {
+        if (!cancelled && b.boardId) {
+          useStore.getState().upsertBoard(b);
+          useStore.getState().selectBoard(b.boardId);
+        }
+      })
+      .catch(() => {/* board gone — leave selection unset */});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // One-shot hydration when a run is selected but not yet in the store (e.g. the
   // page loaded after the run started). Live updates take over from there.
@@ -126,32 +228,135 @@ export function Canvas() {
 
   const flow = useMemo(() => (graph ? layout(graph) : { nodes: [], edges: [] }), [graph]);
 
+  function onSelectBoard(value: string) {
+    if (!value) {
+      // Deselect → back to single-Run view; clear the persisted restore key.
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('console.selectedBoardId');
+      }
+      useStore.setState({ selectedBoardId: null });
+      return;
+    }
+    useStore.getState().selectBoard(value);
+    if (!boards[value]) {
+      api
+        .getBoard(value)
+        .then((b) => useStore.getState().upsertBoard(b))
+        .catch(() => {/* live broadcast will fill in */});
+    }
+  }
+
+  async function handleOpenIntoBoard() {
+    if (!selectedRunId) return;
+    let boardId = openTarget;
+    if (openTarget === '__new__') {
+      const { id } = await api.createBoard(newTitle || undefined);
+      boardId = id;
+    }
+    if (!boardId) return;
+    const proj = await api.openIntoBoard(boardId, selectedRunId, openSlot || undefined);
+    useStore.getState().upsertBoard(proj);
+    useStore.getState().selectBoard(boardId);
+    refreshBoards();
+    setOpening(false);
+    setOpenTarget('');
+    setOpenSlot('');
+    setNewTitle('');
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <div className="flex items-center gap-2">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Run Canvas
+            {board ? 'Board' : 'Run Canvas'}
           </h2>
-          <RunStatusBadge status={graph?.status} />
+          {board ? (
+            <span className="font-mono text-xs text-foreground">{board.title}</span>
+          ) : (
+            <RunStatusBadge status={graph?.status} />
+          )}
         </div>
-        {runIds.length > 0 ? (
-          <select
-            value={selectedRunId ?? ''}
-            onChange={(e) => useStore.getState().selectRun(e.target.value)}
-            className="rounded border border-border bg-card px-2 py-0.5 font-mono text-xs text-muted-foreground"
-          >
-            {runIds.map((id) => (
-              <option key={id} value={id}>
-                {id}
+        <div className="flex items-center gap-2">
+          {/* Board selector (native) beside the Run selector. */}
+          <select value={selectedBoardId ?? ''} onChange={(e) => onSelectBoard(e.target.value)} className={selectCls}>
+            <option value="">— Run view —</option>
+            {boardList.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.title} ({b.runCount})
               </option>
             ))}
           </select>
-        ) : null}
+          {!board && runIds.length > 0 ? (
+            <select
+              value={selectedRunId ?? ''}
+              onChange={(e) => useStore.getState().selectRun(e.target.value)}
+              className={selectCls}
+            >
+              {runIds.map((id) => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {!board && selectedRunId ? (
+            <button type="button" onClick={() => setOpening((v) => !v)} className={`${selectCls} hover:text-foreground`}>
+              Open into Board
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="relative min-h-0 flex-1">
-        {graph && flow.nodes.length > 0 ? (
+      {/* open-into-Board mini-form: pick an existing board or create one. */}
+      {opening && !board && selectedRunId ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/40 px-3 py-2">
+          <select value={openTarget} onChange={(e) => setOpenTarget(e.target.value)} className={selectCls}>
+            <option value="">Select a board…</option>
+            {boardList.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.title}
+              </option>
+            ))}
+            <option value="__new__">+ New board…</option>
+          </select>
+          {openTarget === '__new__' ? (
+            <input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Board title (optional)"
+              className={selectCls}
+            />
+          ) : null}
+          <input
+            value={openSlot}
+            onChange={(e) => setOpenSlot(e.target.value)}
+            placeholder="Slot name (optional)"
+            className={selectCls}
+          />
+          <button
+            type="button"
+            onClick={handleOpenIntoBoard}
+            disabled={!openTarget}
+            className={`${selectCls} hover:text-foreground disabled:opacity-50`}
+          >
+            Add Run
+          </button>
+        </div>
+      ) : null}
+
+      <div className="relative min-h-0 flex-1 overflow-auto">
+        {board ? (
+          board.slots.length > 0 ? (
+            board.slots.map((slot) => (
+              <SlotRow key={`${slot.producerSystem} ${slot.slotId}`} slot={slot} />
+            ))
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              This Board has no Runs yet — open a Run into it.
+            </div>
+          )
+        ) : graph && flow.nodes.length > 0 ? (
           <ReactFlow
             nodes={flow.nodes}
             edges={flow.edges}

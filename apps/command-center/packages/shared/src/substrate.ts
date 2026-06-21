@@ -106,6 +106,13 @@ export const runStartedSchema = z.object({
   // or semver), so the freshness signal (ADR-0022 / #40) can flag a stale copy.
   // Optional on the wire; the 1.0→1.1 upcaster defaults it to "unknown".
   producerVersion: z.string().optional(),
+  // #36: a producer-declared Slot Identity for cross-Run Board merge. Additive
+  // optional — NO envelope-version bump (same pattern as `producerVersion`;
+  // absence is well-defined → open-into-Board falls back to runId).
+  // ponytail: producer-declared slotId wire-supported; the Emitter emits it when
+  // a producer needs the natural-unit grain (likely #37). v1 assigns it via the
+  // open-into-Board param instead, so the byte-identical Emitter pair is untouched.
+  slotId: z.string().min(1).optional(),
 });
 export type RunStarted = z.infer<typeof runStartedSchema>;
 
@@ -433,6 +440,76 @@ export function projectStepGraph(events: IngestEnvelope[]): StepGraph {
 // broadcasts the whole graph. The Canvas just replaces its view — no delta
 // reconciliation to get wrong.
 export type StepGraphUpdate = StepGraph;
+
+// ── Board projection (#36) ────────────────────────────────────────────────────
+// A Board is the unit of persistence: a grouping over already-persisted Runs.
+// Cross-Run stacking is a READ-side projection keyed on `(producerSystem, slotId)`
+// [ADR-0025] — emit identity stays `(runId, step-key)`. Re-generating the same
+// creative slot lands in the SAME slot rather than scattering.
+
+/** One Board position: every Run sharing a `(producerSystem, slotId)`, latest first. */
+export interface BoardSlot {
+  slotId: string;
+  producerSystem: string;
+  runs: StepGraph[];
+}
+
+export interface BoardProjection {
+  boardId: string;
+  title: string;
+  createdAt: number;
+  slots: BoardSlot[];
+}
+
+/**
+ * PURE, ORDER-INDEPENDENT fold: Board metadata + Run memberships + each member's
+ * StepGraph → BoardProjection. Mirrors `projectStepGraph` discipline (#32): no DB,
+ * no I/O, byte-stable under shuffled inputs.
+ *
+ *  - Group memberships by composite `(producerSystem, slotId)` — each group is one slot.
+ *  - Within a slot, `runs` are the members' StepGraphs (looked up by runId), sorted
+ *    by `startedAt` DESC (latest first), tiebreak `runId` ASC. A membership whose
+ *    runId is absent from `runGraphs` is skipped (Run not yet folded / board-less).
+ *  - Slots sorted by `slotId` ASC (byte-stable, like `projectStepGraph`'s stepKey sort).
+ */
+export function projectBoard(
+  meta: { boardId: string; title: string; createdAt: number },
+  memberships: Array<{ runId: string; producerSystem: string; slotId: string }>,
+  runGraphs: Record<string, StepGraph>,
+): BoardProjection {
+  const bySlot = new Map<string, BoardSlot>();
+
+  for (const m of memberships) {
+    const graph = runGraphs[m.runId];
+    if (!graph) continue; // runId absent → excluded (board-less / not yet folded)
+    const key = `${m.producerSystem}\u0000${m.slotId}`;
+    let slot = bySlot.get(key);
+    if (!slot) {
+      slot = { slotId: m.slotId, producerSystem: m.producerSystem, runs: [] };
+      bySlot.set(key, slot);
+    }
+    slot.runs.push(graph);
+  }
+
+  // Within each slot: latest startedAt first, tiebreak runId ascending.
+  for (const slot of bySlot.values()) {
+    slot.runs.sort((a, b) => {
+      const sa = a.startedAt ?? 0;
+      const sb = b.startedAt ?? 0;
+      if (sa !== sb) return sb - sa; // DESC
+      return a.runId < b.runId ? -1 : a.runId > b.runId ? 1 : 0;
+    });
+  }
+
+  // Slots sorted by slotId ascending → byte-stable projection under shuffled input.
+  // Tiebreak on producerSystem so distinct producers sharing a slotId stay stable.
+  const slots = [...bySlot.values()].sort((a, b) => {
+    if (a.slotId !== b.slotId) return a.slotId < b.slotId ? -1 : 1;
+    return a.producerSystem < b.producerSystem ? -1 : a.producerSystem > b.producerSystem ? 1 : 0;
+  });
+
+  return { boardId: meta.boardId, title: meta.title, createdAt: meta.createdAt, slots };
+}
 
 // ponytail: Board/slot merge + `(producerSystem, slotId)` is slice #36; artifact
 // snapshot-on-ingest is slice #32 — both deliberately deferred. The envelope-

@@ -27,6 +27,7 @@ import { tokenRoutes } from './routes/tokens';
 import { fileRoutes } from './routes/files';
 import { githubRoutes } from './routes/github';
 import { ingestRoutes } from './routes/ingest';
+import { boardRoutes } from './routes/boards';
 import { startTranscriptIngest } from './tokens/transcript-ingest';
 import { startFileWatcher } from './files/watcher';
 import { startGithubPoller } from './github/poller';
@@ -80,6 +81,9 @@ async function buildServer() {
   // `step-graph:update` over Socket.IO via the EventBus (io attached in
   // registerGateway, before any ingest POST can land).
   await app.register(ingestRoutes);
+  // Board persistence + open-into-Board + slot projection (slice #36). Broadcasts
+  // `board:update` over Socket.IO via the EventBus (same path as step-graph:update).
+  await app.register(boardRoutes);
 
   // Catch-all error handler. Client errors (4xx, e.g. validation) keep their
   // message; anything 5xx/unknown collapses to a generic 500 — never leak

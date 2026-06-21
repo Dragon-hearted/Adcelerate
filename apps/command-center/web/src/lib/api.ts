@@ -5,12 +5,21 @@ import type {
   AgentDescriptor,
   AgentRole,
   ApprovalDecision,
+  BoardProjection,
   CCEvent,
   FileChange,
   GitHubActivity,
   StepGraph,
   SummaryResponse,
 } from '@command-center/shared';
+
+// `GET /api/boards` list row (lighter than a full projection — no slots).
+export interface BoardListItem {
+  id: string;
+  title: string;
+  createdAt: number;
+  runCount: number;
+}
 
 // The /api/files/diff response. The watcher already attaches a unified `diff`
 // to each FileChange; this on-demand endpoint returns a fresh one for a path.
@@ -88,4 +97,19 @@ export const api = {
   // Substrate Step-Graph snapshot for Canvas hydration (slice #31).
   getRunGraph: (runId: string) =>
     request<StepGraph>(`/api/runs/${encodeURIComponent(runId)}/graph`),
+
+  // Board persistence (slice #36). Mirrors getRunGraph's baseURL/JSON handling.
+  createBoard: (title?: string) =>
+    request<{ id: string }>('/api/boards', {
+      method: 'POST',
+      body: JSON.stringify(title ? { title } : {}),
+    }),
+  listBoards: () => request<BoardListItem[]>('/api/boards'),
+  openIntoBoard: (boardId: string, runId: string, slotId?: string) =>
+    request<BoardProjection>(`/api/boards/${encodeURIComponent(boardId)}/runs`, {
+      method: 'POST',
+      body: JSON.stringify(slotId ? { runId, slotId } : { runId }),
+    }),
+  getBoard: (boardId: string) =>
+    request<BoardProjection>(`/api/boards/${encodeURIComponent(boardId)}`),
 };

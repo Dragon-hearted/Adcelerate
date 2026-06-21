@@ -42,7 +42,8 @@ const RUN_STEP_HOOK_TYPES = new Set<EventType>([
 ]);
 
 /** Load a run's persisted Run/Step envelopes in append order (seq ascending). */
-function loadRunEnvelopes(runId: string): IngestEnvelope[] {
+// Exported so the Board routes (#36) re-fold member Runs without copy-pasting it.
+export function loadRunEnvelopes(runId: string): IngestEnvelope[] {
   const rows = db
     .select()
     .from(events)

@@ -9,7 +9,7 @@ import type { AgentDescriptor } from './agents';
 import type { ApprovalRequest, ApprovalDecision, ApprovalStatus } from './approvals';
 import type { GitHubActivity } from './github';
 import type { TokenTick } from './tokens';
-import type { StepGraphUpdate } from './substrate';
+import type { StepGraphUpdate, BoardProjection } from './substrate';
 
 // Initial hydration payload sent on connect (mirrors the legacy `{type:'initial'}`).
 export interface SnapshotPayload {
@@ -40,6 +40,7 @@ export interface ServerToClient {
   'github:update': (g: GitHubActivity) => void;
   'file:changed': (f: FileChange) => void;
   'step-graph:update': (g: StepGraphUpdate) => void;  // Substrate Run/Step graph (slice #31)
+  'board:update': (b: BoardProjection) => void;       // Board slot projection (slice #36)
   'incompatibility': (s: IncompatibilitySignal) => void;  // out-of-window envelope rejected (slice #33)
 }
 
