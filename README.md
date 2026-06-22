@@ -233,7 +233,42 @@ just cc-dev
 
 > **Expected:** Dashboard at http://localhost:3000 and orchestrator at http://localhost:4100; Ctrl-C the `cc-dev` process to stop both.
 
-### 3. Run a representative system (ReadmeEngine — no credentials required)
+### 3. Run a task — describe what you want, Execute Mode routes it
+
+```bash
+/adcelerate-execute Generate captions for client-video.mp4
+```
+
+> **Expected:** Execute Mode scores every active system in systems.yaml against your task (capability match, I/O types, domain tags, description), routes to the best fit — or asks you to pick when it's ambiguous — then runs it with an APPROVE / MODIFY / REJECT gate at each stage and validates the output against that system's acceptance criteria. You stay engineer-as-CEO: nothing auto-approves.
+
+### 4. Add or migrate a system — Build Mode
+
+```bash
+/adcelerate-build                 # new system
+/adcelerate-build migrate <name>   # wrap existing code
+```
+
+> **Expected:** A 6-step interview (scope → domain knowledge → acceptance criteria → scaffold → validate → register) with approval gates after scope, criteria, validation, and registration. On completion the system is written into systems.yaml and knowledge/graph.yaml, after which /adcelerate-execute can route to it.
+
+### 5. Fix a broken or degraded system — Diagnosis Mode
+
+```bash
+/adcelerate-diagnose image-engine
+/adcelerate-diagnose "captions render blank"
+```
+
+> **Expected:** Inspects the system end-to-end, cross-references past failures in knowledge/graph.yaml, then proposes a fix with a risk assessment and waits for your approval before applying it — afterwards it adds a guardrail and records the failure pattern. Execute Mode auto-escalates here after 3 failed retries.
+
+### 6. Systems load on demand (each is a git submodule)
+
+```bash
+just sub-ensure scene-board   # init systems/scene-board only if empty; no-op otherwise
+just sub-update               # later: pull all submodules to latest remote
+```
+
+> **Expected:** Routing reads the lightweight systems.yaml registry to decide which system handles a task; only the chosen system's code is initialized. Each system owns its own `bun install` — there is no monorepo-wide install.
+
+### 7. Run a system standalone (ReadmeEngine — no credentials required)
 
 ```bash
 cd systems/readme-engine && bun run src/cli.ts generate --target root
@@ -241,7 +276,7 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 
 > **Expected:** Regenerates the root README.md from the registry and knowledge sources. Each system runs standalone from its own directory; some also expose a justfile (`just sub <system> <recipe>`).
 
-### 4. Browse skills, agents, and commands from the library catalog
+### 8. Browse skills, agents, and commands from the library catalog
 
 ```bash
 /library
@@ -255,6 +290,7 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 |---------|-------------|
 | `just --list` | List every available monorepo recipe. |
 | `just sub <system-path> <recipe>` | Run a recipe inside a system submodule that has its own justfile (e.g. `just sub systems/readme-engine check`). |
+| `just sub-ensure <name>` | Lazily initialize a single system submodule (no-op if already checked out). |
 | `just systems-list` | List all registered systems and their status from systems.yaml. |
 | `just systems-health` | Quick health check across all registered systems (knowledge + justfile presence). |
 | `just cc-dev` | Start the Claude Command Center dashboard — orchestrator (:4100) + web (:3000). |
