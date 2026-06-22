@@ -18,6 +18,12 @@ Collect the following from the user (ask for anything missing):
 6. **References** — Product shots, previous scene outputs, style references available?
 7. **Technical requirements** — Aspect ratio, duration (video), format, platform target?
 
+### Step 1b: Match a Prompt Recipe (if the deliverable has a defined format)
+
+Before loading general model knowledge, check the **Prompt Recipes — When to Use What** table in [SKILL.md](SKILL.md). If the request maps to a recipe (static ad, UGC clip, JSON image/video prompt, prompt enhancement, Kling shot list), open that recipe's `## Prompt Recipe: …` section inside the named model guide and follow its structure, field specs, and examples exactly. The recipe replaces the generic compose step (Step 4) for that deliverable; you still apply the model's Constraints (Step 5).
+
+If no recipe matches, continue with the generic workflow below.
+
 ### Step 2: Load Model Knowledge
 
 Read the target model's knowledge file:
@@ -38,12 +44,14 @@ For image and video prompts, read the relevant visual direction files:
 systems/prompt-writer/knowledge/visual-direction/shot-types.md
 systems/prompt-writer/knowledge/visual-direction/composition.md
 systems/prompt-writer/knowledge/visual-direction/lighting.md
+systems/prompt-writer/knowledge/visual-direction/facial-expressions.md   # when a face must show emotion
 ```
 
 Select appropriate vocabulary for:
 - **Camera** — Shot size, angle, framing, lens feel
 - **Composition** — Spatial rules, depth cues, element placement
 - **Lighting** — Mood, direction, quality, subject interaction
+- **Facial expression** — When a person/character must show a specific emotion, translate the feeling into camera-visible muscle movements (FACS-based). Never output AU codes — plain English only.
 
 ### Step 4: Compose Prompt
 

@@ -21,12 +21,31 @@ PromptWriter is the single authority for writing AI image, video, and voice gene
 
 3. If the user mentions a specific model name, default to **[WP] Write Prompt** with that model pre-selected.
 
+4. **Before composing, check the Prompt Recipes table below.** If the request implies a specific deliverable or output format (a static ad, a UGC clip, a JSON prompt, "enhance this prompt", a Kling shot list), the matching recipe — folded into the named model guide — defines the exact structure to follow. Pick the recipe by deliverable + format first, then apply that model guide's Constraints. Then run [WP].
+
+## Prompt Recipes — When to Use What
+
+Task/format-specific prompt recipes are folded into the model guide that best fits each deliverable. Match the request to a row, then open that model guide's `## Prompt Recipe: …` section for the full structure and examples.
+
+| Deliverable / request | Output format | Recipe → model guide |
+|---|---|---|
+| Static advertising visual (headline + CTA + typography) | prose | Static Ads Prompter → `models/image/ideogram.md` |
+| Image prompt from a rough idea or brief | prose | Image Prompt Generator → `models/image/nanobanana-pro.md` |
+| "Enhance / improve this image prompt" | prose | Image Prompt Enhancer → `models/image/nanobanana-pro.md` |
+| Image prompt as a structured JSON object | JSON | JSON Image Prompter → `models/image/nanobanana-pro.md` |
+| Kling shot-list video prompt | 4-part text (style/anchor/shots/sound) | Kling 3.0 Shot-List Prompter → `models/video/kling.md` |
+| "Enhance / improve this video prompt" | prose | Video Prompt Enhancer → `models/video/kling.md` |
+| Video prompt as a structured JSON object | JSON | JSON Video Prompter → `models/video/kling.md` |
+| UGC / creator / talking-head clip with exact dialogue | labeled fields | UGC Prompter → `models/video/sora-2.md` |
+
+**Recipe vs. model:** the recipe defines *how to shape the prompt* for a deliverable; the model guide's Constraints define *what the model allows*. The JSON and enhancer recipes are model-agnostic — they're homed on the primary model of their media type, but the structure transfers to any model in that category (apply the target model's Constraints).
+
 ## Knowledge Sources
 
 All prompt engineering knowledge lives in `systems/prompt-writer/knowledge/`:
 
 - **Model guides** — `models/{image,video,voice}/<model>.md` — Per-model prompt structure, best practices, constraints, worked examples, failure modes
-- **Visual direction** — `visual-direction/{shot-types,composition,lighting}.md` — Model-agnostic camera, composition, and lighting vocabulary
+- **Visual direction** — `visual-direction/{shot-types,composition,lighting,facial-expressions}.md` — Model-agnostic camera, composition, lighting, and FACS-based facial-expression vocabulary
 - **Domain knowledge** — `domain.md` — Cross-cutting principles: Style Anchor pattern, creative modes, reference strategies, failure mode catalog
 - **Schema template** — `models/_schema.md` — Template for adding new models
 - **Registry** — `models/_registry.md` — Master index of all registered models
