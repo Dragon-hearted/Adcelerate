@@ -12,7 +12,7 @@
 
 ---
 
-Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles nine independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
+Adcelerate is an open-source monorepo for AI-powered marketing and media work. It bundles ten independent systems — covering image generation, video storyboards, caption rendering, scraping, and a reusable prompt knowledge base — with a curated library of skills, agents, and commands orchestrated through Claude Code.
 
 ---
 
@@ -36,7 +36,7 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 
 | Feature | Description |
 |---------|-------------|
-| **AutoEditor** | Word-highlighted caption renderer for vertical video — Whisper.cpp transcribes, Remotion paints TikTok-style overlays, all driven from a CLI. |
+| **AutoEditor** | Dual-engine AI video editor for short-form content — a timeline-composition engine assembles clips, transitions, and audio while a motion-graphics engine paints word-highlighted captions and animated overlays (Whisper.cpp + Remotion), all driven from a CLI. |
 | **SceneBoard** | Brief-to-storyboard CLI for short-form video — composite multi-panel storyboard sheets (GPT Image 2 via Higgsfield, ImageEngine fallback) plus a Phase 2 cinematic video prompt. |
 | **Pinboard** | Terminal-first reference board with built-in AI image generation — Pinterest-style import, ImageEngine generations, and Claude vision tagging in an Ink TUI. |
 | **Instagram Scrapper** | Instagram post, reel, and profile extractor — authenticates via a browser-driven Private API login and downloads media to disk. |
@@ -60,6 +60,7 @@ Adcelerate is an open-source monorepo for AI-powered marketing and media work. I
 | [**MoodBoarder**](systems/MoodBoarder) | Per-client Pinterest moodboard generator. Given an image or video reference (plus optional text description), MoodBoarder analyzes the visual style with Claude vision, generates Pinterest search keywords, scrapes high-resolution images and/or videos, and assembles them into a timestamped per-client / per-deliverable folder. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**PromptWriter**](systems/prompt-writer) | Single source of prompt-engineering knowledge. Per-model writing guides, style anchors, and a registry of image, video, and voice generation models referenced by every other system. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 | [**ScrapeEngine**](systems/scrape-engine) | Centralized adaptive web-scraping gateway over the Scrapling framework. Spawns a uv-run Python sidecar (StealthyFetcher / DynamicFetcher / Fetcher) with anti-bot + Cloudflare bypass and adaptive CSS element tracking, exposing a generic TypeScript client + CLI that other systems call to fetch and extract from markup-drifting sites. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
+| [**PostBoard**](systems/post-board) | Brand-aware social post & carousel studio. Turns a short brief into on-brand Instagram/Facebook/LinkedIn posts and carousels for Dragonhearted Labs — generating copy via the best copy skills and a catchy cover (CSS riso default, optional Higgsfield background), then opening an editable DOM/CSS slide editor (move/resize/rotate layers, brand-only fonts & colors, riso/ink-bleed treatments) served by a local Bun + Hono server, and exporting one PNG per slide plus a combined PDF. | ![active](https://img.shields.io/badge/Status-active-brightgreen) |
 
 ---
 
@@ -116,6 +117,12 @@ graph TD
     scrape_engine --> uv
     scrape_engine --> scrapling
     scrape_engine --> camoufox
+    post_board[post-board]
+    post_board --> bun
+    post_board --> hono
+    post_board --> playwright
+    post_board --> image_engine
+    post_board --> higgsfield
 ```
 
 ---
@@ -150,7 +157,7 @@ graph TD
 
 | Category | Count |
 |----------|-------|
-| Skills | 41 |
+| Skills | 61 |
 | Agents | 10 |
 | Commands | 12 |
 
@@ -162,12 +169,12 @@ graph TD
 | **ad-creative** | When the user wants to generate, iterate, or scale ad creative — headlines, descriptions, primary text, or full ad variations — for any paid advertising platform. |
 | **ai-seo** | When the user wants to optimize content for AI search engines, get cited by LLMs, or appear in AI-generated answers. |
 | **analytics-tracking** | When the user wants to set up, improve, or audit analytics tracking and measurement. |
+| **auto-editor-workflow** | The end-to-end auto-editor pipeline — ingest raw footage, transcribe & caption with whisper.cpp, generate motion-graphic clips with Hyperframes, add gradient/textured backgrounds with ShaderGradient, assemble a JSON timeline, preview/edit in the browser editor, and export MP4 with Remotion. Use when building or running the auto-editor, wiring its stages together, or understanding how captions, motion clips, backgrounds, and the timeline fit into a single render. Triggers: "auto-editor pipeline", "caption and edit a video", "assemble the timeline", "export the edit", "how does the editor work end to end". |
 | **churn-prevention** | When the user wants to reduce churn, build cancellation flows, set up save offers, recover failed payments, or implement retention strategies. |
 | **watch** | Watch a video (URL or local path). Downloads with yt-dlp, extracts auto-scaled frames with ffmpeg, pulls the transcript from captions (or Whisper API fallback), and hands the result to Claude so it can answer questions about what's in the video. |
 | **cold-email** | Write B2B cold emails and follow-up sequences that get replies. |
 | **competitor-alternatives** | When the user wants to create competitor comparison or alternative pages for SEO and sales enablement. |
 | **content-strategy** | When the user wants to plan a content strategy, decide what content to create, or figure out what topics to cover. |
-| **copy-editing** | When the user wants to edit, review, or improve existing marketing copy. |
 
 ### Top Agents
 
@@ -219,21 +226,12 @@ cd systems/readme-engine && bun install     # install deps per system you run (n
 
 ### 2. Start the Claude Command Center (browser dashboard)
 
-The **Claude Command Center** (`apps/command-center`) is the platform dashboard — a
-localhost-first web app (Next.js 15 + Fastify + Drizzle + Socket.IO) for driving
-Claude Code from the browser: submit prompts, watch a live event timeline,
-approve/deny tool calls, answer questions, track token spend, and view GitHub
-activity across one or more concurrent agents.
-
 ```bash
-just cc-install      # first run only: install web + orchestrator + shared deps
-just cc-migrate      # optional: backfill history from a legacy events.db (pass its path)
-just cc-dev          # orchestrator (:4100) + web (:3000), Ctrl-C stops both
+just cc-install     # first run only: install web + orchestrator deps
+just cc-dev
 ```
 
-> **Expected:** Dashboard at http://localhost:3000, orchestrator API + Socket.IO at
-> http://localhost:4100 (both bound to 127.0.0.1). Auth uses your local Claude CLI
-> session by default — no API key required (set `ANTHROPIC_API_KEY` to override).
+> **Expected:** Dashboard at http://localhost:3000 and orchestrator at http://localhost:4100; Ctrl-C the `cc-dev` process to stop both.
 
 ### 3. Run a representative system (ReadmeEngine — no credentials required)
 
@@ -260,7 +258,6 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 | `just systems-list` | List all registered systems and their status from systems.yaml. |
 | `just systems-health` | Quick health check across all registered systems (knowledge + justfile presence). |
 | `just cc-dev` | Start the Claude Command Center dashboard — orchestrator (:4100) + web (:3000). |
-| `just cc-install / just cc-migrate` | Install Command Center deps / backfill history from a legacy `events.db` (optional path arg). |
 
 ---
 
@@ -282,7 +279,7 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 ```
 adcelerate/
 ├── systems/                # Independent processing systems
-│   ├── auto-editor/            # AI video editor for short-form content
+│   ├── AutoEditor/             # AI video editor for short-form content
 │   ├── SceneBoard/             # Brief-to-storyboard CLI for short-form video
 │   ├── Pinboard/               # Terminal-first reference board with built-in AI image generation
 │   ├── Instagram Scrapper/     # Instagram post, reel, and profile extractor
@@ -290,11 +287,9 @@ adcelerate/
 │   ├── ReadmeEngine/           # Drift-aware README generator for the monorepo
 │   ├── MoodBoarder/            # Per-client Pinterest moodboard generator
 │   ├── PromptWriter/           # Single source of prompt-engineering knowledge
-│   └── ScrapeEngine/           # Centralized adaptive web-scraping gateway over the Scrapling framework
+│   ├── ScrapeEngine/           # Centralized adaptive web-scraping gateway over the Scrapling framework
+│   └── PostBoard/              # Brand-aware social post & carousel studio
 ├── apps/                   # Deployable applications
-│   ├── command-center/         # Claude Command Center — browser dashboard (active)
-│   ├── server/                 # Legacy observability server (deprecated → command-center)
-│   └── client/                 # Legacy observability client (deprecated → command-center)
 ├── knowledge/              # Shared knowledge base
 ├── scripts/                # Automation scripts
 ├── docs/                   # Documentation

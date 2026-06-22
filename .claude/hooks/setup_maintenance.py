@@ -74,7 +74,7 @@ def _dir_size(path: Path) -> int:
 def check_database_health(project: Path) -> list[CheckResult]:
     """Check SQLite database existence, integrity, row counts, WAL files."""
     results: list[CheckResult] = []
-    db_path = project / "apps" / "server" / "events.db"
+    db_path = project / "apps" / "command-center" / "orchestrator" / "command-center.db"
 
     if not db_path.exists():
         results.append(CheckResult("Database exists", "fail", f"{db_path} not found"))
@@ -108,7 +108,7 @@ def check_database_health(project: Path) -> list[CheckResult]:
 
     # WAL / SHM files
     for suffix in ("-wal", "-shm"):
-        wal_path = db_path.parent / f"events.db{suffix}"
+        wal_path = db_path.parent / f"command-center.db{suffix}"
         if wal_path.exists():
             size = wal_path.stat().st_size
             status = "warn" if size > 10 * 1024 * 1024 else "pass"
@@ -316,13 +316,12 @@ def check_dependencies(project: Path) -> list[CheckResult]:
     else:
         results.append(CheckResult("Bun runtime", "fail", "bun not found on PATH"))
 
-    # node_modules
-    for app in ("server", "client"):
-        nm = project / "apps" / app / "node_modules"
-        if nm.is_dir():
-            results.append(CheckResult(f"{app} node_modules", "pass", "Exists"))
-        else:
-            results.append(CheckResult(f"{app} node_modules", "warn", f"apps/{app}/node_modules not found -- run bun install"))
+    # node_modules (command-center is a bun workspace — deps hoist to its root)
+    nm = project / "apps" / "command-center" / "node_modules"
+    if nm.is_dir():
+        results.append(CheckResult("command-center node_modules", "pass", "Exists"))
+    else:
+        results.append(CheckResult("command-center node_modules", "warn", "apps/command-center/node_modules not found -- run just cc-install"))
 
     return results
 
