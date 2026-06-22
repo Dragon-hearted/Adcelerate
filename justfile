@@ -6,31 +6,6 @@ set positional-arguments := true
 default:
   @just --list
 
-# ─── Observability System (DEPRECATED → Command Center) ───
-# The Vue + Hono dashboard (apps/client + apps/server) has been superseded by
-# the Claude Command Center (apps/command-center). These obs-* recipes now
-# delegate to the cc-* equivalents. The legacy apps remain on disk (not deleted)
-# and the 848MB legacy events.db is retained as the data-migration source.
-
-# DEPRECATED → use `just cc-dev`. Delegates to the Command Center dev runner.
-obs-start:
-  @echo "⚠️  obs-start is deprecated → starting the Claude Command Center via 'just cc-dev'."
-  @just cc-dev
-
-# DEPRECATED. The Command Center runs in the foreground; Ctrl-C the cc-dev process to stop it.
-obs-stop:
-  @echo "⚠️  obs-stop is deprecated. The Command Center runs in the foreground — Ctrl-C your 'just cc-dev' process to stop it."
-
-# DEPRECATED → use `just cc-dev`.
-obs-bg:
-  @echo "⚠️  obs-bg is deprecated → starting the Claude Command Center via 'just cc-dev'."
-  @just cc-dev
-
-# DEPRECATED → use `just cc-install`.
-obs-install:
-  @echo "⚠️  obs-install is deprecated → installing the Claude Command Center via 'just cc-install'."
-  @just cc-install
-
 # ─── Claude Command Center (apps/command-center) ──────────
 # Next.js 15 + Fastify + Drizzle + Socket.IO dashboard that replaces the
 # observability stack above. Localhost-first: orchestrator :4100, web :3000.
@@ -203,7 +178,7 @@ reset:
   rm -rf app_docs/maintenance_results.md
   rm -rf logs/
 
-# Reset everything including database
-reset-all: reset obs-stop
-  rm -f apps/server/events.db apps/server/events.db-wal apps/server/events.db-shm
+# Reset everything including the Command Center database
+reset-all: reset
+  rm -f apps/command-center/orchestrator/command-center.db apps/command-center/orchestrator/command-center.db-wal apps/command-center/orchestrator/command-center.db-shm
   @echo "Full reset complete"

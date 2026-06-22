@@ -227,16 +227,13 @@ activity across one or more concurrent agents.
 
 ```bash
 just cc-install      # first run only: install web + orchestrator + shared deps
-just cc-migrate      # optional: backfill history from the legacy events.db
+just cc-migrate      # optional: backfill history from a legacy events.db (pass its path)
 just cc-dev          # orchestrator (:4100) + web (:3000), Ctrl-C stops both
 ```
 
 > **Expected:** Dashboard at http://localhost:3000, orchestrator API + Socket.IO at
 > http://localhost:4100 (both bound to 127.0.0.1). Auth uses your local Claude CLI
 > session by default — no API key required (set `ANTHROPIC_API_KEY` to override).
->
-> _The previous Vue/Hono dashboard (`apps/client` + `apps/server`) is **deprecated**
-> and superseded by the Command Center; the `obs-*` recipes now delegate to `cc-*`._
 
 ### 3. Run a representative system (ReadmeEngine — no credentials required)
 
@@ -263,8 +260,7 @@ cd systems/readme-engine && bun run src/cli.ts generate --target root
 | `just systems-list` | List all registered systems and their status from systems.yaml. |
 | `just systems-health` | Quick health check across all registered systems (knowledge + justfile presence). |
 | `just cc-dev` | Start the Claude Command Center dashboard — orchestrator (:4100) + web (:3000). |
-| `just cc-install / just cc-migrate` | Install Command Center deps / backfill history from the legacy `events.db`. |
-| `just obs-* (deprecated)` | Legacy observability recipes — now delegate to the `cc-*` Command Center equivalents. |
+| `just cc-install / just cc-migrate` | Install Command Center deps / backfill history from a legacy `events.db` (optional path arg). |
 
 ---
 

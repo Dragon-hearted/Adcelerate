@@ -199,7 +199,7 @@ Three independent boundaries, so no single failure exposes the host:
    allowlist (Anthropic, GitHub-no-creds, npm/PyPI/uv). RFC-1918 (`10/8`,
    `172.16/12`, `192.168/16`), link-local (`169.254/16`), and the host gateway are
    explicitly dropped *before* the allowlist — defeating DNS-rebind / LAN pivots and
-   making the host obs server (`localhost:4000`) unreachable from the sandbox.
+   making host-local services (e.g. the Command Center orchestrator on `localhost:4100`) unreachable from the sandbox.
 2. **Filesystem** — the agent works on a **throwaway per-run clone** staged in a host
    temp dir and bind-mounted to `/work`. It is **never** a bind-mount of your real
    working tree, and `/var/run/docker.sock` is never mounted.
@@ -265,8 +265,8 @@ exit are also opened as drafts.
 
 ## Observability
 
-The sandbox is intentionally cut off from `localhost:4000`, so the in-container agent
-cannot reach the obs server. If you want dashboard visibility, the host orchestrator
+The sandbox is intentionally cut off from `localhost:4100`, so the in-container agent
+cannot reach the Command Center orchestrator. If you want dashboard visibility, the host orchestrator
 streams the agent's `stream-json` output (token-scrubbed) and can forward it from the
 host side.
 
