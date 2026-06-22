@@ -169,6 +169,27 @@ sandbox-doctor:
 sandbox-clean:
   bun run sandbox/orchestrator.ts --clean
 
+# ─── Brand / Client Context ───────────────────────────────
+
+# Make a client the active marketing context: copies
+# client/<name>/product-marketing-context.md → .agents/ (the path every
+# marketing skill reads). e.g. `just brand-activate dragonhearted_labs`
+brand-activate *args:
+  #!/usr/bin/env sh
+  set -eu
+  name="${1:-}"
+  if [ -z "$name" ]; then echo "usage: just brand-activate <client>" >&2; exit 2; fi
+  src="client/$name/product-marketing-context.md"
+  if [ ! -f "$src" ]; then
+    echo "✗ $src not found" >&2
+    echo "  clients with a product-marketing-context.md:" >&2
+    for d in client/*/; do [ -f "${d}product-marketing-context.md" ] && echo "    - $(basename "$d")" >&2; done
+    exit 1
+  fi
+  mkdir -p .agents
+  cp "$src" .agents/product-marketing-context.md
+  echo "✓ active marketing context → $name  (.agents/product-marketing-context.md)"
+
 # ─── Cleanup ──────────────────────────────────────────────
 
 # Reset artifacts (logs, results)
