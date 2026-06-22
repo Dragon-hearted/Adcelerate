@@ -12,7 +12,7 @@ Adcelerate is a monorepo that combines multiple independent applications and an 
 
 - Applications are loosely coupled — they share no runtime code or dependencies
 - Integration happens at the orchestration layer (justfile, hooks) rather than at the code level
-- The observability system (apps/) is the only cross-cutting concern that monitors agent sessions across all parts
+- The Claude Command Center (`apps/command-center`) is the only cross-cutting concern that monitors agent sessions across all parts
 
 ## Part: AutoEditor
 
@@ -71,36 +71,32 @@ React Client (Vite) → REST API (Hono/Bun) → fal.ai API (image generation)
 - Google Generative AI for additional AI features
 - Client communicates with server over REST (server port 3001, client port 5173)
 
-## Part: Observability Dashboard
+## Part: Claude Command Center
 
 ### Type: Full-Stack Web Application
 
-**Stack:**
-- Server: Bun native HTTP + WebSocket, SQLite
-- Client: Vue 3, Vite, Tailwind CSS
+**Stack:** Next.js 15, Fastify, Drizzle, Socket.IO, SQLite
 
 **Architecture Pattern:** Real-time Event Dashboard
 
 ```
-Claude Code Hooks (Python) → HTTP POST → Bun Server → SQLite (events.db)
-                                                     → WebSocket → Vue Dashboard
+Claude Code Hooks (Python) → HTTP POST :4100 → Fastify Orchestrator → SQLite (command-center.db)
+                                                                     → Socket.IO → Next.js Dashboard
 ```
 
 **Key Components:**
-- `apps/server/src/index.ts` — HTTP + WebSocket server, event ingestion
-- `apps/server/src/db.ts` — SQLite database layer for event storage
-- `apps/server/src/types.ts` — Event type definitions
-- `apps/server/src/theme.ts` — Theme configuration
-- `apps/client/src/App.vue` — Main dashboard application
-- `apps/client/src/components/` — Dashboard UI components
-- `apps/client/src/composables/` — Vue composables for data fetching
+- `apps/command-center/orchestrator/` — Fastify + Socket.IO server, event ingestion, token tracking
+- `apps/command-center/web/` — Next.js dashboard UI
+- `apps/command-center/packages/shared/` — shared event/agent/approval contracts
 
 **Data Flow:**
 1. Claude Code hooks (`.claude/hooks/*.py`) fire during agent sessions
-2. Hook scripts POST events to the observability server
-3. Server stores events in SQLite (`events.db`)
-4. Server pushes updates to connected clients via WebSocket
-5. Vue dashboard renders real-time agent activity
+2. Hook scripts POST events to the orchestrator on :4100
+3. Orchestrator stores events in SQLite (`command-center.db`)
+4. Orchestrator pushes updates to connected clients via Socket.IO
+5. Next.js dashboard renders real-time agent activity
+
+> The previous Vue/Hono observability stack (`apps/server` + `apps/client`) was removed; the Command Center supersedes it.
 
 ## Part: Platform (Root)
 
@@ -126,7 +122,7 @@ Python scripts managing the agent session lifecycle:
 
 #### 3. Justfile Orchestration
 Top-level task runner with recipes for:
-- Observability system (start/stop/install)
+- Claude Command Center (cc-install/cc-dev/cc-migrate)
 - Submodule management (init/update/sub-command delegation)
 - Claude Code sessions (various modes)
 - Cleanup (logs, databases, artifacts)
@@ -142,10 +138,10 @@ Extensive skill library under `.claude/skills/bmad-*` for project management, de
 - Environment loaded via justfile `set dotenv-load := true`
 
 ### Database Strategy
-- SQLite used across all server components (observability events.db, pinboard pinboard.db)
+- SQLite used across all server components (Command Center command-center.db, pinboard pinboard.db)
 - No shared database — each service owns its data
 
 ### Testing Strategy
 - AutoEditor: Vitest with comprehensive test suite
 - pinboard: No test framework detected (quick scan)
-- observability: No test framework detected (quick scan)
+- Command Center: `bun test` in the orchestrator

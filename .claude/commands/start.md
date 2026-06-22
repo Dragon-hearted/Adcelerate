@@ -1,3 +1,3 @@
-Run this command in the background 
+Run this command in the background
 
-`sh scripts/start-system.sh`
+`just cc-dev`

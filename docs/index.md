@@ -31,11 +31,11 @@
 - **Root:** `pinboard/`
 - **Entry Point:** `server/src/index.ts`
 
-### Observability Dashboard (web)
+### Claude Command Center (web)
 - **Type:** Real-time Event Dashboard
-- **Tech Stack:** Vue 3, Vite, Tailwind CSS, Bun, SQLite, WebSocket
-- **Root:** `apps/`
-- **Entry Point:** `server/src/index.ts`
+- **Tech Stack:** Next.js 15, Fastify, Drizzle, Socket.IO, SQLite
+- **Root:** `apps/command-center/`
+- **Entry Point:** `orchestrator/src/server.ts`
 
 ### Platform (library)
 - **Type:** Agent Tooling / Skill Library
@@ -57,13 +57,13 @@
 
 - [AutoEditor README](../auto-editor/README.md) — Usage, CLI options, project structure, roadmap
 - [Pinboard README](../pinboard/README.md) — Architecture overview, getting started
-- [Observability Server README](../apps/server/README.md) — Basic server setup
+- [Command Center README](../apps/command-center/README.md) — Dashboard setup and architecture
 - **AI Docs** (`ai_docs/`) — Claude Code documentation cache (hooks, skills, agents, channels, plugins, MCP, sub-agents). Not committed; regenerate locally with `/load_ai_docs`.
 
 ## Getting Started
 
 1. **Clone with submodules:** `git clone --recurse-submodules <repo-url>`
 2. **Initialize:** `just sub-init`
-3. **Install deps:** `just obs-install` and `bun install` in each submodule
+3. **Install deps:** `just cc-install` and `bun install` in each submodule
 4. **Configure:** Set up `.env` files (root for Anthropic key, pinboard for fal.ai key)
-5. **Run:** `just obs-start` for dashboard, `just sub pinboard dev` for pinboard, `cd systems/auto-editor && bun run src/cli.ts` for captioning
+5. **Run:** `just cc-dev` for the dashboard, `just sub pinboard dev` for pinboard, `cd systems/auto-editor && bun run src/cli.ts` for captioning

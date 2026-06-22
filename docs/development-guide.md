@@ -20,8 +20,8 @@ cd Adcelerate
 # Or if already cloned, initialize submodules
 just sub-init
 
-# Install observability dependencies
-just obs-install
+# Install Claude Command Center dependencies
+just cc-install
 
 # Install AutoEditor dependencies
 cd systems/auto-editor && bun install && cd ../..
@@ -47,13 +47,12 @@ Copy from `.env.example` in `pinboard/` directory.
 
 ## Running Applications
 
-### Observability Dashboard
+### Claude Command Center
 ```bash
-just obs-start         # Start server + client
-just obs-bg            # Start in background
-just obs-stop          # Stop all
-# Dashboard: http://localhost:5173
-# Server:    http://localhost:4000
+just cc-install        # first run only: install web + orchestrator deps
+just cc-dev            # orchestrator (:4100) + web (:3000), Ctrl-C stops both
+# Dashboard: http://localhost:3000
+# Orchestrator: http://localhost:4100
 ```
 
 ### AutoEditor
@@ -96,7 +95,7 @@ bun run format         # Biome formatting
 ```
 
 ### Other Parts
-No test frameworks detected in quick scan for pinboard or observability parts.
+No test framework detected in quick scan for pinboard. The Command Center runs `bun test` in its orchestrator.
 
 ## Build Commands
 
@@ -107,11 +106,10 @@ bun run build          # TypeScript compile + Vite build
 bun run preview        # Preview production build
 ```
 
-### Observability Client
+### Command Center Web
 ```bash
-cd apps/client
-bun run build          # vue-tsc + Vite build
-bun run preview        # Preview production build
+cd apps/command-center
+just build             # Next.js production build
 ```
 
 ### AutoEditor
@@ -137,7 +135,7 @@ just discord           # Discord channel session
 
 ```bash
 just reset             # Remove logs, hook logs, result files
-just reset-all         # Full reset including observability databases
+just reset-all         # Full reset including the Command Center database
 ```
 
 ## Submodule Management
