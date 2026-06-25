@@ -281,3 +281,4 @@ QilinAI/
 
 # Regenerable Claude Code doc cache — rebuild locally via /load_ai_docs (not committed)
 ai_docs/
+.claude/plans/
